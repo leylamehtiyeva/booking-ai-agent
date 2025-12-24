@@ -28,7 +28,7 @@ class Room(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     name: Optional[str] = None
-    facilities: List[str] = Field(default_factory=list)  # Booking/Apify часто даёт списком строк
+    facilities: List[Any] = Field(default_factory=list)
     options: List[RoomOption] = Field(default_factory=list)
 
 
@@ -64,7 +64,7 @@ class ListingRaw(BaseModel):
     description: Optional[str] = None
 
     # Facilities на уровне объекта (иногда есть)
-    facilities: List[str] = Field(default_factory=list)
+    facilities: List[Any] = Field(default_factory=list)
 
     # Rooms
     rooms: List[Room] = Field(default_factory=list)
