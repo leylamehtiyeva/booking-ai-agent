@@ -18,6 +18,8 @@ class Ternary(str, Enum):
 class EvidenceSource(str, Enum):
     STRUCTURED = "structured"
     LLM = "llm"
+    LLM_FALLBACK = "llm_fallback"
+
 
 
 class Evidence(BaseModel):
