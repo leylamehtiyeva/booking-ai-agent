@@ -1,14 +1,9 @@
 from __future__ import annotations
-
 import json
 from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field as PydField
-
 from google.adk.agents import Agent
-
 from app.schemas.fields import Field
-
 
 class IntentRoute(BaseModel):
     model_config = ConfigDict(extra="forbid")

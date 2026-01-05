@@ -9,6 +9,5 @@ def main() -> None:
     req = build_search_request_adk(text)
     print(req.model_dump())
 
-
 if __name__ == "__main__":
     main()
