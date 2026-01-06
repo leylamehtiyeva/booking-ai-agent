@@ -86,8 +86,10 @@ def match_field_in_facilities(
     rule = next((r for r in rules if r.field == field), None)
     if rule is None:
         # if we don't have a rule yet: cannot decide deterministically
-        return FieldMatch(value=Ternary.UNCERTAIN, confidence=0.0, evidence=None)
-
+        return FieldMatch(
+        value=Ternary.UNCERTAIN,
+        confidence=0.0,
+        evidence=[],)
     for fac_text, path in facilities_with_paths:
         for kw in rule.keywords:
             if kw in fac_text:
@@ -105,7 +107,11 @@ def match_field_in_facilities(
 
 
     # If we had rules but found nothing — say NO with moderate confidence.
-    return FieldMatch(value=Ternary.NO, confidence=0.7, evidence=[])
+    return FieldMatch(
+    value=Ternary.UNCERTAIN,
+    confidence=0.0,
+    evidence=[],)
+
 
 
 def match_listing_structured(listing: ListingRaw, request: SearchRequest) -> MatchReport:
