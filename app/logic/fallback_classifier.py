@@ -75,7 +75,7 @@ async def _classify_field_async(
     """
     Возвращает (value, confidence, snippet) из JSON ответа LLM.
     """
-    agent = build_fallback_classifier_agent(model=model)
+    agent = build_fallback_classifier_agent(model_name=model)
     session_service = InMemorySessionService()
     runner = Runner(agent=agent, app_name=APP_NAME, session_service=session_service)
 
@@ -114,25 +114,20 @@ async def _classify_field_async(
     )
 
 
-def fallback_classify_field(
+async def fallback_classify_field_async(
     listing: ListingRaw,
     field: Field,
     model: str | None = None,
 ) -> FieldMatch:
     """
-    Public sync API: ListingRaw + Field -> FieldMatch.
+    Public async API: safe to call from async orchestrator.
     """
     text = _listing_text(listing)
-    import os
 
     if model is None:
-        model = os.getenv("GEMINI_MODEL")
-        if not model:
-            raise ValueError("GEMINI_MODEL is not set. Put GEMINI_MODEL=gemini-2.0-flash in .env")
+        model = os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL
 
-
-
-    value_s, conf, snippet = asyncio.run(_classify_field_async(field, text, model=model))
+    value_s, conf, snippet = await _classify_field_async(field, text, model=model)
 
     value_s = value_s.upper().strip()
     if value_s not in {"YES", "NO", "UNCERTAIN"}:
@@ -159,3 +154,16 @@ def fallback_classify_field(
         confidence=max(0.0, min(1.0, conf)),
         evidence=evidence,
     )
+
+
+
+def fallback_classify_field(
+    listing: ListingRaw,
+    field: Field,
+    model: str | None = None,
+) -> FieldMatch:
+    """
+    Public sync API: use only from non-async scripts.
+    """
+    return asyncio.run(fallback_classify_field_async(listing, field, model=model))
+

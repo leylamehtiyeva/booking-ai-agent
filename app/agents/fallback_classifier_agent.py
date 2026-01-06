@@ -1,7 +1,10 @@
 # app/agents/fallback_classifier_agent.py
 from __future__ import annotations
 
+import os
 from google.adk.agents import Agent
+from google.adk.models.google_llm import Gemini
+
 
 FALLBACK_CLASSIFIER_INSTRUCTION = """
 You are a strict classifier.
@@ -27,13 +30,21 @@ Rules:
 - Output MUST start with { and end with }.
 """
 
-from google.adk.agents import Agent
 
-def build_fallback_classifier_agent(model: str = "gemini-1.5-flash-002") -> Agent:
-    return Agent(
-        name="fallback_classifier",
-        model=model,
-        instruction=FALLBACK_CLASSIFIER_INSTRUCTION,
+def build_fallback_classifier_agent(
+    model_name: str = "models/gemini-2.0-flash",
+) -> Agent:
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise ValueError("Missing GEMINI_API_KEY or GOOGLE_API_KEY")
+
+    llm = Gemini(
+        model=model_name,
+        api_key=api_key,
     )
 
-
+    return Agent(
+        name="fallback_classifier",
+        model=llm,
+        instruction=FALLBACK_CLASSIFIER_INSTRUCTION,
+    )

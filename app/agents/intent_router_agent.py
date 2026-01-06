@@ -4,6 +4,9 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field as PydField
 from google.adk.agents import Agent
 from app.schemas.fields import Field
+import os
+from google.adk.agents import Agent
+from google.adk.models.google_llm import Gemini
 
 class IntentRoute(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -30,8 +33,18 @@ Rules:
 - Do NOT invent fields.
 - Output JSON only. No explanations.
 """
+
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise ValueError("Missing GEMINI_API_KEY/GOOGLE_API_KEY")
+
+    llm = Gemini(
+        model="models/gemini-2.0-flash",
+        api_key=api_key,
+    )
+
     return Agent(
         name="intent_router",
-        model="gemini-2.0-flash",
+        model=llm,
         instruction=instruction,
     )
