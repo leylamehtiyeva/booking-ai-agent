@@ -32,7 +32,6 @@ def _strip_json_fence(text: str) -> str:
     return t
 
 
-# ✅ ЭТО единственная "настоящая" async функция, которая делает ADK вызов
 async def _route_intent_via_adk(user_text: str) -> IntentRoute:
     _ensure_gemini_key()
 
