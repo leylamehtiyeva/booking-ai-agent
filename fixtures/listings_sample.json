@@ -1,53 +1,52 @@
 [
-    {
-      "id": "apt-1",
-      "name": "Apartment with Kitchen and Kettle",
-      "url": "https://example.com/apt-1",
-      "rating": 9.3,
-      "price": 120,
-      "currency": "USD",
-      "property_type": "apartment",
-      "facilities": [
-        { "name": "Kitchen" },
-        { "name": "Private bathroom" },
-        { "name": "Electric kettle" },
-        { "name": "Free WiFi" }
-      ],
-      "description": "Spacious apartment in Baku. Guests have a private bathroom. Full kitchen with electric kettle. Cooking facilities available.",
-      "rooms": [
-        {
-          "name": "Entire apartment",
-          "facilities": [
-            "Kitchen",
-            "Bath",
-            "Kettle",
-            "Free WiFi"
-          ]
-        }
-      ]
+  {
+    "id": "apt-1",
+    "name": "Apartment with Kitchen and Kettle",
+    "url": "https://example.com/apt-1",
+    "rating": 9.3,
+    "price": 120,
+    "currency": "USD",
+    "property_type": "apartment",
+    "available_dates": {
+      "check_in": "2026-02-01",
+      "check_out": "2026-03-31"
     },
-    {
-      "id": "hotel-2",
-      "name": "Hotel without Kitchen",
-      "url": "https://example.com/hotel-2",
-      "rating": 8.1,
-      "price": 80,
-      "currency": "USD",
-      "property_type": "hotel",
-      "facilities": [
-        { "name": "Private bathroom" },
-        { "name": "Free WiFi" }
-      ],
-      "description": "Hotel in Baku with private bathroom and WiFi. No kitchen in rooms.",
-      "rooms": [
-        {
-          "name": "Double room",
-          "facilities": [
-            "Bath",
-            "Free WiFi"
-          ]
-        }
-      ]
-    }
-  ]
-  
+    "facilities": [
+      { "name": "Kitchen" },
+      { "name": "Private bathroom" },
+      { "name": "Electric kettle" },
+      { "name": "Free WiFi" }
+    ],
+    "description": "Spacious apartment in Baku. Guests have a private bathroom. Full kitchen with electric kettle. Cooking facilities available.",
+    "rooms": [
+      {
+        "name": "Entire apartment",
+        "facilities": ["Kitchen", "Bath", "Kettle", "Free WiFi"]
+      }
+    ]
+  },
+  {
+    "id": "hotel-2",
+    "name": "Hotel without Kitchen",
+    "url": "https://example.com/hotel-2",
+    "rating": 8.1,
+    "price": 80,
+    "currency": "USD",
+    "property_type": "hotel",
+    "available_dates": {
+      "check_in": "2026-03-10",
+      "check_out": "2026-03-30"
+    },
+    "facilities": [
+      { "name": "Private bathroom" },
+      { "name": "Free WiFi" }
+    ],
+    "description": "Hotel in Baku with private bathroom and WiFi. No kitchen in rooms.",
+    "rooms": [
+      {
+        "name": "Double room",
+        "facilities": ["Bath", "Free WiFi"]
+      }
+    ]
+  }
+]
