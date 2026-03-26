@@ -71,27 +71,30 @@ def route_intent_adk(user_text: str) -> IntentRoute:
     # sync wrapper (использовать только вне event loop)
     return asyncio.run(route_intent_adk_async(user_text))
 
+from datetime import date
+
+def _parse_iso_date(s: str | None) -> date | None:
+    if not s:
+        return None
+    try:
+        return date.fromisoformat(s)
+    except ValueError:
+        return None
 
 async def build_search_request_adk_async(user_text: str) -> SearchRequest:
-    r = await route_intent_adk_async(user_text)
+    intent = await route_intent_adk_async(user_text)
+
+    check_in = _parse_iso_date(intent.check_in)
+    check_out = _parse_iso_date(intent.check_out)
 
     return SearchRequest(
-        user_message=user_text,
-        city=r.city,
-        # dates пока нет в IntentRoute → оставляем None
-        check_in=None,
-        check_out=None,
-        # гости/комнаты/валюта → дефолты
-        adults=2,
-        children=0,
-        rooms=1,
-        currency="USD",
-        budget_max=None,
-        must_have_fields=r.must_have_fields,
-        nice_to_have_fields=r.nice_to_have_fields,
+        city=intent.city ,  # можно оставить как есть, если city обязательный на уровне guardrails
+        check_in=check_in,
+        check_out=check_out,
+        must_have_fields=intent.must_have_fields,
+        nice_to_have_fields=intent.nice_to_have_fields,
         forbidden_fields=[],
-        min_guest_rating=None,
-        property_types=None,
+        raw_query=user_text,
     )
 
 
