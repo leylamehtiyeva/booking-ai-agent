@@ -152,6 +152,12 @@ async def _repair_intent_with_llm(
             "check_out": "YYYY-MM-DD|null",
             "must_have_fields": "list[canonical_key]",
             "nice_to_have_fields": "list[canonical_key]",
+            "filters": {
+                "bedrooms_min": "int|null",
+                "bedrooms_max": "int|null",
+                "area_sqm_min": "float|null",
+                "area_sqm_max": "float|null",
+            },
             "unknown_requests": "list[str]",
         },
     }
@@ -185,6 +191,7 @@ def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
         "check_out": intent_dict.get("check_out"),
         "must_have_fields": [],
         "nice_to_have_fields": [],
+        "filters": intent_dict.get("filters"),
         "unknown_requests": list(intent_dict.get("unknown_requests") or []),
     }
 
@@ -196,13 +203,11 @@ def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
                 continue
             if isinstance(x, str):
                 s = x.strip()
-                # by value
                 try:
                     ok.append(Field(s))
                     continue
                 except Exception:
                     pass
-                # by name
                 try:
                     ok.append(Field[s])
                     continue
@@ -221,7 +226,6 @@ def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
     out["must_have_fields"] = parse_list(intent_dict.get("must_have_fields"))
     out["nice_to_have_fields"] = parse_list(intent_dict.get("nice_to_have_fields"))
     return out
-
 
 async def _validate_and_repair_intent(intent: Any, attempts: int = 2) -> Tuple[IntentRoute, List[str]]:
     """Validate intent as IntentRoute with up to N LLM repair attempts.
