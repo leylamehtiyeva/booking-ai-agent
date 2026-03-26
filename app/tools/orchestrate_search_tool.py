@@ -277,6 +277,7 @@ def _build_request(user_text: str, intent_obj: IntentRoute, check_in: date, chec
         nice_to_have_fields=intent_obj.nice_to_have_fields,
         forbidden_fields=[],
         min_guest_rating=None,
+        filters=intent_obj.filters,
         property_types=None,
     )
 

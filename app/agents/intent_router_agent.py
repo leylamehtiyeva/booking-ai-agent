@@ -7,7 +7,7 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field as PydField
 from google.adk.agents import Agent
 from google.adk.models.google_llm import Gemini
-
+from app.schemas.filters import SearchFilters
 from app.schemas.fields import Field
 
 
@@ -23,7 +23,7 @@ class IntentRoute(BaseModel):
     # IMPORTANT: these are Enum values (Field.value)
     must_have_fields: list[Field] = PydField(default_factory=list)
     nice_to_have_fields: list[Field] = PydField(default_factory=list)
-
+    filters: SearchFilters | None = None
     unknown_requests: list[str] = PydField(default_factory=list)
 
 
@@ -39,16 +39,48 @@ Return ONLY VALID JSON matching this schema:
 {json.dumps(schema, ensure_ascii=False)}
 
 Rules:
-- The user may write in ANY language. Map the meaning to the canonical keys.
-- Choose fields ONLY from allowed_fields (canonical keys): {allowed_fields}
-- If a user request does not map confidently to any Field, add the original phrase to unknown_requests.
-- Do NOT invent fields.
-- Dates:
-  - If the user provided check-in/check-out dates, output them as ISO strings YYYY-MM-DD.
-  - Otherwise set check_in/check_out to null.
-- Return ONLY a valid JSON object. No markdown. No code fences.
-"""
 
+GENERAL:
+- The user may write in ANY language. Map the meaning to canonical keys.
+- Return ONLY a valid JSON object. No markdown. No explanations.
+
+CANONICAL FIELDS:
+- Choose fields ONLY from allowed_fields (canonical keys): {allowed_fields}
+- Put boolean amenities (e.g. kitchen, private_bathroom, wifi) into:
+  - must_have_fields
+  - nice_to_have_fields
+
+FILTERS (IMPORTANT):
+Some user requests are NOT amenities. They are structured numeric constraints.
+
+These MUST go into "filters", not into must_have_fields.
+
+Use the following mapping rules:
+
+Bedrooms:
+- "X bedrooms" → filters.bedrooms_min = X
+- "at least X bedrooms" → filters.bedrooms_min = X
+- "more than X bedrooms" → filters.bedrooms_min = X
+- "up to X bedrooms" / "at most X bedrooms" / "less than X bedrooms" → filters.bedrooms_max = X
+- "between A and B bedrooms" → filters.bedrooms_min = A AND filters.bedrooms_max = B
+
+Area:
+- "X sqm" / "X square meters" → filters.area_sqm_min = X
+- "at least X sqm" / "more than X sqm" / "bigger than X square meters" → filters.area_sqm_min = X
+- "up to X sqm" / "less than X sqm" / "at most X square meters" → filters.area_sqm_max = X
+- "between A and B sqm" → filters.area_sqm_min = A AND filters.area_sqm_max = B
+
+IMPORTANT:
+- Do NOT put numeric constraints into must_have_fields
+- Do NOT leave them in unknown_requests if they can be mapped to filters
+
+UNKNOWN REQUESTS:
+- If a request cannot be mapped to either canonical fields or filters, add it to unknown_requests
+
+DATES:
+- If the user provided check-in/check-out dates, output them as ISO strings YYYY-MM-DD
+- Otherwise set them to null
+"""
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     if not api_key:
         raise ValueError("Missing GEMINI_API_KEY/GOOGLE_API_KEY")

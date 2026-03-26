@@ -2,7 +2,7 @@ from datetime import date
 from typing import List, Optional
 
 from pydantic import BaseModel, Field as PydanticField, model_validator
-
+from app.schemas.filters import SearchFilters
 from app.schemas.fields import Field
 
 
@@ -38,8 +38,11 @@ class SearchRequest(BaseModel):
     min_guest_rating: Optional[float] = None
     property_types: Optional[List[Field]] = None
 
+    #filters
+    filters: SearchFilters | None = None
+    
     @model_validator(mode="after")
-    def validate_dates(self):
+    def validate_date_range(self):
         if self.check_in and self.check_out:
             if self.check_out <= self.check_in:
                 raise ValueError("check_out must be after check_in")
