@@ -4,7 +4,6 @@ import asyncio
 import json
 import os
 from datetime import date
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from google.genai import Client
@@ -12,20 +11,23 @@ from google.genai import types as genai_types
 from pydantic import ValidationError
 
 from app.agents.intent_router_agent import IntentRoute
+from app.config import MAX_ITEMS_DEFAULT, MAX_ITEMS_HARD_CAP
 from app.logic.fallback_classifier import fallback_classify_field_async
 from app.logic.matcher_structured import match_listing_structured
+from app.retrieval import Source, get_candidates
 from app.schemas.fields import Field
 from app.schemas.listing import ListingRaw
 from app.schemas.match import Ternary
 from app.schemas.query import SearchRequest
 
 
-FIXTURES_PATH = Path("fixtures/listings_sample.json")
-
-
-def _load_fixture_listings(path: Path = FIXTURES_PATH) -> List[ListingRaw]:
-    data = json.loads(path.read_text(encoding="utf-8"))
-    return [ListingRaw.model_validate(x) for x in data]
+def _fails_must(matches: dict[Field, Any], must_fields: List[Field] | None) -> bool:
+    """Strict must-have filter: if any must field is explicitly NO -> reject."""
+    for f in (must_fields or []):
+        fm = matches.get(f)
+        if fm is not None and fm.value == Ternary.NO:
+            return True
+    return False
 
 
 def _score_listing(req: SearchRequest, matches: dict[Field, Any]) -> Tuple[float, int, int, List[str]]:
@@ -33,7 +35,7 @@ def _score_listing(req: SearchRequest, matches: dict[Field, Any]) -> Tuple[float
 
     - must-have YES: +10
     - must-have UNCERTAIN: +3
-    - must-have NO: -100
+    - must-have NO: -100   (but we ALSO filter out strict NO candidates)
     - nice-to-have YES: +1
     """
     score = 0.0
@@ -43,7 +45,13 @@ def _score_listing(req: SearchRequest, matches: dict[Field, Any]) -> Tuple[float
     must_yes = 0
 
     for f in (req.must_have_fields or []):
-        fm = matches[f]
+        fm = matches.get(f)
+        if fm is None:
+            # should not happen, but keep safe
+            score += 0
+            why.append(f"{f.name}: missing match")
+            continue
+
         if fm.value == Ternary.YES:
             score += 10
             must_yes += 1
@@ -188,11 +196,13 @@ def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
                 continue
             if isinstance(x, str):
                 s = x.strip()
+                # by value
                 try:
                     ok.append(Field(s))
                     continue
                 except Exception:
                     pass
+                # by name
                 try:
                     ok.append(Field[s])
                     continue
@@ -275,11 +285,17 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
     ranked: List[Dict[str, Any]] = []
     for lst in listings:
         report = match_listing_structured(lst, req)
+
+        # ✅ strict must-have filter already at structured stage (only NO is rejected)
+        if _fails_must(report.matches, req.must_have_fields):
+            continue
+
         score, must_yes, must_total, why = _score_listing(req, report.matches)
         ranked.append(
             {
                 "listing_name": lst.name,
                 "listing_id": getattr(lst, "id", None),
+                "report": report,  # keep report for post-fallback re-check
                 "matches": report.matches,
                 "score": score,
                 "must_have_matched": must_yes,
@@ -305,8 +321,9 @@ async def _apply_fallback_topk(req: SearchRequest, ranked: List[Dict[str, Any]],
             fm = item["matches"].get(f)
             if fm is not None and fm.value == Ternary.UNCERTAIN:
                 fm2 = await fallback_classify_field_async(item["listing"], f)
-                item["matches"][f] = fm2
+                item["matches"][f] = fm2  # updates both item["matches"] and report.matches (same dict)
 
+        # ✅ re-score after fallback
         score, must_yes, must_total, why = _score_listing(req, item["matches"])
         item["score"] = score
         item["must_have_matched"] = must_yes
@@ -319,14 +336,18 @@ async def _apply_fallback_topk(req: SearchRequest, ranked: List[Dict[str, Any]],
 def _format_results(req: SearchRequest, ranked: List[Dict[str, Any]], top_n: int, dropped_requests: List[str]) -> Dict[str, Any]:
     results_out = []
     for r in ranked[: max(0, top_n)]:
+        lst = r.get("listing")
         results_out.append(
             {
                 "title": r["listing_name"],
+                "url": getattr(lst, "url", None),
+                "id": getattr(lst, "id", None),
                 "score": r["score"],
                 "must": f"{r['must_have_matched']}/{r['must_have_total']}",
                 "why": r["why"],
             }
         )
+
 
     not_found_fields = set()
     for r in ranked[: max(0, top_n)]:
@@ -359,10 +380,18 @@ def _format_results(req: SearchRequest, ranked: List[Dict[str, Any]], top_n: int
 async def orchestrate_search(
     user_text: str,
     intent: Dict[str, Any],
-    top_n: int = 5,
+    top_n: int = MAX_ITEMS_DEFAULT,
     fallback_top_k: int = 5,
+    max_items: int = MAX_ITEMS_DEFAULT,
+    source: Source = "fixtures",
 ) -> Dict[str, Any]:
-    """High-level search orchestration tool (fixtures MVP)."""
+    """High-level search orchestration tool (fixtures + apify)."""
+    if max_items > MAX_ITEMS_HARD_CAP:
+        return {
+            "need_clarification": True,
+            "questions": [f"Too many items requested ({max_items}). Please use <= {MAX_ITEMS_HARD_CAP}."],
+        }
+
     intent_obj, dropped_requests = await _validate_and_repair_intent(intent, attempts=2)
 
     check_in, check_out = _require_dates(intent_obj)
@@ -374,16 +403,50 @@ async def orchestrate_search(
 
     req = _build_request(user_text=user_text, intent_obj=intent_obj, check_in=check_in, check_out=check_out)
 
-    listings = _load_fixture_listings()
+    # 1) Retrieve candidates (Apify строго 1 раз / fixtures — просто читаем файл)
+    try:
+        listings = await get_candidates(req, max_items=max_items, source=source)
+    except NotImplementedError:
+        return {
+            "need_clarification": True,
+            "questions": ["Apify retriever is not enabled yet. Using fixtures only for now."],
+        }
+
+    # 2) Fixtures safety: fixtures могут не иметь поля city вообще.
+    # Тогда фильтруем по явному упоминанию города в name/description/url.
+    if source == "fixtures" and req.city:
+        city_norm = req.city.strip().lower()
+
+        def _fixture_mentions_city(lst: ListingRaw) -> bool:
+            chunks = [
+                getattr(lst, "name", "") or "",
+                getattr(lst, "description", "") or "",
+                getattr(lst, "url", "") or "",
+            ]
+            text = " ".join(chunks).lower()
+            return city_norm in text
+
+        listings = [lst for lst in listings if _fixture_mentions_city(lst)]
+
+    # 3) Dates safety (особенно для fixtures)
     listings = [lst for lst in listings if _covers_dates(lst, req.check_in, req.check_out)]
 
+    # 4) No candidates after filters → ask to change dates / clarify
     if not listings:
         return {
             "need_clarification": True,
-            "questions": ["На выбранные даты в текущих примерах ничего не найдено. Попробуешь другие даты?"],
+            "questions": ["На выбранные даты ничего не найдено. Попробуешь другие даты?"],
         }
 
+    # 5) Structured ranking + fallback on top-K for UNCERTAIN must-have fields
     ranked = _rank_structured(req, listings)
     await _apply_fallback_topk(req, ranked, fallback_top_k=fallback_top_k)
 
+    # 6) Strict must-have filter AFTER fallback too
+    ranked = [it for it in ranked if not _fails_must(it["matches"], req.must_have_fields)]
+    ranked.sort(key=lambda x: x["score"], reverse=True)
+
+    # 7) Format output
     return _format_results(req, ranked, top_n=top_n, dropped_requests=dropped_requests)
+
+

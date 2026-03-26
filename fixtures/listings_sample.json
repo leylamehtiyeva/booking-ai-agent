@@ -34,11 +34,10 @@
     "currency": "USD",
     "property_type": "hotel",
     "available_dates": {
-      "check_in": "2026-03-10",
-      "check_out": "2026-03-30"
+      "check_in": "2027-03-10",
+      "check_out": "2027-03-30"
     },
     "facilities": [
-      { "name": "Private bathroom" },
       { "name": "Free WiFi" }
     ],
     "description": "Hotel in Baku with private bathroom and WiFi. No kitchen in rooms.",
