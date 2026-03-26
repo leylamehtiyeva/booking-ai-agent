@@ -16,6 +16,18 @@ from app.schemas.query import SearchRequest
 APP_NAME = "booking-ai-agent"
 USER_ID = "local-user"
 
+def _clean_filters(filters):
+    if not filters:
+        return None
+
+    data = filters.model_dump()
+
+    cleaned = {k: v for k, v in data.items() if v is not None}
+
+    if not cleaned:
+        return None
+
+    return cleaned
 
 def _ensure_gemini_key() -> None:
     # ADK/Gemini иногда смотрит в GEMINI_API_KEY
@@ -84,20 +96,27 @@ def _parse_iso_date(s: str | None) -> date | None:
 async def build_search_request_adk_async(user_text: str) -> SearchRequest:
     intent = await route_intent_adk_async(user_text)
 
+    print("\n=== PARSED INTENT ===")
+    print(intent.model_dump())
+
     check_in = _parse_iso_date(intent.check_in)
     check_out = _parse_iso_date(intent.check_out)
+    clean_filters = _clean_filters(intent.filters)
 
-    return SearchRequest(
-        city=intent.city ,  # можно оставить как есть, если city обязательный на уровне guardrails
+    req = SearchRequest(
+        user_message=user_text,
+        city=intent.city,
         check_in=check_in,
         check_out=check_out,
         must_have_fields=intent.must_have_fields,
         nice_to_have_fields=intent.nice_to_have_fields,
         forbidden_fields=[],
-        raw_query=user_text,
+        filters=clean_filters,
     )
 
-
+    print("\n=== SEARCH REQUEST ===")
+    print(req.model_dump(mode="json", exclude_none=True))
+    return req
 
 def build_search_request_adk(user_text: str) -> SearchRequest:
     return asyncio.run(build_search_request_adk_async(user_text))
