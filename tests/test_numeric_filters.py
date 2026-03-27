@@ -1,0 +1,131 @@
+from app.logic.numeric_filters import (
+    extract_area_sqm,
+    extract_bedroom_count,
+    match_area_filters,
+    match_bedrooms_filters,
+)
+from app.schemas.filters import SearchFilters
+from app.schemas.listing import ListingRaw, Room
+from app.schemas.match import Ternary
+
+
+def test_extract_bedroom_count_from_room_name():
+    listing = ListingRaw(
+        id="x1",
+        name="Sea View Apartment",
+        description="Spacious apartment in Baku",
+        rooms=[
+            Room(name="Three-Bedroom Apartment with Balcony", facilities=[]),
+        ],
+    )
+
+    value, evidence = extract_bedroom_count(listing)
+
+    assert value == 3
+    assert evidence
+    assert evidence[0].path == "rooms[0].name"
+
+
+def test_extract_bedroom_count_from_studio():
+    listing = ListingRaw(
+        id="x2",
+        name="Cozy studio in city center",
+        description="Nice and compact option",
+        rooms=[],
+    )
+
+    value, evidence = extract_bedroom_count(listing)
+
+    assert value == 0
+    assert evidence
+
+
+def test_extract_area_sqm_from_sqm():
+    listing = ListingRaw(
+        id="x3",
+        name="Apartment 85 sqm",
+        description="Bright apartment with private bathroom",
+        rooms=[],
+    )
+
+    value, evidence = extract_area_sqm(listing)
+
+    assert value == 85.0
+    assert evidence
+    assert evidence[0].path == "listing.name"
+
+
+def test_extract_area_sqm_from_square_feet():
+    listing = ListingRaw(
+        id="x4",
+        name="Large apartment",
+        description="Huge unit with 2196 feet² and private entrance.",
+        rooms=[],
+    )
+
+    value, evidence = extract_area_sqm(listing)
+
+    assert value is not None
+    assert 203.9 <= value <= 204.1
+    assert evidence
+    assert evidence[0].path == "listing.description"
+
+
+def test_match_bedrooms_filters_yes():
+    filters = SearchFilters(bedrooms_min=2)
+
+    out = match_bedrooms_filters(3, filters)
+
+    assert out is not None
+    assert out.value == Ternary.YES
+    assert out.actual_value == 3
+    assert "3 >= required 2" in out.why
+
+
+def test_match_bedrooms_filters_no():
+    filters = SearchFilters(bedrooms_min=2)
+
+    out = match_bedrooms_filters(1, filters)
+
+    assert out is not None
+    assert out.value == Ternary.NO
+    assert "1 < required min 2" in out.why
+
+
+def test_match_bedrooms_filters_uncertain_when_missing():
+    filters = SearchFilters(bedrooms_min=2)
+
+    out = match_bedrooms_filters(None, filters)
+
+    assert out is not None
+    assert out.value == Ternary.UNCERTAIN
+    assert out.actual_value is None
+
+
+def test_match_area_filters_yes():
+    filters = SearchFilters(area_sqm_min=80)
+
+    out = match_area_filters(204.0, filters)
+
+    assert out is not None
+    assert out.value == Ternary.YES
+    assert "204 sqm >= required 80" in out.why
+
+
+def test_match_area_filters_no():
+    filters = SearchFilters(area_sqm_min=80)
+
+    out = match_area_filters(45.0, filters)
+
+    assert out is not None
+    assert out.value == Ternary.NO
+    assert "45 sqm < required min 80" in out.why
+
+
+def test_match_area_filters_uncertain_when_missing():
+    filters = SearchFilters(area_sqm_min=80)
+
+    out = match_area_filters(None, filters)
+
+    assert out is not None
+    assert out.value == Ternary.UNCERTAIN

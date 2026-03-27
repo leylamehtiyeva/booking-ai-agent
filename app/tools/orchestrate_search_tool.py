@@ -6,6 +6,7 @@ import os
 from datetime import date
 from typing import Any, Dict, List, Optional, Tuple
 
+
 from google.genai import Client
 from google.genai import types as genai_types
 from pydantic import ValidationError
@@ -14,6 +15,7 @@ from app.agents.intent_router_agent import IntentRoute
 from app.config import MAX_ITEMS_DEFAULT, MAX_ITEMS_HARD_CAP
 from app.logic.fallback_classifier import fallback_classify_field_async
 from app.logic.matcher_structured import match_listing_structured
+from app.logic.numeric_filters import evaluate_numeric_filters
 from app.retrieval import Source, get_candidates
 from app.schemas.fields import Field
 from app.schemas.listing import ListingRaw
@@ -29,14 +31,34 @@ def _fails_must(matches: dict[Field, Any], must_fields: List[Field] | None) -> b
             return True
     return False
 
+def _fails_numeric_filters(numeric_results: List[Any] | None) -> bool:
+    """
+    Strict numeric filter: if any numeric constraint is explicitly NO -> reject.
+    UNCERTAIN is allowed.
+    """
+    for r in (numeric_results or []):
+        if r.value == Ternary.NO:
+            return True
+    return False
 
-def _score_listing(req: SearchRequest, matches: dict[Field, Any]) -> Tuple[float, int, int, List[str]]:
+
+def _score_listing(
+    req: SearchRequest,
+    matches: dict[Field, Any],
+    numeric_results: List[Any] | None = None,
+) -> Tuple[float, int, int, List[str]]:
     """MVP scoring.
 
+    Amenities:
     - must-have YES: +10
     - must-have UNCERTAIN: +3
-    - must-have NO: -100   (but we ALSO filter out strict NO candidates)
+    - must-have NO: -100
     - nice-to-have YES: +1
+
+    Numeric filters:
+    - YES: +10
+    - UNCERTAIN: +3
+    - NO: -100
     """
     score = 0.0
     why: List[str] = []
@@ -47,8 +69,6 @@ def _score_listing(req: SearchRequest, matches: dict[Field, Any]) -> Tuple[float
     for f in (req.must_have_fields or []):
         fm = matches.get(f)
         if fm is None:
-            # should not happen, but keep safe
-            score += 0
             why.append(f"{f.name}: missing match")
             continue
 
@@ -72,6 +92,16 @@ def _score_listing(req: SearchRequest, matches: dict[Field, Any]) -> Tuple[float
             score += 1
             if fm.evidence:
                 why.append(f"+ {f.name}: {fm.evidence[0].snippet}")
+
+    for nr in (numeric_results or []):
+        if nr.value == Ternary.YES:
+            score += 10
+        elif nr.value == Ternary.UNCERTAIN:
+            score += 3
+        else:
+            score -= 100
+
+        why.append(nr.why)
 
     return score, must_yes, must_total, why
 
@@ -152,6 +182,12 @@ async def _repair_intent_with_llm(
             "check_out": "YYYY-MM-DD|null",
             "must_have_fields": "list[canonical_key]",
             "nice_to_have_fields": "list[canonical_key]",
+            "filters": {
+                "bedrooms_min": "int|null",
+                "bedrooms_max": "int|null",
+                "area_sqm_min": "float|null",
+                "area_sqm_max": "float|null",
+            },
             "unknown_requests": "list[str]",
         },
     }
@@ -185,6 +221,7 @@ def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
         "check_out": intent_dict.get("check_out"),
         "must_have_fields": [],
         "nice_to_have_fields": [],
+        "filters": intent_dict.get("filters"),
         "unknown_requests": list(intent_dict.get("unknown_requests") or []),
     }
 
@@ -196,13 +233,11 @@ def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
                 continue
             if isinstance(x, str):
                 s = x.strip()
-                # by value
                 try:
                     ok.append(Field(s))
                     continue
                 except Exception:
                     pass
-                # by name
                 try:
                     ok.append(Field[s])
                     continue
@@ -221,7 +256,6 @@ def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
     out["must_have_fields"] = parse_list(intent_dict.get("must_have_fields"))
     out["nice_to_have_fields"] = parse_list(intent_dict.get("nice_to_have_fields"))
     return out
-
 
 async def _validate_and_repair_intent(intent: Any, attempts: int = 2) -> Tuple[IntentRoute, List[str]]:
     """Validate intent as IntentRoute with up to N LLM repair attempts.
@@ -286,18 +320,31 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
     ranked: List[Dict[str, Any]] = []
     for lst in listings:
         report = match_listing_structured(lst, req)
+        numeric_results = evaluate_numeric_filters(lst, req.filters)
 
-        # ✅ strict must-have filter already at structured stage (only NO is rejected)
+        # strict amenity must-have filter
         if _fails_must(report.matches, req.must_have_fields):
             continue
 
-        score, must_yes, must_total, why = _score_listing(req, report.matches)
+        # strict numeric filter
+        if _fails_numeric_filters(numeric_results):
+            continue
+
+        score, must_yes, must_total, why = _score_listing(
+            req,
+            report.matches,
+            numeric_results=numeric_results,
+        )
+
+        print("NUMERIC RESULTS:", numeric_results)
+        print("WHY BEFORE APPEND:", why)
         ranked.append(
             {
                 "listing_name": lst.name,
                 "listing_id": getattr(lst, "id", None),
-                "report": report,  # keep report for post-fallback re-check
+                "report": report,
                 "matches": report.matches,
+                "numeric_results": numeric_results,
                 "score": score,
                 "must_have_matched": must_yes,
                 "must_have_total": must_total,
@@ -307,7 +354,6 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
         )
     ranked.sort(key=lambda x: x["score"], reverse=True)
     return ranked
-
 
 async def _apply_fallback_topk(req: SearchRequest, ranked: List[Dict[str, Any]], fallback_top_k: int) -> None:
     for item in ranked[: max(0, fallback_top_k)]:
@@ -325,7 +371,11 @@ async def _apply_fallback_topk(req: SearchRequest, ranked: List[Dict[str, Any]],
                 item["matches"][f] = fm2  # updates both item["matches"] and report.matches (same dict)
 
         # ✅ re-score after fallback
-        score, must_yes, must_total, why = _score_listing(req, item["matches"])
+        score, must_yes, must_total, why = _score_listing(
+            req,
+            item["matches"],
+            numeric_results=item.get("numeric_results"),
+        )
         item["score"] = score
         item["must_have_matched"] = must_yes
         item["must_have_total"] = must_total
@@ -366,7 +416,8 @@ def _format_results(req: SearchRequest, ranked: List[Dict[str, Any]], top_n: int
     summary = (
         f"city={req.city}, check_in={req.check_in}, check_out={req.check_out}, "
         f"must_have={[f.value for f in (req.must_have_fields or [])]}, "
-        f"nice_to_have={[f.value for f in (req.nice_to_have_fields or [])]}"
+        f"nice_to_have={[f.value for f in (req.nice_to_have_fields or [])]}, "
+        f"filters={req.filters.model_dump() if req.filters else None}"
     )
     if notes:
         summary += " | " + " | ".join(notes)
@@ -444,7 +495,12 @@ async def orchestrate_search(
     await _apply_fallback_topk(req, ranked, fallback_top_k=fallback_top_k)
 
     # 6) Strict must-have filter AFTER fallback too
-    ranked = [it for it in ranked if not _fails_must(it["matches"], req.must_have_fields)]
+    ranked = [
+        it
+        for it in ranked
+        if not _fails_must(it["matches"], req.must_have_fields)
+        and not _fails_numeric_filters(it.get("numeric_results"))
+    ]
     ranked.sort(key=lambda x: x["score"], reverse=True)
 
     # 7) Format output
