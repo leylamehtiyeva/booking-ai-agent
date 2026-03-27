@@ -316,3 +316,34 @@ def match_area_filters(
         evidence=evidence,
         why=why,
     )
+    
+    
+def evaluate_numeric_filters(
+    listing: ListingRaw,
+    filters: SearchFilters | None,
+) -> List[NumericMatchResult]:
+    """
+    Единая точка входа для numeric extraction + matching.
+    """
+    bedroom_count, bedroom_evidence = extract_bedroom_count(listing)
+    area_sqm, area_evidence = extract_area_sqm(listing)
+
+    results: List[NumericMatchResult] = []
+
+    br = match_bedrooms_filters(
+        bedroom_count=bedroom_count,
+        filters=filters,
+        evidence=bedroom_evidence,
+    )
+    if br is not None:
+        results.append(br)
+
+    ar = match_area_filters(
+        area_sqm=area_sqm,
+        filters=filters,
+        evidence=area_evidence,
+    )
+    if ar is not None:
+        results.append(ar)
+
+    return results
