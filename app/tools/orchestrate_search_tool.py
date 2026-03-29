@@ -5,15 +5,12 @@ import json
 import os
 from datetime import date
 from typing import Any, Dict, List, Optional, Tuple
-
-
 from google.genai import Client
 from google.genai import types as genai_types
 from pydantic import ValidationError
-
 from app.agents.intent_router_agent import IntentRoute
 from app.config import MAX_ITEMS_DEFAULT, MAX_ITEMS_HARD_CAP
-from app.logic.fallback_classifier import fallback_classify_field_async
+from app.logic.llm_field_fallback import classify_field_from_description
 from app.logic.matcher_structured import match_listing_structured
 from app.logic.numeric_filters import evaluate_numeric_filters
 from app.retrieval import Source, get_candidates
@@ -336,8 +333,7 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
             numeric_results=numeric_results,
         )
 
-        print("NUMERIC RESULTS:", numeric_results)
-        print("WHY BEFORE APPEND:", why)
+
         ranked.append(
             {
                 "listing_name": lst.name,
@@ -367,8 +363,9 @@ async def _apply_fallback_topk(req: SearchRequest, ranked: List[Dict[str, Any]],
         for f in (req.must_have_fields or []):
             fm = item["matches"].get(f)
             if fm is not None and fm.value == Ternary.UNCERTAIN:
-                fm2 = await fallback_classify_field_async(item["listing"], f)
-                item["matches"][f] = fm2  # updates both item["matches"] and report.matches (same dict)
+                fm2 = await classify_field_from_description(item["listing"], f)
+                if fm2.value != Ternary.UNCERTAIN or fm2.evidence:
+                    item["matches"][f] = fm2  # updates both item["matches"] and report.matches (same dict)
 
         # ✅ re-score after fallback
         score, must_yes, must_total, why = _score_listing(
