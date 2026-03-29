@@ -13,6 +13,8 @@ from app.schemas.listing import ListingRaw
 from app.schemas.match import Evidence, EvidenceSource, FieldMatch, Ternary
 
 
+
+
 LLM_FALLBACK_FIELDS = {
     Field.KITCHEN,
     Field.PRIVATE_BATHROOM,
@@ -118,7 +120,7 @@ async def classify_field_from_description(
     LLM fallback for a single unresolved field.
 
     Use ONLY when deterministic matcher returned UNCERTAIN.
-    Returns YES / NO / UNCERTAIN with reason as evidence.
+    Returns YES / NO / UNCERTAIN with short location-based evidence.
     """
     if field not in LLM_FALLBACK_FIELDS:
         return FieldMatch(value=Ternary.UNCERTAIN, confidence=0.0, evidence=[])
@@ -130,16 +132,27 @@ async def classify_field_from_description(
         return FieldMatch(value=Ternary.UNCERTAIN, confidence=0.0, evidence=[])
 
     system = (
-        "You are a careful property listing classifier.\n"
-        "Your task is to classify ONE requested property feature using ONLY the provided listing evidence.\n"
-        "Return ONLY valid JSON. No markdown. No explanation outside JSON.\n"
-        'Allowed result values: "YES", "NO", "UNCERTAIN".\n'
-        "Use YES only if the evidence clearly supports the feature.\n"
-        "Use NO only if the evidence clearly contradicts the feature.\n"
-        "Use UNCERTAIN if the evidence is missing, vague, or ambiguous.\n"
-        "Do not guess.\n"
-        'Return JSON with exactly these keys: {"result": "...", "reason": "..."}\n'
-        "The reason must be short and based on the evidence.\n"
+        "You are a strict property feature classifier.\n"
+        "Classify ONE feature using only the provided listing evidence.\n\n"
+        "Return ONLY valid JSON. No markdown. No extra text.\n"
+        'Allowed result values: "YES", "NO", "UNCERTAIN".\n\n'
+        "Rules:\n"
+        "- YES only if clearly supported\n"
+        "- NO only if clearly contradicted\n"
+        "- UNCERTAIN if not enough evidence\n"
+        "- Do not guess\n\n"
+        "Reason format (VERY IMPORTANT):\n"
+        "- Keep it SHORT\n"
+        "- Indicate WHERE the evidence was found\n"
+        "- Allowed examples:\n"
+        '  "found in description"\n'
+        '  "found in rooms"\n'
+        '  "found in policies"\n'
+        '  "found in highlights"\n'
+        '  "explicitly denied in policies"\n'
+        '  "not found in provided data"\n\n'
+        'Return JSON exactly:\n'
+        '{"result": "...", "reason": "..."}\n'
     )
 
     payload = {
@@ -149,7 +162,7 @@ async def classify_field_from_description(
         "evidence": context,
         "output_schema": {
             "result": 'one of ["YES", "NO", "UNCERTAIN"]',
-            "reason": "short evidence-based explanation",
+            "reason": "short location-based explanation",
         },
     }
 
@@ -176,7 +189,7 @@ async def classify_field_from_description(
         return FieldMatch(value=Ternary.UNCERTAIN, confidence=0.0, evidence=[])
 
     raw_result = str(data.get("result", "")).strip().upper()
-    reason = str(data.get("reason", "")).strip()
+    reason = str(data.get("reason", "")).strip().lower()
 
     ternary_map = {
         "YES": Ternary.YES,
@@ -184,6 +197,23 @@ async def classify_field_from_description(
         "UNCERTAIN": Ternary.UNCERTAIN,
     }
     value = ternary_map.get(raw_result, Ternary.UNCERTAIN)
+
+    # normalize/guard reason
+    allowed_reasons = {
+        "found in description",
+        "found in rooms",
+        "found in policies",
+        "found in highlights",
+        "explicitly denied in policies",
+        "not found in provided data",
+    }
+    if reason not in allowed_reasons:
+        if value == Ternary.YES:
+            reason = "found in description"
+        elif value == Ternary.NO:
+            reason = "explicitly denied in policies"
+        else:
+            reason = "not found in provided data"
 
     confidence = {
         Ternary.YES: 0.7,
@@ -196,7 +226,7 @@ async def classify_field_from_description(
         evidence = [
             Evidence(
                 source=EvidenceSource.LLM,
-                path="llm_fallback.description",
+                path="llm_fallback",
                 snippet=reason,
             )
         ]

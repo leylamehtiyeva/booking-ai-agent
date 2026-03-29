@@ -5,6 +5,18 @@ from typing import Any, Iterable, List, Optional
 
 from app.schemas.listing import ListingRaw
 
+import re
+
+
+def split_into_sentences(text: str) -> list[str]:
+    text = str(text).strip()
+    if not text:
+        return []
+
+    # грубое, но полезное разбиение
+    parts = re.split(r'(?<=[.!?])\s+', text)
+    return [p.strip() for p in parts if p.strip()]
+
 
 def normalize_text(s: str) -> str:
     return " ".join(str(s).lower().strip().split())
@@ -107,7 +119,8 @@ def collect_listing_signals(listing: ListingRaw) -> List[ListingSignal]:
         _add_signal(signals, "listing.property_type", listing.property_type)
 
     if getattr(listing, "description", None):
-        _add_signal(signals, "listing.description", listing.description)
+        for sent in split_into_sentences(listing.description):
+            _add_signal(signals, "listing.description", sent)
 
     # listing-level facilities
     _add_many(
