@@ -5,15 +5,12 @@ import json
 import os
 from datetime import date
 from typing import Any, Dict, List, Optional, Tuple
-
-
 from google.genai import Client
 from google.genai import types as genai_types
 from pydantic import ValidationError
-
 from app.agents.intent_router_agent import IntentRoute
 from app.config import MAX_ITEMS_DEFAULT, MAX_ITEMS_HARD_CAP
-from app.logic.fallback_classifier import fallback_classify_field_async
+from app.logic.llm_field_fallback import classify_field_from_description
 from app.logic.matcher_structured import match_listing_structured
 from app.logic.numeric_filters import evaluate_numeric_filters
 from app.retrieval import Source, get_candidates
@@ -42,68 +39,6 @@ def _fails_numeric_filters(numeric_results: List[Any] | None) -> bool:
     return False
 
 
-def _score_listing(
-    req: SearchRequest,
-    matches: dict[Field, Any],
-    numeric_results: List[Any] | None = None,
-) -> Tuple[float, int, int, List[str]]:
-    """MVP scoring.
-
-    Amenities:
-    - must-have YES: +10
-    - must-have UNCERTAIN: +3
-    - must-have NO: -100
-    - nice-to-have YES: +1
-
-    Numeric filters:
-    - YES: +10
-    - UNCERTAIN: +3
-    - NO: -100
-    """
-    score = 0.0
-    why: List[str] = []
-
-    must_total = len(req.must_have_fields or [])
-    must_yes = 0
-
-    for f in (req.must_have_fields or []):
-        fm = matches.get(f)
-        if fm is None:
-            why.append(f"{f.name}: missing match")
-            continue
-
-        if fm.value == Ternary.YES:
-            score += 10
-            must_yes += 1
-            if fm.evidence:
-                why.append(f"{f.name}: {fm.evidence[0].snippet}")
-            else:
-                why.append(f"{f.name}: matched")
-        elif fm.value == Ternary.UNCERTAIN:
-            score += 3
-            why.append(f"{f.name}: maybe (needs check)")
-        else:
-            score -= 100
-            why.append(f"{f.name}: not found")
-
-    for f in (req.nice_to_have_fields or []):
-        fm = matches.get(f)
-        if fm and fm.value == Ternary.YES:
-            score += 1
-            if fm.evidence:
-                why.append(f"+ {f.name}: {fm.evidence[0].snippet}")
-
-    for nr in (numeric_results or []):
-        if nr.value == Ternary.YES:
-            score += 10
-        elif nr.value == Ternary.UNCERTAIN:
-            score += 3
-        else:
-            score -= 100
-
-        why.append(nr.why)
-
-    return score, must_yes, must_total, why
 
 
 def _parse_iso_date(x: Any) -> Optional[date]:
@@ -336,8 +271,7 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
             numeric_results=numeric_results,
         )
 
-        print("NUMERIC RESULTS:", numeric_results)
-        print("WHY BEFORE APPEND:", why)
+
         ranked.append(
             {
                 "listing_name": lst.name,
@@ -367,8 +301,9 @@ async def _apply_fallback_topk(req: SearchRequest, ranked: List[Dict[str, Any]],
         for f in (req.must_have_fields or []):
             fm = item["matches"].get(f)
             if fm is not None and fm.value == Ternary.UNCERTAIN:
-                fm2 = await fallback_classify_field_async(item["listing"], f)
-                item["matches"][f] = fm2  # updates both item["matches"] and report.matches (same dict)
+                fm2 = await classify_field_from_description(item["listing"], f)
+                if fm2.value != Ternary.UNCERTAIN or fm2.evidence:
+                    item["matches"][f] = fm2  # updates both item["matches"] and report.matches (same dict)
 
         # ✅ re-score after fallback
         score, must_yes, must_total, why = _score_listing(
@@ -506,4 +441,79 @@ async def orchestrate_search(
     # 7) Format output
     return _format_results(req, ranked, top_n=top_n, dropped_requests=dropped_requests)
 
+def _format_match_why(field: Field, fm: Any) -> str:
+    if fm is None:
+        return f"{field.name}: missing match"
 
+    if fm.value == Ternary.YES:
+        if fm.evidence and fm.evidence[0].snippet:
+            return f"{field.name}: {fm.evidence[0].snippet}"
+        return f"{field.name}: matched"
+
+    if fm.value == Ternary.UNCERTAIN:
+        return f"{field.name}: maybe (needs check)"
+
+    return f"{field.name}: not found"
+
+
+def _score_listing(
+    req: SearchRequest,
+    matches: dict[Field, Any],
+    numeric_results: List[Any] | None = None,
+) -> Tuple[float, int, int, List[str]]:
+    """MVP scoring.
+
+    Amenities:
+    - must-have YES: +10
+    - must-have UNCERTAIN: +3
+    - must-have NO: -100
+    - nice-to-have YES: +1
+
+    Numeric filters:
+    - YES: +10
+    - UNCERTAIN: +3
+    - NO: -100
+    """
+    score = 0.0
+    why: List[str] = []
+
+    must_total = len(req.must_have_fields or [])
+    must_yes = 0
+
+    for f in (req.must_have_fields or []):
+        fm = matches.get(f)
+
+        if fm is None:
+            why.append(_format_match_why(f, fm))
+            continue
+
+        if fm.value == Ternary.YES:
+            score += 10
+            must_yes += 1
+        elif fm.value == Ternary.UNCERTAIN:
+            score += 3
+        else:
+            score -= 100
+
+        why.append(_format_match_why(f, fm))
+
+    for f in (req.nice_to_have_fields or []):
+        fm = matches.get(f)
+        if fm and fm.value == Ternary.YES:
+            score += 1
+            if fm.evidence and fm.evidence[0].snippet:
+                why.append(f"+ {f.name}: {fm.evidence[0].snippet}")
+            else:
+                why.append(f"+ {f.name}: matched")
+
+    for nr in (numeric_results or []):
+        if nr.value == Ternary.YES:
+            score += 10
+        elif nr.value == Ternary.UNCERTAIN:
+            score += 3
+        else:
+            score -= 100
+
+        why.append(nr.why)
+
+    return score, must_yes, must_total, why
