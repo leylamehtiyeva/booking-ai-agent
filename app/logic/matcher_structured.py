@@ -8,6 +8,9 @@ from app.schemas.listing import ListingRaw
 from app.schemas.match import Evidence, EvidenceSource, FieldMatch, MatchReport, Ternary
 from app.schemas.query import SearchRequest
 
+from app.logic.field_rules import FIELD_RULES
+from app.logic.listing_signals import collect_listing_signals, find_best_signal_match
+
 
 def _normalize_text(s: str) -> str:
     return " ".join(s.lower().strip().split())
@@ -107,19 +110,75 @@ def match_field_in_facilities(
 
 def match_listing_structured(listing: ListingRaw, request: SearchRequest) -> MatchReport:
     """
-    Deterministic matcher (no LLM). Uses structured facilities only.
+    Deterministic matcher using normalized listing signals + field rules.
     """
-    facilities_with_paths = collect_all_facilities(listing)
-    rules = build_rules()
-
     requested_fields = list({*(request.must_have_fields or []), *(request.nice_to_have_fields or [])})
-    field_matches = {f: match_field_in_facilities(f, facilities_with_paths, rules) for f in requested_fields}
 
-    # fill hard_fail_fields for must-have fields that are explicitly NO
-    hard_fail = [f for f in (request.must_have_fields or []) if field_matches.get(f) and field_matches[f].value == Ternary.NO]
+    field_matches = {
+        f: _match_field_via_rules(listing, f)
+        for f in requested_fields
+    }
+
+    hard_fail = [
+        f
+        for f in (request.must_have_fields or [])
+        if field_matches.get(f) and field_matches[f].value == Ternary.NO
+    ]
 
     return MatchReport(
         listing_id=listing.id or listing.url or listing.name or "unknown",
         matches=field_matches,
         hard_fail_fields=hard_fail,
     )
+
+
+from app.logic.listing_signals import (
+    collect_listing_signals,
+    find_best_negative_signal_match,
+    find_best_signal_match,
+)
+
+def _match_field_via_rules(listing: ListingRaw, field: Field) -> FieldMatch:
+    signals = collect_listing_signals(listing)
+    rule = FIELD_RULES.get(field)
+
+    if rule is None:
+        return FieldMatch(value=Ternary.UNCERTAIN, evidence=[])
+
+    best_positive = find_best_signal_match(
+        signals=signals,
+        aliases=rule.aliases,
+        preferred_path_prefixes=rule.preferred_path_prefixes,
+    )
+    if best_positive is not None:
+        return FieldMatch(
+            value=Ternary.YES,
+            confidence=0.95,
+            evidence=[
+                Evidence(
+                    source=EvidenceSource.STRUCTURED,
+                    path=best_positive.path,
+                    snippet=best_positive.raw_text,
+                )
+            ],
+        )
+
+    best_negative = find_best_negative_signal_match(
+        signals=signals,
+        negative_aliases=rule.negative_aliases,
+        preferred_path_prefixes=rule.preferred_path_prefixes,
+    )
+    if best_negative is not None:
+        return FieldMatch(
+            value=Ternary.NO,
+            confidence=0.9,
+            evidence=[
+                Evidence(
+                    source=EvidenceSource.STRUCTURED,
+                    path=best_negative.path,
+                    snippet=best_negative.raw_text,
+                )
+            ],
+        )
+
+    return FieldMatch(value=Ternary.UNCERTAIN, confidence=0.3, evidence=[])
