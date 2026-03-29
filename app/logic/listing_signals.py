@@ -207,3 +207,14 @@ def find_best_signal_match(
 
     candidates.sort(key=lambda x: (x[0], x[1], x[2]))
     return candidates[0][3]
+
+def find_best_negative_signal_match(
+    signals: Sequence[ListingSignal],
+    negative_aliases: Sequence[str],
+    preferred_path_prefixes: Sequence[str] = (),
+) -> ListingSignal | None:
+    return find_best_signal_match(
+        signals=signals,
+        aliases=negative_aliases,
+        preferred_path_prefixes=preferred_path_prefixes,
+    )

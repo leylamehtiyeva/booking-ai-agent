@@ -2,6 +2,7 @@ from app.logic.listing_signals import collect_listing_signals
 from app.schemas.listing import ListingRaw, Room, RoomOption
 
 
+
 def test_collect_listing_signals_from_listing_and_rooms():
     listing = ListingRaw(
         id="x1",
@@ -79,3 +80,5 @@ def test_collect_listing_signals_from_highlights_and_policies():
     assert "pets are allowed on request." in texts
     assert "smoking" in texts
     assert "non-smoking throughout." in texts
+    
+    
