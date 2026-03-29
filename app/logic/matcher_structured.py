@@ -8,6 +8,9 @@ from app.schemas.listing import ListingRaw
 from app.schemas.match import Evidence, EvidenceSource, FieldMatch, MatchReport, Ternary
 from app.schemas.query import SearchRequest
 
+from app.logic.field_rules import FIELD_RULES
+from app.logic.listing_signals import collect_listing_signals, find_best_signal_match
+
 
 def _normalize_text(s: str) -> str:
     return " ".join(s.lower().strip().split())
@@ -122,4 +125,32 @@ def match_listing_structured(listing: ListingRaw, request: SearchRequest) -> Mat
         listing_id=listing.id or listing.url or listing.name or "unknown",
         matches=field_matches,
         hard_fail_fields=hard_fail,
+    )
+
+
+def _match_field_via_rules(listing: ListingRaw, field: Field) -> FieldMatch:
+    signals = collect_listing_signals(listing)
+    rule = FIELD_RULES.get(field)
+
+    if rule is None:
+        return FieldMatch(value=Ternary.UNCERTAIN, evidence=[])
+
+    best = find_best_signal_match(
+        signals=signals,
+        aliases=rule.aliases,
+        preferred_path_prefixes=rule.preferred_path_prefixes,
+    )
+
+    if best is None:
+        return FieldMatch(value=Ternary.UNCERTAIN, evidence=[])
+
+    return FieldMatch(
+        value=Ternary.YES,
+        evidence=[
+            Evidence(
+                source=EvidenceSource.STRUCTURED,
+                path=best.path,
+                snippet=best.raw_text,
+            )
+        ],
     )
