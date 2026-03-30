@@ -29,8 +29,7 @@ LLM_FALLBACK_FIELDS = {
     Field.COFFEE_MACHINE,
     Field.FREE_CANCELLATION,
     Field.PET_FRIENDLY,
-    Field.PROPERTY_APARTMENT,
-}
+    }
 
 
 FIELD_DESCRIPTIONS = {
@@ -47,7 +46,6 @@ FIELD_DESCRIPTIONS = {
     Field.COFFEE_MACHINE: "Whether a coffee machine / coffee maker is available.",
     Field.FREE_CANCELLATION: "Whether the booking includes free cancellation.",
     Field.PET_FRIENDLY: "Whether pets are allowed.",
-    Field.PROPERTY_APARTMENT: "Whether this accommodation is an apartment.",
 }
 
 

@@ -1,6 +1,6 @@
 from datetime import date
 from typing import List, Optional
-
+from app.schemas.property_semantics import OccupancyType, PropertyType
 from pydantic import BaseModel, Field as PydanticField, model_validator
 from app.schemas.filters import SearchFilters
 from app.schemas.fields import Field
@@ -40,6 +40,10 @@ class SearchRequest(BaseModel):
 
     #filters
     filters: SearchFilters | None = None
+    
+    #property type
+    property_types: list[PropertyType] | None = None
+    occupancy_types: list[OccupancyType] | None = None
     
     @model_validator(mode="after")
     def validate_date_range(self):

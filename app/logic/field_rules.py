@@ -83,9 +83,4 @@ FIELD_RULES: Dict[Field, FieldRule] = {
         preferred_path_prefixes=("policies", "listing.description"),
         negative_aliases=("no pets", "pets not allowed", "pets are not allowed"),
     ),
-    Field.PROPERTY_APARTMENT: FieldRule(
-        aliases=("apartment", "private apartment in building"),
-        preferred_path_prefixes=("listing.property_type", "listing.name", "rooms[", "listing.description"),
-        negative_aliases=(),
-    ),
 }

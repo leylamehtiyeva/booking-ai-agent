@@ -44,8 +44,8 @@ class Field(str, Enum):
     FREE_CANCELLATION = "free_cancellation"
     PAY_AT_PROPERTY = "pay_at_property"
 
-    # --- Property type ---
-    PROPERTY_APARTMENT = "property_apartment"
-    PROPERTY_HOTEL = "property_hotel"
-    PROPERTY_HOSTEL = "property_hostel"
-    PROPERTY_HOUSE = "property_house"
+    # # --- Property type ---
+    # PROPERTY_APARTMENT = "property_apartment"
+    # PROPERTY_HOTEL = "property_hotel"
+    # PROPERTY_HOSTEL = "property_hostel"
+    # PROPERTY_HOUSE = "property_house"

@@ -63,22 +63,3 @@ def test_find_best_signal_match_for_free_cancellation():
     assert best.raw_text == "Free cancellation"
 
 
-def test_find_best_signal_match_for_property_apartment():
-    listing = ListingRaw(
-        id="x3",
-        name="CHINAR Apartment DeLux",
-        property_type="apartment",
-    )
-
-    signals = collect_listing_signals(listing)
-    rule = FIELD_RULES[Field.PROPERTY_APARTMENT]
-
-    best = find_best_signal_match(
-        signals=signals,
-        aliases=rule.aliases,
-        preferred_path_prefixes=rule.preferred_path_prefixes,
-    )
-
-    assert best is not None
-    assert best.path == "listing.property_type"
-    assert best.raw_text == "apartment"
