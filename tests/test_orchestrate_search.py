@@ -61,6 +61,12 @@ def test_salvage_preserves_filters():
             "bedrooms_max": None,
             "area_sqm_min": 80,
             "area_sqm_max": None,
+            "price": {
+                "min_amount": None,
+                "max_amount": 50,
+                "currency": "USD",
+                "scope": "per_night",
+            },
         },
         "unknown_requests": [],
     }
@@ -72,6 +78,12 @@ def test_salvage_preserves_filters():
         "bedrooms_max": None,
         "area_sqm_min": 80,
         "area_sqm_max": None,
+        "price": {
+            "min_amount": None,
+            "max_amount": 50,
+            "currency": "USD",
+            "scope": "per_night",
+        },
     }
     assert "NOT_A_REAL_FIELD" in out["unknown_requests"]
     
@@ -143,3 +155,61 @@ async def test_numeric_filters_are_applied_in_orchestrate(monkeypatch):
     assert out["results"][0]["id"] == "big-1"
     assert any("BEDROOMS:" in x for x in out["results"][0]["why"])
     assert any("AREA:" in x for x in out["results"][0]["why"])
+    
+    
+    
+@pytest.mark.asyncio
+async def test_price_filter_per_night_is_applied(monkeypatch):
+    async def fake_get_candidates(req, max_items, source):
+        return [
+            ListingRaw(
+                id="too-expensive",
+                name="Apartment STEL",
+                url="https://example.com/baku-expensive",
+                description="Apartment in Baku city center.",
+                price=700.0,
+                currency="US$",
+                available_dates={"check_in": "2026-04-01", "check_out": "2026-04-30"},
+                rooms=[],
+            ),
+            ListingRaw(
+                id="good-price",
+                name="Budget Apartment",
+                url="https://example.com/baku-budget",
+                description="Budget apartment in Baku.",
+                price=300.0,
+                currency="US$",
+                available_dates={"check_in": "2026-04-01", "check_out": "2026-04-30"},
+                rooms=[],
+            ),
+        ]
+
+    monkeypatch.setattr(orchestrate_search_tool, "get_candidates", fake_get_candidates)
+
+    intent = {
+        "city": "Baku",
+        "check_in": "2026-04-08",
+        "check_out": "2026-04-15",
+        "must_have_fields": [],
+        "nice_to_have_fields": [],
+        "filters": {
+            "price": {
+                "max_amount": 50,
+                "currency": "USD",
+                "scope": "per_night",
+            }
+        },
+        "unknown_requests": [],
+    }
+
+    out = await orchestrate_search_tool.orchestrate_search(
+        "Apartment in Baku under 50 USD per night",
+        intent,
+        source="fixtures",
+        max_items=10,
+    )
+
+    assert out["need_clarification"] is False
+    assert len(out["results"]) == 1
+    assert out["results"][0]["id"] == "good-price"
+    assert any("PRICE:" in x for x in out["results"][0]["why"])

@@ -1,12 +1,12 @@
 from __future__ import annotations
-
 import re
 from dataclasses import dataclass
+from datetime import date
 from typing import Any, List, Optional, Tuple
-
 from app.schemas.filters import SearchFilters
 from app.schemas.listing import ListingRaw
 from app.schemas.match import Evidence, EvidenceSource, Ternary
+from app.schemas.filters import PriceConstraint, SearchFilters
 
 
 _NUMBER_WORDS = {
@@ -317,16 +317,200 @@ def match_area_filters(
         why=why,
     )
     
+def _normalize_currency(value: str | None) -> str | None:
+    if not value:
+        return None
+
+    s = value.strip().upper()
+
+    mapping = {
+        "US$": "USD",
+        "$": "USD",
+        "USD": "USD",
+        "AZN": "AZN",
+        "MANAT": "AZN",
+        "MANATS": "AZN",
+        "EUR": "EUR",
+        "€": "EUR",
+        "GBP": "GBP",
+        "£": "GBP",
+    }
+    return mapping.get(s, s)
+
+
+def _night_count(check_in: date | None, check_out: date | None) -> int | None:
+    if check_in is None or check_out is None:
+        return None
+    delta = (check_out - check_in).days
+    if delta <= 0:
+        return None
+    return delta
+
+
+def extract_total_price(listing: ListingRaw) -> tuple[float | None, str | None, List[Evidence]]:
+    """
+    Booking JSON in your current flow appears to expose total stay price at top-level:
+    listing.price + listing.currency.
+    """
+    price = getattr(listing, "price", None)
+    currency = _normalize_currency(getattr(listing, "currency", None))
+
+    if price is not None:
+        evidence = [
+            Evidence(
+                source=EvidenceSource.STRUCTURED,
+                path="listing.price",
+                snippet=f"price={price}, currency={currency}",
+            )
+        ]
+        return float(price), currency, evidence
+
+    # fallback: first room option price
+    rooms = getattr(listing, "rooms", []) or []
+    for i, room in enumerate(rooms):
+        options = getattr(room, "options", []) or []
+        for j, opt in enumerate(options):
+            opt_price = getattr(opt, "price", None)
+            opt_currency = _normalize_currency(getattr(opt, "currency", None))
+            if opt_price is not None:
+                evidence = [
+                    Evidence(
+                        source=EvidenceSource.STRUCTURED,
+                        path=f"rooms[{i}].options[{j}].price",
+                        snippet=f"price={opt_price}, currency={opt_currency}",
+                    )
+                ]
+                return float(opt_price), opt_currency, evidence
+
+    return None, None, []
+
+
+def match_price_filters(
+    total_price: float | None,
+    listing_currency: str | None,
+    filters: SearchFilters | None,
+    *,
+    check_in: date | None,
+    check_out: date | None,
+    evidence: List[Evidence] | None = None,
+) -> NumericMatchResult | None:
+    if filters is None or filters.price is None:
+        return None
+
+    price_filter = filters.price
+    evidence = evidence or []
+
+    if total_price is None:
+        return NumericMatchResult(
+            attribute="price_total",
+            value=Ternary.UNCERTAIN,
+            actual_value=None,
+            evidence=evidence,
+            why="PRICE: could not extract total listing price",
+        )
+
+    listing_currency_norm = _normalize_currency(listing_currency)
+    request_currency_norm = _normalize_currency(price_filter.currency)
+
+    if (
+        request_currency_norm is not None
+        and listing_currency_norm is not None
+        and request_currency_norm != listing_currency_norm
+    ):
+        return NumericMatchResult(
+            attribute="price_total",
+            value=Ternary.UNCERTAIN,
+            actual_value=total_price,
+            evidence=evidence,
+            why=(
+                f"PRICE: currency mismatch listing={listing_currency_norm}, "
+                f"request={request_currency_norm}"
+            ),
+        )
+
+    required_min_total = price_filter.min_amount
+    required_max_total = price_filter.max_amount
+
+    if price_filter.scope == "per_night":
+        nights = _night_count(check_in, check_out)
+        if nights is None:
+            return NumericMatchResult(
+                attribute="price_total",
+                value=Ternary.UNCERTAIN,
+                actual_value=total_price,
+                evidence=evidence,
+                why="PRICE: could not derive night count for per-night budget",
+            )
+
+        if required_min_total is not None:
+            required_min_total = required_min_total * nights
+        if required_max_total is not None:
+            required_max_total = required_max_total * nights
+
+    elif price_filter.scope in ("total_stay", None):
+        pass
+
+    else:
+        return NumericMatchResult(
+            attribute="price_total",
+            value=Ternary.UNCERTAIN,
+            actual_value=total_price,
+            evidence=evidence,
+            why=f"PRICE: unsupported scope {price_filter.scope}",
+        )
+
+    pretty_total = round(total_price, 2)
+
+    if required_min_total is not None and total_price < required_min_total:
+        return NumericMatchResult(
+            attribute="price_total",
+            value=Ternary.NO,
+            actual_value=total_price,
+            evidence=evidence,
+            why=f"PRICE: {pretty_total} < required min total {round(required_min_total, 2)}",
+        )
+
+    if required_max_total is not None and total_price > required_max_total:
+        return NumericMatchResult(
+            attribute="price_total",
+            value=Ternary.NO,
+            actual_value=total_price,
+            evidence=evidence,
+            why=f"PRICE: {pretty_total} > allowed max total {round(required_max_total, 2)}",
+        )
+
+    if required_min_total is not None and required_max_total is not None:
+        why = (
+            f"PRICE: {pretty_total} within total range "
+            f"[{round(required_min_total, 2)}, {round(required_max_total, 2)}]"
+        )
+    elif required_min_total is not None:
+        why = f"PRICE: {pretty_total} >= required total {round(required_min_total, 2)}"
+    else:
+        why = f"PRICE: {pretty_total} <= allowed total {round(required_max_total, 2)}"
+
+    return NumericMatchResult(
+        attribute="price_total",
+        value=Ternary.YES,
+        actual_value=total_price,
+        evidence=evidence,
+        why=why,
+    )   
+   
     
 def evaluate_numeric_filters(
     listing: ListingRaw,
     filters: SearchFilters | None,
+    *,
+    check_in: date | None = None,
+    check_out: date | None = None,
 ) -> List[NumericMatchResult]:
     """
     Единая точка входа для numeric extraction + matching.
     """
     bedroom_count, bedroom_evidence = extract_bedroom_count(listing)
     area_sqm, area_evidence = extract_area_sqm(listing)
+    total_price, listing_currency, price_evidence = extract_total_price(listing)
 
     results: List[NumericMatchResult] = []
 
@@ -346,4 +530,17 @@ def evaluate_numeric_filters(
     if ar is not None:
         results.append(ar)
 
+    pr = match_price_filters(
+        total_price=total_price,
+        listing_currency=listing_currency,
+        filters=filters,
+        check_in=check_in,
+        check_out=check_out,
+        evidence=price_evidence,
+    )
+    if pr is not None:
+        results.append(pr)
+
     return results
+
+

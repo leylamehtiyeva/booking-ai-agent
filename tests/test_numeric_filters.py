@@ -1,9 +1,13 @@
 from app.logic.numeric_filters import (
     extract_area_sqm,
     extract_bedroom_count,
+    extract_total_price,
     match_area_filters,
     match_bedrooms_filters,
+    match_price_filters,
 )
+from datetime import date
+from app.schemas.filters import PriceConstraint, SearchFilters
 from app.schemas.filters import SearchFilters
 from app.schemas.listing import ListingRaw, Room
 from app.schemas.match import Ternary
@@ -129,3 +133,107 @@ def test_match_area_filters_uncertain_when_missing():
 
     assert out is not None
     assert out.value == Ternary.UNCERTAIN
+    
+    
+def test_extract_total_price_from_listing_top_level():
+    listing = ListingRaw(
+        id="p1",
+        name="Apartment STEL",
+        price=700.0,
+        currency="US$",
+        rooms=[],
+    )
+
+    total_price, currency, evidence = extract_total_price(listing)
+
+    assert total_price == 700.0
+    assert currency == "USD"
+    assert evidence
+    assert evidence[0].path == "listing.price"
+
+
+def test_match_price_filters_per_night_yes():
+    filters = SearchFilters(
+        price=PriceConstraint(
+            max_amount=120,
+            currency="USD",
+            scope="per_night",
+        )
+    )
+
+    out = match_price_filters(
+        total_price=700.0,
+        listing_currency="US$",
+        filters=filters,
+        check_in=date(2026, 4, 8),
+        check_out=date(2026, 4, 15),  # 7 nights
+    )
+
+    assert out is not None
+    assert out.value == Ternary.YES
+    assert "PRICE:" in out.why
+
+
+def test_match_price_filters_per_night_no():
+    filters = SearchFilters(
+        price=PriceConstraint(
+            max_amount=50,
+            currency="USD",
+            scope="per_night",
+        )
+    )
+
+    out = match_price_filters(
+        total_price=700.0,
+        listing_currency="US$",
+        filters=filters,
+        check_in=date(2026, 4, 8),
+        check_out=date(2026, 4, 15),  # 7 nights => max total 350
+    )
+
+    assert out is not None
+    assert out.value == Ternary.NO
+    assert "allowed max total 350" in out.why
+
+
+def test_match_price_filters_total_stay_yes():
+    filters = SearchFilters(
+        price=PriceConstraint(
+            max_amount=750,
+            currency="USD",
+            scope="total_stay",
+        )
+    )
+
+    out = match_price_filters(
+        total_price=700.0,
+        listing_currency="USD",
+        filters=filters,
+        check_in=date(2026, 4, 8),
+        check_out=date(2026, 4, 15),
+    )
+
+    assert out is not None
+    assert out.value == Ternary.YES
+
+
+def test_match_price_filters_currency_mismatch_uncertain():
+    filters = SearchFilters(
+        price=PriceConstraint(
+            max_amount=500,
+            currency="AZN",
+            scope="total_stay",
+        )
+    )
+
+    out = match_price_filters(
+        total_price=700.0,
+        listing_currency="USD",
+        filters=filters,
+        check_in=date(2026, 4, 8),
+        check_out=date(2026, 4, 15),
+    )
+
+    assert out is not None
+    assert out.value == Ternary.UNCERTAIN
+    assert "currency mismatch" in out.why.lower()

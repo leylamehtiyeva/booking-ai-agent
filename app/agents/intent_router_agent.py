@@ -7,9 +7,8 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field as PydField
 from google.adk.agents import Agent
 from google.adk.models.google_llm import Gemini
-from app.schemas.filters import SearchFilters
 from app.schemas.fields import Field
-
+from app.schemas.filters import PriceConstraint, SearchFilters
 
 class IntentRoute(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -51,7 +50,7 @@ CANONICAL FIELDS:
   - nice_to_have_fields
 
 FILTERS (IMPORTANT):
-Some user requests are NOT amenities. They are structured numeric constraints.
+Some user requests are NOT amenities. They are structured constraints.
 
 These MUST go into "filters", not into must_have_fields.
 
@@ -69,6 +68,21 @@ Area:
 - "at least X sqm" / "more than X sqm" / "bigger than X square meters" → filters.area_sqm_min = X
 - "up to X sqm" / "less than X sqm" / "at most X square meters" → filters.area_sqm_max = X
 - "between A and B sqm" → filters.area_sqm_min = A AND filters.area_sqm_max = B
+
+Price:
+- Price constraints MUST go into filters.price
+- If the user says "per night", "a night", "nightly" → filters.price.scope = "per_night"
+- If the user says "total", "for the whole stay", "for all dates", "overall", "in total" → filters.price.scope = "total_stay"
+- Put the numeric amount into filters.price.max_amount unless the user clearly asks for a minimum
+- Put the currency into filters.price.currency when mentioned
+- If the user gives a price amount but does not specify whether it is per night or total, set filters.price.scope = null
+- Examples:
+  - "under 50 dollars per night" →
+    filters.price = {"min_amount": null, "max_amount": 50, "currency": "USD", "scope": "per_night"}
+  - "up to 500 manat total" →
+    filters.price = {"min_amount": null, "max_amount": 500, "currency": "AZN", "scope": "total_stay"}
+  - "budget at least 100 USD per night" →
+    filters.price = {"min_amount": 100, "max_amount": null, "currency": "USD", "scope": "per_night"}
 
 IMPORTANT:
 - Do NOT put numeric constraints into must_have_fields
