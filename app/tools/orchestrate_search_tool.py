@@ -20,6 +20,7 @@ from app.schemas.match import Ternary
 from app.schemas.query import SearchRequest
 from app.logic.property_semantics import match_occupancy_types, match_property_types
 from app.schemas.match import Ternary
+from app.logic.normalize_search_response import normalize_search_response
 
 
 def _fails_must(matches: dict[Field, Any], must_fields: List[Field] | None) -> bool:
@@ -490,10 +491,15 @@ async def orchestrate_search(
         and not _fails_numeric_filters(it.get("numeric_results"))
     ]
     ranked.sort(key=lambda x: x["score"], reverse=True)
+    normalized = normalize_search_response(
+    req,
+    ranked,
+    top_n=top_n,
+    dropped_requests=dropped_requests,
+    )
 
-    # 7) Format output
-    return _format_results(req, ranked, top_n=top_n, dropped_requests=dropped_requests)
-
+    return normalized.model_dump(mode="json", exclude_none=True)
+    
 def _format_match_why(field: Field, fm: Any) -> str:
     if fm is None:
         return f"{field.name}: missing match"

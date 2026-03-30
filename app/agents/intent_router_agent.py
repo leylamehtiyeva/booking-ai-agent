@@ -10,6 +10,7 @@ from google.adk.models.google_llm import Gemini
 from app.schemas.fields import Field
 from app.schemas.filters import PriceConstraint, SearchFilters
 from typing import List
+from pydantic import BaseModel, Field as PydanticField, field_validator
 
 
 class IntentRoute(BaseModel):
@@ -24,6 +25,17 @@ class IntentRoute(BaseModel):
     property_types: list[PropertyType] = PydanticField(default_factory=list)
     occupancy_types: list[OccupancyType] = PydanticField(default_factory=list)
     unknown_requests: List[str] = PydanticField(default_factory=list)
+    @field_validator(
+        "must_have_fields",
+        "nice_to_have_fields",
+        "property_types",
+        "occupancy_types",
+        "unknown_requests",
+        mode="before",
+    )
+    @classmethod
+    def _none_to_empty_list(cls, v):
+        return [] if v is None else v
 
 
 def build_intent_router_agent() -> Agent:
@@ -88,11 +100,11 @@ Price:
 - If the user gives a price amount but does not specify whether it is per night or total, set filters.price.scope = null
 - Examples:
   - "under 50 dollars per night" →
-    filters.price = {"min_amount": null, "max_amount": 50, "currency": "USD", "scope": "per_night"}
+    filters.price = {{"min_amount": null, "max_amount": 50, "currency": "USD", "scope": "per_night"}}
   - "up to 500 manat total" →
-    filters.price = {"min_amount": null, "max_amount": 500, "currency": "AZN", "scope": "total_stay"}
+    filters.price = {{"min_amount": null, "max_amount": 500, "currency": "AZN", "scope": "total_stay"}}
   - "budget at least 100 USD per night" →
-    filters.price = {"min_amount": 100, "max_amount": null, "currency": "USD", "scope": "per_night"}
+    filters.price = {{"min_amount": 100, "max_amount": null, "currency": "USD", "scope": "per_night"}}
 
 PROPERTY TYPE / OCCUPANCY (IMPORTANT):
 Some user requests are not amenities and not numeric filters. They describe the class
@@ -122,6 +134,9 @@ Examples:
 - "private room" -> occupancy_types = ["private_room"]
 - "shared room" / "bed in dorm" -> occupancy_types = ["shared_room"]
 - "hotel room" -> occupancy_types = ["hotel_room"]
+- For must_have_fields, nice_to_have_fields, property_types, occupancy_types, and unknown_requests:
+  always return arrays, never null.
+  Use [] when empty.
 
 IMPORTANT:
 - Do NOT put apartment / hotel / hostel / house into must_have_fields
@@ -152,4 +167,18 @@ DATES:
         name="intent_router",
         model=llm,
         instruction=instruction,
+    )
+
+
+async def route_intent(user_text: str) -> IntentRoute:
+    """
+    Convenience wrapper for running the intent router agent and parsing JSON output.
+    """
+    agent = build_intent_router_agent()
+
+    # TODO: replace this block with your actual ADK runner call pattern
+    # depending on how you already run agents elsewhere in the project.
+    raise NotImplementedError(
+        "route_intent() wrapper is not wired yet. "
+        "Use the same ADK runner pattern you already use in your debug script/agent execution flow."
     )
