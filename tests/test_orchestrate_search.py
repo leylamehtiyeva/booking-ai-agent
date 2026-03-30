@@ -161,7 +161,7 @@ async def test_numeric_filters_are_applied_in_orchestrate(monkeypatch):
 
     assert out["need_clarification"] is False
     assert len(out["results"]) == 1
-    assert out["results"][0]["id"] == "big-1"
+    assert out["results"][0]["result_id"] == "big-1"
     assert any("BEDROOMS:" in x for x in out["results"][0]["why"])
     assert any("AREA:" in x for x in out["results"][0]["why"])
     
@@ -220,7 +220,7 @@ async def test_price_filter_per_night_is_applied(monkeypatch):
 
     assert out["need_clarification"] is False
     assert len(out["results"]) == 1
-    assert out["results"][0]["id"] == "good-price"
+    assert out["results"][0]["result_id"] == "good-price"
     assert any("PRICE:" in x for x in out["results"][0]["why"])
     
     
@@ -267,7 +267,7 @@ async def test_bathroom_filter_is_applied(monkeypatch):
 
     assert out["need_clarification"] is False
     assert len(out["results"]) == 1
-    assert out["results"][0]["id"] == "two-bathrooms"
+    assert out["results"][0]["result_id"]== "two-bathrooms"
     assert any("BATHROOMS:" in x for x in out["results"][0]["why"])
     
     
@@ -314,5 +314,68 @@ async def test_property_type_filter_is_applied(monkeypatch):
 
     assert out["need_clarification"] is False
     assert len(out["results"]) == 1
-    assert out["results"][0]["id"] == "apartment-one"
+    assert out["results"][0]["result_id"] == "apartment-one"
     assert any("PROPERTY_TYPE:" in x for x in out["results"][0]["why"])
+    
+    
+import pytest
+
+from app.tools import orchestrate_search_tool
+from app.schemas.listing import ListingRaw
+
+
+@pytest.mark.asyncio
+async def test_orchestrate_search_returns_normalized_response(monkeypatch):
+    async def fake_get_candidates(req, max_items, source):
+        return [
+            ListingRaw(
+                id=None,
+                name="Apartment in Baku",
+                url="https://example.com/baku-apartment",
+                description="Apartment in Baku with private kitchen and private bathroom.",
+                price=300.0,
+                currency="US$",
+                rooms=[],
+                available_dates={"check_in": "2026-04-01", "check_out": "2026-04-30"},
+            ),
+        ]
+
+    monkeypatch.setattr(orchestrate_search_tool, "get_candidates", fake_get_candidates)
+
+    intent = {
+        "city": "Baku",
+        "check_in": "2026-04-08",
+        "check_out": "2026-04-15",
+        "must_have_fields": ["kitchen"],
+        "nice_to_have_fields": [],
+        "filters": {},
+        "property_types": ["apartment"],
+        "occupancy_types": [],
+        "unknown_requests": [],
+    }
+
+    out = await orchestrate_search_tool.orchestrate_search(
+        "Apartment in Baku with kitchen",
+        intent,
+        source="fixtures",
+        max_items=10,
+        fallback_top_k=0,
+    )
+
+    assert out["need_clarification"] is False
+    assert "request_summary" in out
+    assert "results" in out
+
+    assert out["request_summary"]["city"] == "Baku"
+    assert out["request_summary"]["must_have_fields"] == ["kitchen"]
+    assert out["request_summary"]["property_types"] == ["apartment"]
+
+    assert len(out["results"]) == 1
+    first = out["results"][0]
+
+    assert "result_id" in first
+    assert first["title"] == "Apartment in Baku"
+    assert first["url"] == "https://example.com/baku-apartment"
+    assert "matched_constraints" in first
+    assert "uncertain_constraints" in first
+    assert "facts" in first
