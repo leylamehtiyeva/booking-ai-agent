@@ -3,27 +3,27 @@ from __future__ import annotations
 import json
 import os
 from typing import Optional
-
-from pydantic import BaseModel, ConfigDict, Field as PydField
+from app.schemas.property_semantics import OccupancyType, PropertyType
+from pydantic import BaseModel, Field as PydanticField
 from google.adk.agents import Agent
 from google.adk.models.google_llm import Gemini
 from app.schemas.fields import Field
 from app.schemas.filters import PriceConstraint, SearchFilters
+from typing import List
+
 
 class IntentRoute(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    # model_config = ConfigDict(extra="forbid")
 
     city: Optional[str] = None
-
-    # Dates (MVP): ISO strings or null
-    check_in: Optional[str] = None   # "YYYY-MM-DD"
-    check_out: Optional[str] = None  # "YYYY-MM-DD"
-
-    # IMPORTANT: these are Enum values (Field.value)
-    must_have_fields: list[Field] = PydField(default_factory=list)
-    nice_to_have_fields: list[Field] = PydField(default_factory=list)
-    filters: SearchFilters | None = None
-    unknown_requests: list[str] = PydField(default_factory=list)
+    check_in: Optional[str] = None
+    check_out: Optional[str] = None
+    must_have_fields: List[Field] = PydanticField(default_factory=list)
+    nice_to_have_fields: List[Field] = PydanticField(default_factory=list)
+    filters: SearchFilters = PydanticField(default_factory=SearchFilters)
+    property_types: list[PropertyType] = PydanticField(default_factory=list)
+    occupancy_types: list[OccupancyType] = PydanticField(default_factory=list)
+    unknown_requests: List[str] = PydanticField(default_factory=list)
 
 
 def build_intent_router_agent() -> Agent:
@@ -93,6 +93,40 @@ Price:
     filters.price = {"min_amount": null, "max_amount": 500, "currency": "AZN", "scope": "total_stay"}
   - "budget at least 100 USD per night" →
     filters.price = {"min_amount": 100, "max_amount": null, "currency": "USD", "scope": "per_night"}
+
+PROPERTY TYPE / OCCUPANCY (IMPORTANT):
+Some user requests are not amenities and not numeric filters. They describe the class
+of property or the occupancy mode.
+
+Use "property_types" for:
+- apartment
+- hotel
+- hostel
+- house
+- aparthotel
+- guesthouse
+
+Examples:
+- "I want an apartment" -> property_types = ["apartment"]
+- "hotel is okay" -> property_types = ["hotel"]
+- "not a hostel" -> add "hostel" to unknown_requests for now if negation cannot be expressed structurally
+
+Use "occupancy_types" for:
+- entire_place
+- private_room
+- shared_room
+- hotel_room
+
+Examples:
+- "entire place" -> occupancy_types = ["entire_place"]
+- "private room" -> occupancy_types = ["private_room"]
+- "shared room" / "bed in dorm" -> occupancy_types = ["shared_room"]
+- "hotel room" -> occupancy_types = ["hotel_room"]
+
+IMPORTANT:
+- Do NOT put apartment / hotel / hostel / house into must_have_fields
+- Do NOT put entire place / private room / shared room into must_have_fields
+- These belong only in property_types / occupancy_types
 
 IMPORTANT:
 - Do NOT put numeric constraints into must_have_fields

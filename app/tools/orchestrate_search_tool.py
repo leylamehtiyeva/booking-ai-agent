@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from app.schemas.property_semantics import OccupancyType, PropertyType
 import asyncio
 import json
 import os
@@ -18,6 +18,8 @@ from app.schemas.fields import Field
 from app.schemas.listing import ListingRaw
 from app.schemas.match import Ternary
 from app.schemas.query import SearchRequest
+from app.logic.property_semantics import match_occupancy_types, match_property_types
+from app.schemas.match import Ternary
 
 
 def _fails_must(matches: dict[Field, Any], must_fields: List[Field] | None) -> bool:
@@ -117,6 +119,12 @@ async def _repair_intent_with_llm(
             "check_out": "YYYY-MM-DD|null",
             "must_have_fields": "list[canonical_key]",
             "nice_to_have_fields": "list[canonical_key]",
+            "property_types": [
+                "apartment|hotel|hostel|house|aparthotel|guesthouse"
+            ],
+            "occupancy_types": [
+                "entire_place|private_room|shared_room|hotel_room"
+            ],
             "filters": {
                 "bedrooms_min": "int|null",
                 "bedrooms_max": "int|null",
@@ -154,9 +162,11 @@ async def _repair_intent_with_llm(
 
 
 def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
-    """Last resort: keep only enum-parsable items (by value or by name).
+    """Last resort: keep only enum-parsable items.
 
-    Everything else is moved to unknown_requests.
+    - canonical amenity fields are preserved if they parse into Field
+    - property_types / occupancy_types are preserved if they parse into their enums
+    - everything else is moved to unknown_requests
     """
     out: Dict[str, Any] = {
         "city": intent_dict.get("city"),
@@ -164,40 +174,57 @@ def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
         "check_out": intent_dict.get("check_out"),
         "must_have_fields": [],
         "nice_to_have_fields": [],
-        "filters": intent_dict.get("filters"),
+        "filters": intent_dict.get("filters") or {},
+        "property_types": [],
+        "occupancy_types": [],
         "unknown_requests": list(intent_dict.get("unknown_requests") or []),
     }
 
-    def parse_list(xs):
+    def parse_enum_list(xs, enum_cls, *, push_unknown: bool = True):
         ok = []
         for x in xs or []:
-            if isinstance(x, Field):
+            if isinstance(x, enum_cls):
                 ok.append(x)
                 continue
+
             if isinstance(x, str):
                 s = x.strip()
+
+                # parse by enum value
                 try:
-                    ok.append(Field(s))
+                    ok.append(enum_cls(s))
                     continue
                 except Exception:
                     pass
+
+                # parse by enum member name
                 try:
-                    ok.append(Field[s])
+                    ok.append(enum_cls[s])
                     continue
                 except Exception:
                     pass
+
                 try:
-                    ok.append(Field[s.upper()])
+                    ok.append(enum_cls[s.upper()])
                     continue
                 except Exception:
                     pass
-                out["unknown_requests"].append(x)
+
+                if push_unknown:
+                    out["unknown_requests"].append(x)
             else:
-                out["unknown_requests"].append(str(x))
+                if push_unknown:
+                    out["unknown_requests"].append(str(x))
         return ok
 
-    out["must_have_fields"] = parse_list(intent_dict.get("must_have_fields"))
-    out["nice_to_have_fields"] = parse_list(intent_dict.get("nice_to_have_fields"))
+    out["must_have_fields"] = parse_enum_list(intent_dict.get("must_have_fields"), Field)
+    out["nice_to_have_fields"] = parse_enum_list(intent_dict.get("nice_to_have_fields"), Field)
+
+    # For typed property/occupancy semantics we keep only valid enum-parsable items.
+    # Invalid values also go to unknown_requests.
+    out["property_types"] = parse_enum_list(intent_dict.get("property_types"), PropertyType)
+    out["occupancy_types"] = parse_enum_list(intent_dict.get("occupancy_types"), OccupancyType)
+
     return out
 
 async def _validate_and_repair_intent(intent: Any, attempts: int = 2) -> Tuple[IntentRoute, List[str]]:
@@ -255,7 +282,8 @@ def _build_request(user_text: str, intent_obj: IntentRoute, check_in: date, chec
         forbidden_fields=[],
         min_guest_rating=None,
         filters=intent_obj.filters,
-        property_types=None,
+        property_types=intent_obj.property_types,
+        occupancy_types=intent_obj.occupancy_types,
     )
 
 
@@ -269,6 +297,8 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
             check_in=req.check_in,
             check_out=req.check_out,
         )
+        property_result = match_property_types(lst, req.property_types)
+        occupancy_result = match_occupancy_types(lst, req.occupancy_types)
         # strict amenity must-have filter
         if _fails_must(report.matches, req.must_have_fields):
             continue
@@ -276,13 +306,24 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
         # strict numeric filter
         if _fails_numeric_filters(numeric_results):
             continue
+        
+        if property_result is not None and property_result.value == Ternary.NO:
+            continue
+
+        if occupancy_result is not None and occupancy_result.value == Ternary.NO:
+            continue
 
         score, must_yes, must_total, why = _score_listing(
             req,
             report.matches,
             numeric_results=numeric_results,
         )
+        
+        if property_result is not None:
+            why.append(property_result.why)
 
+        if occupancy_result is not None:
+            why.append(occupancy_result.why)
 
         ranked.append(
             {

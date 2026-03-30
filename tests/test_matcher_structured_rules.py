@@ -42,7 +42,6 @@ def test_match_listing_structured_uses_signal_rules():
         must_have_fields=[
             Field.PRIVATE_BATHROOM,
             Field.KITCHEN,
-            Field.PROPERTY_APARTMENT,
         ],
         nice_to_have_fields=[
             Field.WIFI,
@@ -57,7 +56,6 @@ def test_match_listing_structured_uses_signal_rules():
 
     assert report.matches[Field.PRIVATE_BATHROOM].value == Ternary.YES
     assert report.matches[Field.KITCHEN].value == Ternary.YES
-    assert report.matches[Field.PROPERTY_APARTMENT].value == Ternary.YES
 
     assert report.matches[Field.WIFI].value == Ternary.YES
     assert report.matches[Field.WASHING_MACHINE].value == Ternary.YES

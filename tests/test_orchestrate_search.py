@@ -56,6 +56,8 @@ def test_salvage_preserves_filters():
         "check_out": "2026-04-15",
         "must_have_fields": ["kitchen", "NOT_A_REAL_FIELD"],
         "nice_to_have_fields": ["private_bathroom"],
+        "property_types": ["apartment", "NOT_REAL_TYPE"],
+        "occupancy_types": ["entire_place", "NOT_REAL_OCCUPANCY"],
         "filters": {
             "bedrooms_min": 2,
             "bedrooms_max": None,
@@ -82,6 +84,7 @@ def test_salvage_preserves_filters():
         "area_sqm_max": None,
         "bathrooms_min": 2,
         "bathrooms_max": None,
+        
         "price": {
             "min_amount": None,
             "max_amount": 50,
@@ -89,6 +92,8 @@ def test_salvage_preserves_filters():
             "scope": "per_night",
         },
     }
+    assert out["property_types"] == ["apartment"]
+    assert out["occupancy_types"] == ["entire_place"]
     assert "NOT_A_REAL_FIELD" in out["unknown_requests"]
     
     
@@ -264,3 +269,50 @@ async def test_bathroom_filter_is_applied(monkeypatch):
     assert len(out["results"]) == 1
     assert out["results"][0]["id"] == "two-bathrooms"
     assert any("BATHROOMS:" in x for x in out["results"][0]["why"])
+    
+    
+@pytest.mark.asyncio
+async def test_property_type_filter_is_applied(monkeypatch):
+    async def fake_get_candidates(req, max_items, source):
+        return [
+            ListingRaw(
+                id="hotel-one",
+                name="Hotel in Baku",
+                url="https://example.com/baku-hotel",
+                description="Nice hotel in Baku.",
+                rooms=[],
+            ),
+            ListingRaw(
+                id="apartment-one",
+                name="Apartment in Baku",
+                url="https://example.com/baku-apartment",
+                description="Entire apartment in Baku with kitchen.",
+                rooms=[],
+            ),
+        ]
+
+    monkeypatch.setattr(orchestrate_search_tool, "get_candidates", fake_get_candidates)
+
+    intent = {
+        "city": "Baku",
+        "check_in": "2026-04-08",
+        "check_out": "2026-04-15",
+        "must_have_fields": [],
+        "nice_to_have_fields": [],
+        "filters": {},
+        "property_types": ["apartment"],
+        "occupancy_types": [],
+        "unknown_requests": [],
+    }
+
+    out = await orchestrate_search_tool.orchestrate_search(
+        "Apartment in Baku",
+        intent,
+        source="fixtures",
+        max_items=10,
+    )
+
+    assert out["need_clarification"] is False
+    assert len(out["results"]) == 1
+    assert out["results"][0]["id"] == "apartment-one"
+    assert any("PROPERTY_TYPE:" in x for x in out["results"][0]["why"])
