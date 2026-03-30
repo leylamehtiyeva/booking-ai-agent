@@ -23,7 +23,8 @@ async def test_classify_field_from_description_yes(monkeypatch):
 
     assert out.value == Ternary.YES
     assert out.evidence
-    assert "Private kitchen" in out.evidence[0].snippet
+    assert out.evidence[0].path == "llm_fallback"
+    assert out.evidence[0].source.value == "llm"
 
 
 @pytest.mark.asyncio
@@ -43,7 +44,8 @@ async def test_classify_field_from_description_no(monkeypatch):
 
     assert out.value == Ternary.NO
     assert out.evidence
-    assert "Pets are not allowed" in out.evidence[0].snippet
+    assert out.evidence[0].path == "llm_fallback"
+    assert out.evidence[0].source.value == "llm"
 
 
 @pytest.mark.asyncio

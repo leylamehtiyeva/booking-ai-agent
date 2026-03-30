@@ -1,6 +1,22 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import Literal
+
+from pydantic import BaseModel
+
+
+class PriceConstraint(BaseModel):
+    """
+    User-side budget constraint.
+
+    scope:
+    - per_night   -> e.g. "50 USD per night"
+    - total_stay  -> e.g. "500 AZN total"
+    """
+    min_amount: float | None = None
+    max_amount: float | None = None
+    currency: str | None = None
+    scope: Literal["per_night", "total_stay"] | None = None
 
 
 class SearchFilters(BaseModel):
@@ -14,3 +30,7 @@ class SearchFilters(BaseModel):
     bedrooms_max: int | None = None
     area_sqm_min: float | None = None
     area_sqm_max: float | None = None
+    bathrooms_min: float | None = None
+    bathrooms_max: float | None = None
+
+    price: PriceConstraint | None = None

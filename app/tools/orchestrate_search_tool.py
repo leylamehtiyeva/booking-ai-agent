@@ -122,6 +122,14 @@ async def _repair_intent_with_llm(
                 "bedrooms_max": "int|null",
                 "area_sqm_min": "float|null",
                 "area_sqm_max": "float|null",
+                "bathrooms_min": "float|null",
+                "bathrooms_max": "float|null",
+                "price": {
+                    "min_amount": "float|null",
+                    "max_amount": "float|null",
+                    "currency": "string|null",
+                    "scope": "per_night|total_stay|null",
+                },
             },
             "unknown_requests": "list[str]",
         },
@@ -255,8 +263,12 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
     ranked: List[Dict[str, Any]] = []
     for lst in listings:
         report = match_listing_structured(lst, req)
-        numeric_results = evaluate_numeric_filters(lst, req.filters)
-
+        numeric_results = evaluate_numeric_filters(
+            lst,
+            req.filters,
+            check_in=req.check_in,
+            check_out=req.check_out,
+        )
         # strict amenity must-have filter
         if _fails_must(report.matches, req.must_have_fields):
             continue

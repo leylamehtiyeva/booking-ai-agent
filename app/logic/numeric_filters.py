@@ -1,12 +1,12 @@
 from __future__ import annotations
-
 import re
 from dataclasses import dataclass
+from datetime import date
 from typing import Any, List, Optional, Tuple
-
 from app.schemas.filters import SearchFilters
 from app.schemas.listing import ListingRaw
 from app.schemas.match import Evidence, EvidenceSource, Ternary
+from app.schemas.filters import PriceConstraint, SearchFilters
 
 
 _NUMBER_WORDS = {
@@ -25,6 +25,14 @@ _NUMBER_WORDS = {
     "twelve": 12,
 }
 
+_WORD_TO_NUMBER = {
+    "one": 1.0,
+    "two": 2.0,
+    "three": 3.0,
+    "four": 4.0,
+    "five": 5.0,
+    "six": 6.0,
+}
 
 @dataclass(frozen=True)
 class NumericMatchResult:
@@ -143,6 +151,124 @@ def extract_bedroom_count(listing: ListingRaw) -> tuple[int | None, List[Evidenc
     best_value, best_evidence, _ = candidates[0]
     return best_value, [best_evidence]
 
+_BATHROOM_NUMERIC_RE = re.compile(
+    r"\b(?P<count>\d+(?:\.\d+)?)\s*(?:bathroom|bathrooms|bath|baths)\b",
+    flags=re.IGNORECASE,
+)
+
+_BATHROOM_WORD_RE = re.compile(
+    r"\b(?P<count_word>one|two|three|four|five|six)\s*(?:bathroom|bathrooms|bath|baths)\b",
+    flags=re.IGNORECASE,
+)
+
+
+def _extract_bathroom_mentions_from_text(
+    text: str,
+    *,
+    source: EvidenceSource,
+    path: str,
+) -> list[tuple[float, Evidence]]:
+    out: list[tuple[float, Evidence]] = []
+    if not text:
+        return out
+
+    for m in _BATHROOM_NUMERIC_RE.finditer(text):
+        try:
+            count = float(m.group("count"))
+        except (TypeError, ValueError):
+            continue
+
+        snippet = m.group(0)
+        out.append(
+            (
+                count,
+                Evidence(
+                    source=source,
+                    path=path,
+                    snippet=snippet,
+                ),
+            )
+        )
+
+    for m in _BATHROOM_WORD_RE.finditer(text):
+        word = (m.group("count_word") or "").lower()
+        count = _WORD_TO_NUMBER.get(word)
+        if count is None:
+            continue
+
+        snippet = m.group(0)
+        out.append(
+            (
+                count,
+                Evidence(
+                    source=source,
+                    path=path,
+                    snippet=snippet,
+                ),
+            )
+        )
+
+    return out
+
+
+def extract_bathroom_count(listing: ListingRaw) -> tuple[float | None, list[Evidence]]:
+    """
+    Extract bathroom count from listing text / room facilities.
+
+    Strategy:
+    - search name
+    - search description
+    - search roomType
+    - search facilities
+    - return the max detected bathroom count as the safest approximation
+    """
+    candidates: list[tuple[float, Evidence]] = []
+
+    name = getattr(listing, "name", None) or ""
+    description = getattr(listing, "description", None) or ""
+
+    candidates.extend(
+        _extract_bathroom_mentions_from_text(
+            name,
+            source=EvidenceSource.STRUCTURED,
+            path="listing.name",
+        )
+    )
+    candidates.extend(
+        _extract_bathroom_mentions_from_text(
+            description,
+            source=EvidenceSource.STRUCTURED,
+            path="listing.description",
+        )
+    )
+
+    rooms = getattr(listing, "rooms", []) or []
+    for i, room in enumerate(rooms):
+        room_type = getattr(room, "roomType", None) or ""
+        candidates.extend(
+            _extract_bathroom_mentions_from_text(
+                room_type,
+                source=EvidenceSource.STRUCTURED,
+                path=f"rooms[{i}].roomType",
+            )
+        )
+
+        facilities = getattr(room, "facilities", []) or []
+        for j, facility in enumerate(facilities):
+            facility_text = str(facility)
+            candidates.extend(
+                _extract_bathroom_mentions_from_text(
+                    facility_text,
+                    source=EvidenceSource.STRUCTURED,
+                    path=f"rooms[{i}].facilities[{j}]",
+                )
+            )
+
+    if not candidates:
+        return None, []
+
+    best_count, best_evidence = max(candidates, key=lambda x: x[0])
+    return best_count, [best_evidence]
 
 _AREA_PATTERNS = [
     (
@@ -317,16 +443,259 @@ def match_area_filters(
         why=why,
     )
     
+def match_bathroom_filters(
+    bathroom_count: float | None,
+    filters: SearchFilters | None,
+    evidence: List[Evidence] | None = None,
+) -> NumericMatchResult | None:
+    if filters is None:
+        return None
+
+    if filters.bathrooms_min is None and filters.bathrooms_max is None:
+        return None
+
+    evidence = evidence or []
+
+    if bathroom_count is None:
+        return NumericMatchResult(
+            attribute="bathrooms",
+            value=Ternary.UNCERTAIN,
+            actual_value=None,
+            evidence=evidence,
+            why="BATHROOMS: could not extract bathroom count",
+        )
+
+    if filters.bathrooms_min is not None and bathroom_count < filters.bathrooms_min:
+        return NumericMatchResult(
+            attribute="bathrooms",
+            value=Ternary.NO,
+            actual_value=bathroom_count,
+            evidence=evidence,
+            why=f"BATHROOMS: {bathroom_count} < required min {filters.bathrooms_min}",
+        )
+
+    if filters.bathrooms_max is not None and bathroom_count > filters.bathrooms_max:
+        return NumericMatchResult(
+            attribute="bathrooms",
+            value=Ternary.NO,
+            actual_value=bathroom_count,
+            evidence=evidence,
+            why=f"BATHROOMS: {bathroom_count} > allowed max {filters.bathrooms_max}",
+        )
+
+    if filters.bathrooms_min is not None and filters.bathrooms_max is not None:
+        why = (
+            f"BATHROOMS: {bathroom_count} within range "
+            f"[{filters.bathrooms_min}, {filters.bathrooms_max}]"
+        )
+    elif filters.bathrooms_min is not None:
+        why = f"BATHROOMS: {bathroom_count} >= required min {filters.bathrooms_min}"
+    else:
+        why = f"BATHROOMS: {bathroom_count} <= allowed max {filters.bathrooms_max}"
+
+    return NumericMatchResult(
+        attribute="bathrooms",
+        value=Ternary.YES,
+        actual_value=bathroom_count,
+        evidence=evidence,
+        why=why,
+    )    
+    
+def _normalize_currency(value: str | None) -> str | None:
+    if not value:
+        return None
+
+    s = value.strip().upper()
+
+    mapping = {
+        "US$": "USD",
+        "$": "USD",
+        "USD": "USD",
+        "AZN": "AZN",
+        "MANAT": "AZN",
+        "MANATS": "AZN",
+        "EUR": "EUR",
+        "€": "EUR",
+        "GBP": "GBP",
+        "£": "GBP",
+    }
+    return mapping.get(s, s)
+
+
+def _night_count(check_in: date | None, check_out: date | None) -> int | None:
+    if check_in is None or check_out is None:
+        return None
+    delta = (check_out - check_in).days
+    if delta <= 0:
+        return None
+    return delta
+
+
+def extract_total_price(listing: ListingRaw) -> tuple[float | None, str | None, List[Evidence]]:
+    """
+    Booking JSON in your current flow appears to expose total stay price at top-level:
+    listing.price + listing.currency.
+    """
+    price = getattr(listing, "price", None)
+    currency = _normalize_currency(getattr(listing, "currency", None))
+
+    if price is not None:
+        evidence = [
+            Evidence(
+                source=EvidenceSource.STRUCTURED,
+                path="listing.price",
+                snippet=f"price={price}, currency={currency}",
+            )
+        ]
+        return float(price), currency, evidence
+
+    # fallback: first room option price
+    rooms = getattr(listing, "rooms", []) or []
+    for i, room in enumerate(rooms):
+        options = getattr(room, "options", []) or []
+        for j, opt in enumerate(options):
+            opt_price = getattr(opt, "price", None)
+            opt_currency = _normalize_currency(getattr(opt, "currency", None))
+            if opt_price is not None:
+                evidence = [
+                    Evidence(
+                        source=EvidenceSource.STRUCTURED,
+                        path=f"rooms[{i}].options[{j}].price",
+                        snippet=f"price={opt_price}, currency={opt_currency}",
+                    )
+                ]
+                return float(opt_price), opt_currency, evidence
+
+    return None, None, []
+
+
+def match_price_filters(
+    total_price: float | None,
+    listing_currency: str | None,
+    filters: SearchFilters | None,
+    *,
+    check_in: date | None,
+    check_out: date | None,
+    evidence: List[Evidence] | None = None,
+) -> NumericMatchResult | None:
+    if filters is None or filters.price is None:
+        return None
+
+    price_filter = filters.price
+    evidence = evidence or []
+
+    if total_price is None:
+        return NumericMatchResult(
+            attribute="price_total",
+            value=Ternary.UNCERTAIN,
+            actual_value=None,
+            evidence=evidence,
+            why="PRICE: could not extract total listing price",
+        )
+
+    listing_currency_norm = _normalize_currency(listing_currency)
+    request_currency_norm = _normalize_currency(price_filter.currency)
+
+    if (
+        request_currency_norm is not None
+        and listing_currency_norm is not None
+        and request_currency_norm != listing_currency_norm
+    ):
+        return NumericMatchResult(
+            attribute="price_total",
+            value=Ternary.UNCERTAIN,
+            actual_value=total_price,
+            evidence=evidence,
+            why=(
+                f"PRICE: currency mismatch listing={listing_currency_norm}, "
+                f"request={request_currency_norm}"
+            ),
+        )
+
+    required_min_total = price_filter.min_amount
+    required_max_total = price_filter.max_amount
+
+    if price_filter.scope == "per_night":
+        nights = _night_count(check_in, check_out)
+        if nights is None:
+            return NumericMatchResult(
+                attribute="price_total",
+                value=Ternary.UNCERTAIN,
+                actual_value=total_price,
+                evidence=evidence,
+                why="PRICE: could not derive night count for per-night budget",
+            )
+
+        if required_min_total is not None:
+            required_min_total = required_min_total * nights
+        if required_max_total is not None:
+            required_max_total = required_max_total * nights
+
+    elif price_filter.scope in ("total_stay", None):
+        pass
+
+    else:
+        return NumericMatchResult(
+            attribute="price_total",
+            value=Ternary.UNCERTAIN,
+            actual_value=total_price,
+            evidence=evidence,
+            why=f"PRICE: unsupported scope {price_filter.scope}",
+        )
+
+    pretty_total = round(total_price, 2)
+
+    if required_min_total is not None and total_price < required_min_total:
+        return NumericMatchResult(
+            attribute="price_total",
+            value=Ternary.NO,
+            actual_value=total_price,
+            evidence=evidence,
+            why=f"PRICE: {pretty_total} < required min total {round(required_min_total, 2)}",
+        )
+
+    if required_max_total is not None and total_price > required_max_total:
+        return NumericMatchResult(
+            attribute="price_total",
+            value=Ternary.NO,
+            actual_value=total_price,
+            evidence=evidence,
+            why=f"PRICE: {pretty_total} > allowed max total {round(required_max_total, 2)}",
+        )
+
+    if required_min_total is not None and required_max_total is not None:
+        why = (
+            f"PRICE: {pretty_total} within total range "
+            f"[{round(required_min_total, 2)}, {round(required_max_total, 2)}]"
+        )
+    elif required_min_total is not None:
+        why = f"PRICE: {pretty_total} >= required total {round(required_min_total, 2)}"
+    else:
+        why = f"PRICE: {pretty_total} <= allowed total {round(required_max_total, 2)}"
+
+    return NumericMatchResult(
+        attribute="price_total",
+        value=Ternary.YES,
+        actual_value=total_price,
+        evidence=evidence,
+        why=why,
+    )   
+   
     
 def evaluate_numeric_filters(
     listing: ListingRaw,
     filters: SearchFilters | None,
+    *,
+    check_in: date | None = None,
+    check_out: date | None = None,
 ) -> List[NumericMatchResult]:
     """
     Единая точка входа для numeric extraction + matching.
     """
     bedroom_count, bedroom_evidence = extract_bedroom_count(listing)
     area_sqm, area_evidence = extract_area_sqm(listing)
+    bathroom_count, bathroom_evidence = extract_bathroom_count(listing)
+    total_price, listing_currency, price_evidence = extract_total_price(listing)
 
     results: List[NumericMatchResult] = []
 
@@ -346,4 +715,24 @@ def evaluate_numeric_filters(
     if ar is not None:
         results.append(ar)
 
+    ba = match_bathroom_filters(
+        bathroom_count=bathroom_count,
+        filters=filters,
+        evidence=bathroom_evidence,
+    )
+    if ba is not None:
+        results.append(ba)
+
+    pr = match_price_filters(
+        total_price=total_price,
+        listing_currency=listing_currency,
+        filters=filters,
+        check_in=check_in,
+        check_out=check_out,
+        evidence=price_evidence,
+    )
+    if pr is not None:
+        results.append(pr)
+
     return results
+
