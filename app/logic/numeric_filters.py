@@ -25,6 +25,14 @@ _NUMBER_WORDS = {
     "twelve": 12,
 }
 
+_WORD_TO_NUMBER = {
+    "one": 1.0,
+    "two": 2.0,
+    "three": 3.0,
+    "four": 4.0,
+    "five": 5.0,
+    "six": 6.0,
+}
 
 @dataclass(frozen=True)
 class NumericMatchResult:
@@ -143,6 +151,124 @@ def extract_bedroom_count(listing: ListingRaw) -> tuple[int | None, List[Evidenc
     best_value, best_evidence, _ = candidates[0]
     return best_value, [best_evidence]
 
+_BATHROOM_NUMERIC_RE = re.compile(
+    r"\b(?P<count>\d+(?:\.\d+)?)\s*(?:bathroom|bathrooms|bath|baths)\b",
+    flags=re.IGNORECASE,
+)
+
+_BATHROOM_WORD_RE = re.compile(
+    r"\b(?P<count_word>one|two|three|four|five|six)\s*(?:bathroom|bathrooms|bath|baths)\b",
+    flags=re.IGNORECASE,
+)
+
+
+def _extract_bathroom_mentions_from_text(
+    text: str,
+    *,
+    source: EvidenceSource,
+    path: str,
+) -> list[tuple[float, Evidence]]:
+    out: list[tuple[float, Evidence]] = []
+    if not text:
+        return out
+
+    for m in _BATHROOM_NUMERIC_RE.finditer(text):
+        try:
+            count = float(m.group("count"))
+        except (TypeError, ValueError):
+            continue
+
+        snippet = m.group(0)
+        out.append(
+            (
+                count,
+                Evidence(
+                    source=source,
+                    path=path,
+                    snippet=snippet,
+                ),
+            )
+        )
+
+    for m in _BATHROOM_WORD_RE.finditer(text):
+        word = (m.group("count_word") or "").lower()
+        count = _WORD_TO_NUMBER.get(word)
+        if count is None:
+            continue
+
+        snippet = m.group(0)
+        out.append(
+            (
+                count,
+                Evidence(
+                    source=source,
+                    path=path,
+                    snippet=snippet,
+                ),
+            )
+        )
+
+    return out
+
+
+def extract_bathroom_count(listing: ListingRaw) -> tuple[float | None, list[Evidence]]:
+    """
+    Extract bathroom count from listing text / room facilities.
+
+    Strategy:
+    - search name
+    - search description
+    - search roomType
+    - search facilities
+    - return the max detected bathroom count as the safest approximation
+    """
+    candidates: list[tuple[float, Evidence]] = []
+
+    name = getattr(listing, "name", None) or ""
+    description = getattr(listing, "description", None) or ""
+
+    candidates.extend(
+        _extract_bathroom_mentions_from_text(
+            name,
+            source=EvidenceSource.STRUCTURED,
+            path="listing.name",
+        )
+    )
+    candidates.extend(
+        _extract_bathroom_mentions_from_text(
+            description,
+            source=EvidenceSource.STRUCTURED,
+            path="listing.description",
+        )
+    )
+
+    rooms = getattr(listing, "rooms", []) or []
+    for i, room in enumerate(rooms):
+        room_type = getattr(room, "roomType", None) or ""
+        candidates.extend(
+            _extract_bathroom_mentions_from_text(
+                room_type,
+                source=EvidenceSource.STRUCTURED,
+                path=f"rooms[{i}].roomType",
+            )
+        )
+
+        facilities = getattr(room, "facilities", []) or []
+        for j, facility in enumerate(facilities):
+            facility_text = str(facility)
+            candidates.extend(
+                _extract_bathroom_mentions_from_text(
+                    facility_text,
+                    source=EvidenceSource.STRUCTURED,
+                    path=f"rooms[{i}].facilities[{j}]",
+                )
+            )
+
+    if not candidates:
+        return None, []
+
+    best_count, best_evidence = max(candidates, key=lambda x: x[0])
+    return best_count, [best_evidence]
 
 _AREA_PATTERNS = [
     (
@@ -316,6 +442,64 @@ def match_area_filters(
         evidence=evidence,
         why=why,
     )
+    
+def match_bathroom_filters(
+    bathroom_count: float | None,
+    filters: SearchFilters | None,
+    evidence: List[Evidence] | None = None,
+) -> NumericMatchResult | None:
+    if filters is None:
+        return None
+
+    if filters.bathrooms_min is None and filters.bathrooms_max is None:
+        return None
+
+    evidence = evidence or []
+
+    if bathroom_count is None:
+        return NumericMatchResult(
+            attribute="bathrooms",
+            value=Ternary.UNCERTAIN,
+            actual_value=None,
+            evidence=evidence,
+            why="BATHROOMS: could not extract bathroom count",
+        )
+
+    if filters.bathrooms_min is not None and bathroom_count < filters.bathrooms_min:
+        return NumericMatchResult(
+            attribute="bathrooms",
+            value=Ternary.NO,
+            actual_value=bathroom_count,
+            evidence=evidence,
+            why=f"BATHROOMS: {bathroom_count} < required min {filters.bathrooms_min}",
+        )
+
+    if filters.bathrooms_max is not None and bathroom_count > filters.bathrooms_max:
+        return NumericMatchResult(
+            attribute="bathrooms",
+            value=Ternary.NO,
+            actual_value=bathroom_count,
+            evidence=evidence,
+            why=f"BATHROOMS: {bathroom_count} > allowed max {filters.bathrooms_max}",
+        )
+
+    if filters.bathrooms_min is not None and filters.bathrooms_max is not None:
+        why = (
+            f"BATHROOMS: {bathroom_count} within range "
+            f"[{filters.bathrooms_min}, {filters.bathrooms_max}]"
+        )
+    elif filters.bathrooms_min is not None:
+        why = f"BATHROOMS: {bathroom_count} >= required min {filters.bathrooms_min}"
+    else:
+        why = f"BATHROOMS: {bathroom_count} <= allowed max {filters.bathrooms_max}"
+
+    return NumericMatchResult(
+        attribute="bathrooms",
+        value=Ternary.YES,
+        actual_value=bathroom_count,
+        evidence=evidence,
+        why=why,
+    )    
     
 def _normalize_currency(value: str | None) -> str | None:
     if not value:
@@ -510,6 +694,7 @@ def evaluate_numeric_filters(
     """
     bedroom_count, bedroom_evidence = extract_bedroom_count(listing)
     area_sqm, area_evidence = extract_area_sqm(listing)
+    bathroom_count, bathroom_evidence = extract_bathroom_count(listing)
     total_price, listing_currency, price_evidence = extract_total_price(listing)
 
     results: List[NumericMatchResult] = []
@@ -530,6 +715,14 @@ def evaluate_numeric_filters(
     if ar is not None:
         results.append(ar)
 
+    ba = match_bathroom_filters(
+        bathroom_count=bathroom_count,
+        filters=filters,
+        evidence=bathroom_evidence,
+    )
+    if ba is not None:
+        results.append(ba)
+
     pr = match_price_filters(
         total_price=total_price,
         listing_currency=listing_currency,
@@ -542,5 +735,4 @@ def evaluate_numeric_filters(
         results.append(pr)
 
     return results
-
 

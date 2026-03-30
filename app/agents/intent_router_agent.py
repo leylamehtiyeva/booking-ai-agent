@@ -69,6 +69,16 @@ Area:
 - "up to X sqm" / "less than X sqm" / "at most X square meters" → filters.area_sqm_max = X
 - "between A and B sqm" → filters.area_sqm_min = A AND filters.area_sqm_max = B
 
+Bathrooms:
+- "X bathrooms" → filters.bathrooms_min = X
+- "X bathroom" → filters.bathrooms_min = X
+- "at least X bathrooms" → filters.bathrooms_min = X
+- "more than X bathrooms" → filters.bathrooms_min = X
+- "up to X bathrooms" / "at most X bathrooms" / "less than X bathrooms" → filters.bathrooms_max = X
+- "between A and B bathrooms" → filters.bathrooms_min = A AND filters.bathrooms_max = B
+- Support decimal bathroom counts such as "1.5 bathrooms"
+
+
 Price:
 - Price constraints MUST go into filters.price
 - If the user says "per night", "a night", "nightly" → filters.price.scope = "per_night"

@@ -61,6 +61,8 @@ def test_salvage_preserves_filters():
             "bedrooms_max": None,
             "area_sqm_min": 80,
             "area_sqm_max": None,
+            "bathrooms_min": 2,
+            "bathrooms_max": None,
             "price": {
                 "min_amount": None,
                 "max_amount": 50,
@@ -78,6 +80,8 @@ def test_salvage_preserves_filters():
         "bedrooms_max": None,
         "area_sqm_min": 80,
         "area_sqm_max": None,
+        "bathrooms_min": 2,
+        "bathrooms_max": None,
         "price": {
             "min_amount": None,
             "max_amount": 50,
@@ -213,3 +217,50 @@ async def test_price_filter_per_night_is_applied(monkeypatch):
     assert len(out["results"]) == 1
     assert out["results"][0]["id"] == "good-price"
     assert any("PRICE:" in x for x in out["results"][0]["why"])
+    
+    
+@pytest.mark.asyncio
+async def test_bathroom_filter_is_applied(monkeypatch):
+    async def fake_get_candidates(req, max_items, source):
+        return [
+            ListingRaw(
+                id="one-bathroom",
+                name="Apartment in Baku",
+                url="https://example.com/baku-one-bathroom",
+                description="Nice apartment in Baku with 1 bathroom.",
+                rooms=[],
+            ),
+            ListingRaw(
+                id="two-bathrooms",
+                name="Family apartment in Baku",
+                url="https://example.com/baku-two-bathrooms",
+                description="Family apartment in Baku with 2 bathrooms.",
+                rooms=[],
+            ),
+        ]
+
+    monkeypatch.setattr(orchestrate_search_tool, "get_candidates", fake_get_candidates)
+
+    intent = {
+        "city": "Baku",
+        "check_in": "2026-04-08",
+        "check_out": "2026-04-15",
+        "must_have_fields": [],
+        "nice_to_have_fields": [],
+        "filters": {
+            "bathrooms_min": 2,
+        },
+        "unknown_requests": [],
+    }
+
+    out = await orchestrate_search_tool.orchestrate_search(
+        "Apartment in Baku with at least 2 bathrooms",
+        intent,
+        source="fixtures",
+        max_items=10,
+    )
+
+    assert out["need_clarification"] is False
+    assert len(out["results"]) == 1
+    assert out["results"][0]["id"] == "two-bathrooms"
+    assert any("BATHROOMS:" in x for x in out["results"][0]["why"])

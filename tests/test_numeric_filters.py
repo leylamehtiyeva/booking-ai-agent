@@ -1,8 +1,10 @@
 from app.logic.numeric_filters import (
     extract_area_sqm,
+    extract_bathroom_count,
     extract_bedroom_count,
     extract_total_price,
     match_area_filters,
+    match_bathroom_filters,
     match_bedrooms_filters,
     match_price_filters,
 )
@@ -237,3 +239,86 @@ def test_match_price_filters_currency_mismatch_uncertain():
     assert out is not None
     assert out.value == Ternary.UNCERTAIN
     assert "currency mismatch" in out.why.lower()
+    
+    
+def test_extract_bathroom_count_from_description_numeric():
+    listing = ListingRaw(
+        id="b1",
+        name="Spacious apartment",
+        description="Beautiful apartment with 2 bathrooms and a balcony.",
+        rooms=[],
+    )
+
+    bathroom_count, evidence = extract_bathroom_count(listing)
+
+    assert bathroom_count == 2.0
+    assert evidence
+    assert "2 bathrooms" in evidence[0].snippet.lower()
+
+
+def test_extract_bathroom_count_from_description_decimal():
+    listing = ListingRaw(
+        id="b2",
+        name="Family stay",
+        description="Includes 1.5 bathrooms and a private kitchen.",
+        rooms=[],
+    )
+
+    bathroom_count, evidence = extract_bathroom_count(listing)
+
+    assert bathroom_count == 1.5
+    assert evidence
+    assert "1.5 bathrooms" in evidence[0].snippet.lower()
+
+
+def test_extract_bathroom_count_from_description_word_number():
+    listing = ListingRaw(
+        id="b3",
+        name="Large house",
+        description="A large house with two bathrooms and garden view.",
+        rooms=[],
+    )
+
+    bathroom_count, evidence = extract_bathroom_count(listing)
+
+    assert bathroom_count == 2.0
+    assert evidence
+    assert "two bathrooms" in evidence[0].snippet.lower()
+
+
+def test_match_bathroom_filters_yes():
+    filters = SearchFilters(bathrooms_min=2)
+
+    out = match_bathroom_filters(
+        bathroom_count=2.0,
+        filters=filters,
+    )
+
+    assert out is not None
+    assert out.value == Ternary.YES
+    assert "BATHROOMS:" in out.why
+
+
+def test_match_bathroom_filters_no():
+    filters = SearchFilters(bathrooms_min=2)
+
+    out = match_bathroom_filters(
+        bathroom_count=1.0,
+        filters=filters,
+    )
+
+    assert out is not None
+    assert out.value == Ternary.NO
+    assert "required min 2" in out.why
+
+
+def test_match_bathroom_filters_uncertain_when_missing():
+    filters = SearchFilters(bathrooms_min=2)
+
+    out = match_bathroom_filters(
+        bathroom_count=None,
+        filters=filters,
+    )
+
+    assert out is not None
+    assert out.value == Ternary.UNCERTAIN

@@ -30,5 +30,7 @@ class SearchFilters(BaseModel):
     bedrooms_max: int | None = None
     area_sqm_min: float | None = None
     area_sqm_max: float | None = None
+    bathrooms_min: float | None = None
+    bathrooms_max: float | None = None
 
     price: PriceConstraint | None = None

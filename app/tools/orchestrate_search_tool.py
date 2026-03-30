@@ -122,6 +122,8 @@ async def _repair_intent_with_llm(
                 "bedrooms_max": "int|null",
                 "area_sqm_min": "float|null",
                 "area_sqm_max": "float|null",
+                "bathrooms_min": "float|null",
+                "bathrooms_max": "float|null",
                 "price": {
                     "min_amount": "float|null",
                     "max_amount": "float|null",
