@@ -1,50 +1,98 @@
 [
+  
   {
-    "id": "apt-1",
-    "name": "Apartment with Kitchen and Kettle",
-    "url": "https://example.com/apt-1",
-    "rating": 9.3,
-    "price": 120,
+    "id": "apt-large-good",
+    "name": "Large Family Apartment",
+    "url": "https://example.com/apt-large-good",
+    "price": 460,
     "currency": "USD",
     "property_type": "apartment",
     "available_dates": {
-      "check_in": "2026-02-01",
-      "check_out": "2026-03-31"
+      "check_in": "2026-04-01",
+      "check_out": "2026-04-30"
     },
+    "description": "Spacious apartment in Baku with private bathroom, full kitchen, and 120 square meters of space. Ideal for families. Two-bedroom apartment.",
     "facilities": [
-      { "name": "Kitchen" },
-      { "name": "Private bathroom" },
-      { "name": "Electric kettle" },
-      { "name": "Free WiFi" }
+      {"name": "Kitchen"},
+      {"name": "Private bathroom"},
+      {"name": "Free WiFi"}
     ],
-    "description": "Spacious apartment in Baku. Guests have a private bathroom. Full kitchen with electric kettle. Cooking facilities available.",
     "rooms": [
       {
-        "name": "Entire apartment",
-        "facilities": ["Kitchen", "Bath", "Kettle", "Free WiFi"]
+        "name": "Two-Bedroom Apartment",
+        "roomType": "Two-Bedroom Apartment",
+        "facilities": ["Kitchen", "Private bathroom"]
       }
     ]
   },
   {
-    "id": "hotel-2",
-    "name": "Hotel without Kitchen",
-    "url": "https://example.com/hotel-2",
-    "rating": 8.1,
-    "price": 80,
+    "id": "apt-small",
+    "name": "Compact Apartment",
+    "url": "https://example.com/apt-small",
+    "price": 65,
+    "currency": "USD",
+    "property_type": "apartment",
+    "available_dates": {
+      "check_in": "2026-04-01",
+      "check_out": "2026-04-30"
+    },
+    "description": "Apartment in Baku with kitchen and private bathroom. Size is 45 sqm.",
+    "facilities": [
+      {"name": "Kitchen"},
+      {"name": "Private bathroom"}
+    ],
+    "rooms": [
+      {
+        "name": "One-Bedroom Apartment",
+        "roomType": "One-Bedroom Apartment",
+        "facilities": ["Kitchen", "Private bathroom"]
+      }
+    ]
+  },
+  {
+    "id": "apt-expensive",
+    "name": "Premium Apartment",
+    "url": "https://example.com/apt-expensive",
+    "price": 500,
+    "currency": "USD",
+    "property_type": "apartment",
+    "available_dates": {
+      "check_in": "2026-04-01",
+      "check_out": "2026-04-30"
+    },
+    "description": "Spacious apartment in Baku with 130 square meters, kitchen, and private bathroom.",
+    "facilities": [
+      {"name": "Kitchen"},
+      {"name": "Private bathroom"}
+    ],
+    "rooms": [
+      {
+        "name": "Two-Bedroom Apartment",
+        "roomType": "Two-Bedroom Apartment",
+        "facilities": ["Kitchen", "Private bathroom"]
+      }
+    ]
+  },
+  {
+    "id": "hotel-large",
+    "name": "Large Hotel Room",
+    "url": "https://example.com/hotel-large",
+    "price": 70,
     "currency": "USD",
     "property_type": "hotel",
     "available_dates": {
-      "check_in": "2027-03-10",
-      "check_out": "2027-03-30"
+      "check_in": "2026-04-01",
+      "check_out": "2026-04-30"
     },
+    "description": "Hotel in Baku with private bathroom and 120 square meters.",
     "facilities": [
-      { "name": "Free WiFi" }
+      {"name": "Private bathroom"}
     ],
-    "description": "Hotel in Baku with private bathroom and WiFi. No kitchen in rooms.",
     "rooms": [
       {
-        "name": "Double room",
-        "facilities": ["Bath", "Free WiFi"]
+        "name": "Hotel Room",
+        "roomType": "Hotel Room",
+        "facilities": ["Private bathroom"]
       }
     ]
   }

@@ -153,3 +153,7 @@ def test_normalize_search_response_builds_request_summary_and_results():
     assert "bedrooms" in fact_keys
     assert "price_total" in fact_keys or "listing_price_total" in fact_keys
     assert "listing_currency" in fact_keys
+    
+    assert "property_type" in fact_keys
+    assert "night_count" in fact_keys
+    assert "budget_total_derived" in fact_keys
