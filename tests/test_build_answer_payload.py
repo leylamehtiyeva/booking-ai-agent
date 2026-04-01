@@ -90,6 +90,7 @@ def test_build_answer_payload_for_normal_results():
     assert first["key_facts"]["property_type"] == "apartment"
     assert first["key_facts"]["listing_currency"] == "USD"
     assert first["key_facts"]["bedrooms"] == 2
+    assert "best_reasons" in first
 
 
 def test_build_answer_payload_for_clarification():
@@ -107,3 +108,4 @@ def test_build_answer_payload_for_clarification():
     assert payload["questions"] == ["В каком городе искать?"]
     assert payload["results_count"] == 0
     assert payload["top_results"] == []
+    

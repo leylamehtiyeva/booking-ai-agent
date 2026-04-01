@@ -91,7 +91,7 @@ def _collect_constraint_statuses(item: dict[str, Any]) -> tuple[list[ConstraintS
     return matched, uncertain, failed
 
 
-def _collect_facts(item: dict[str, Any]) -> list[ResultFact]:
+def _collect_facts(item: dict[str, Any], req: SearchRequest) -> list[ResultFact]:
     listing = item.get("listing")
     facts: list[ResultFact] = []
 
@@ -101,6 +101,16 @@ def _collect_facts(item: dict[str, Any]) -> list[ResultFact]:
             ResultFact(
                 key="property_type",
                 value=property_result.actual_value,
+                source="property_semantics",
+            )
+        )
+
+    occupancy_result = item.get("occupancy_result")
+    if occupancy_result is not None and getattr(occupancy_result, "actual_value", None) is not None:
+        facts.append(
+            ResultFact(
+                key="occupancy_type",
+                value=occupancy_result.actual_value,
                 source="property_semantics",
             )
         )
@@ -117,6 +127,17 @@ def _collect_facts(item: dict[str, Any]) -> list[ResultFact]:
                 )
             )
 
+    if req.check_in and req.check_out:
+        night_count = (req.check_out - req.check_in).days
+        if night_count > 0:
+            facts.append(
+                ResultFact(
+                    key="night_count",
+                    value=night_count,
+                    source="request",
+                )
+            )
+
     if listing is not None:
         price = getattr(listing, "price", None)
         currency = getattr(listing, "currency", None)
@@ -125,6 +146,57 @@ def _collect_facts(item: dict[str, Any]) -> list[ResultFact]:
             facts.append(ResultFact(key="listing_price_total", value=price, source="listing"))
         if currency is not None:
             facts.append(ResultFact(key="listing_currency", value=currency, source="listing"))
+
+        if price is not None and req.check_in and req.check_out:
+            night_count = (req.check_out - req.check_in).days
+            if night_count > 0:
+                facts.append(
+                    ResultFact(
+                        key="listing_price_per_night_derived",
+                        value=round(float(price) / night_count, 2),
+                        source="derived",
+                    )
+                )
+
+    if req.filters and req.filters.price:
+        pf = req.filters.price
+        if pf.max_amount is not None:
+            if pf.scope == "per_night" and req.check_in and req.check_out:
+                night_count = (req.check_out - req.check_in).days
+                if night_count > 0:
+                    facts.append(
+                        ResultFact(
+                            key="budget_total_derived",
+                            value=round(float(pf.max_amount) * night_count, 2),
+                            source="derived",
+                        )
+                    )
+            elif pf.scope == "total_stay":
+                facts.append(
+                    ResultFact(
+                        key="budget_total_derived",
+                        value=float(pf.max_amount),
+                        source="derived",
+                    )
+                )
+
+        if pf.currency is not None:
+            facts.append(
+                ResultFact(
+                    key="budget_currency",
+                    value=pf.currency,
+                    source="request",
+                )
+            )
+
+        if pf.scope is not None:
+            facts.append(
+                ResultFact(
+                    key="budget_scope",
+                    value=pf.scope,
+                    source="request",
+                )
+            )
 
     return facts
 
@@ -143,7 +215,7 @@ def normalize_search_response(
     for item in ranked[: max(0, top_n)]:
         listing = item.get("listing")
         matched, uncertain, failed = _collect_constraint_statuses(item)
-        facts = _collect_facts(item)
+        facts = _collect_facts(item, req)
 
         results.append(
             NormalizedSearchResult(

@@ -10,12 +10,27 @@ IMPORTANT_FACT_KEYS = {
     "occupancy_type",
     "bedrooms",
     "bathrooms",
+    "area_sqm",
     "price_total",
     "price_per_night",
     "listing_price_total",
+    "listing_price_per_night_derived",
     "listing_currency",
+    "night_count",
+    "budget_total_derived",
+    "budget_currency",
+    "budget_scope",
 }
 
+def _best_reason_list(result: dict[str, Any], max_items: int = 3) -> list[str]:
+    reasons: list[str] = []
+    for item in result.get("matched_constraints") or []:
+        reason = item.get("reason")
+        if reason:
+            reasons.append(str(reason))
+        if len(reasons) >= max_items:
+            break
+    return reasons
 
 def _fact_list_to_dict(facts: list[Any]) -> dict[str, Any]:
     out: dict[str, Any] = {}
@@ -77,6 +92,16 @@ def build_answer_payload(
     top_results = []
     for r in (response.results or [])[: max(0, top_k)]:
         facts_dict = _fact_list_to_dict(r.facts)
+        matched_details = _constraint_details(r.matched_constraints)
+        uncertain_details = _constraint_details(r.uncertain_constraints)
+        failed_details = _constraint_details(r.failed_constraints)
+
+        best_reasons = []
+        for item in matched_details:
+            if item.get("reason"):
+                best_reasons.append(item["reason"])
+            if len(best_reasons) >= 3:
+                break
 
         top_results.append(
             {
@@ -85,13 +110,14 @@ def build_answer_payload(
                 "url": r.url,
                 "score": r.score,
                 "matched_must": f"{r.matched_must_count}/{r.matched_must_total}",
-                "matched_constraints": _constraint_details(r.matched_constraints),
-                "uncertain_constraints": _constraint_details(r.uncertain_constraints),
-                "failed_constraints": _constraint_details(r.failed_constraints),
+                "matched_constraints": matched_details,
+                "uncertain_constraints": uncertain_details,
+                "failed_constraints": failed_details,
                 "matched_constraint_names": _constraint_names(r.matched_constraints),
                 "uncertain_constraint_names": _constraint_names(r.uncertain_constraints),
                 "failed_constraint_names": _constraint_names(r.failed_constraints),
                 "key_facts": facts_dict,
+                "best_reasons": best_reasons,
                 "why": list(r.why or []),
             }
         )

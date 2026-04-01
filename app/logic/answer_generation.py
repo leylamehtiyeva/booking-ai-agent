@@ -18,14 +18,40 @@ def _format_top_result(result: dict[str, Any], rank: int) -> str:
 
     matched_constraints = result.get("matched_constraints") or []
     uncertain_constraints = result.get("uncertain_constraints") or []
+    key_facts = result.get("key_facts") or {}
+    best_reasons = result.get("best_reasons") or []
 
     lines = [f"{rank}. {title}"]
 
-    lines.append(f"Matched required criteria: {matched_must}.")
+    must_total = 0
+    if "/" in matched_must:
+        left, right = matched_must.split("/", 1)
+        try:
+            must_total = int(right)
+        except ValueError:
+            must_total = 0
 
-    reason = _first_reason(matched_constraints)
-    if reason:
-        lines.append(f"Main match: {reason}")
+    if must_total > 0:
+        lines.append(f"Matched required criteria: {matched_must}.")
+
+    summary_bits = []
+
+    if key_facts.get("property_type"):
+        summary_bits.append(f"type: {key_facts['property_type']}")
+    if key_facts.get("bedrooms") is not None:
+        summary_bits.append(f"{key_facts['bedrooms']} bedrooms")
+    if key_facts.get("area_sqm") is not None:
+        summary_bits.append(f"{key_facts['area_sqm']} sqm")
+    if key_facts.get("listing_price_total") is not None and key_facts.get("listing_currency"):
+        summary_bits.append(
+            f"total price: {key_facts['listing_price_total']} {key_facts['listing_currency']}"
+        )
+
+    if summary_bits:
+        lines.append("Key facts: " + ", ".join(summary_bits) + ".")
+
+    if best_reasons:
+        lines.append("Why it matches: " + "; ".join(best_reasons) + ".")
 
     if uncertain_constraints:
         uncertain_names = [

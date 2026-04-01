@@ -41,6 +41,10 @@ Rules:
 - If there is 1 result, summarize it clearly
 - If there are multiple results, summarize differences briefly
 - If need_clarification=true, ask only the clarification question(s)
+- Always mention the title of each option you mention
+- If URL exists, include it
+- If budget_scope is per_night and budget_total_derived exists, explain the price comparison clearly through total budget for the stay
+- Prefer using best_reasons and key_facts when explaining why the option is relevant
 - Do not output JSON
 """.strip()
 
