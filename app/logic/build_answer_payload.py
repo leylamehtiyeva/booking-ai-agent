@@ -22,15 +22,7 @@ IMPORTANT_FACT_KEYS = {
     "budget_scope",
 }
 
-def _best_reason_list(result: dict[str, Any], max_items: int = 3) -> list[str]:
-    reasons: list[str] = []
-    for item in result.get("matched_constraints") or []:
-        reason = item.get("reason")
-        if reason:
-            reasons.append(str(reason))
-        if len(reasons) >= max_items:
-            break
-    return reasons
+
 
 def _fact_list_to_dict(facts: list[Any]) -> dict[str, Any]:
     out: dict[str, Any] = {}

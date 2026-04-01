@@ -53,7 +53,7 @@
     "id": "apt-expensive",
     "name": "Premium Apartment",
     "url": "https://example.com/apt-expensive",
-    "price": 770,
+    "price": 500,
     "currency": "USD",
     "property_type": "apartment",
     "available_dates": {

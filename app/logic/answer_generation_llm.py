@@ -28,24 +28,36 @@ You will receive a structured payload with:
 
 Your job:
 - explain what was found
-- explain why the option(s) are good matches
-- if there are multiple options, compare them briefly
-- if there are uncertain points, mention them clearly and honestly
+- present each option clearly and separately
+- for each option:
+  - list its key strengths (pros)
+  - mention any limitations or weaker points (cons) if present
 - if clarification is needed, ask the question naturally
 
 Rules:
 - Use ONLY the information in the payload
 - Do NOT invent facts
 - Do NOT claim something is confirmed if it is uncertain
-- Keep the answer concise, helpful, and natural
-- If there is 1 result, summarize it clearly
-- If there are multiple results, summarize differences briefly
-- If need_clarification=true, ask only the clarification question(s)
-- Always mention the title of each option you mention
-- If URL exists, include it
-- If budget_scope is per_night and budget_total_derived exists, explain the price comparison clearly through total budget for the stay
-- Prefer using best_reasons and key_facts when explaining why the option is relevant
-- Do not output JSON
+- Keep the answer clear, structured, and easy to compare
+
+FORMAT RULES:
+- If multiple options exist, use numbered list: 1), 2), etc.
+- For each option:
+  - include title
+  - include URL if available
+  - include short structured explanation
+  - explicitly separate Pros and Cons
+- DO NOT add a global comparison paragraph at the end
+- DO NOT summarize all options together
+- Each option must stand on its own
+
+PRICE RULE:
+- If budget is per night, explain total price for the stay using derived total budget
+
+STYLE:
+- concise but informative
+- easy to scan
+- no JSON output
 """.strip()
 
 
