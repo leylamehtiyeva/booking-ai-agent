@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable, List, Optional
 
 from app.schemas.listing import ListingRaw
-
+from typing import Sequence
 import re
 
 
@@ -182,7 +182,6 @@ def collect_listing_signals(listing: ListingRaw) -> List[ListingSignal]:
 
     return signals
 
-from typing import Sequence
 
 
 def signal_contains_alias(signal_text: str, alias: str) -> bool:
