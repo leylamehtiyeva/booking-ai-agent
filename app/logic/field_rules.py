@@ -39,9 +39,9 @@ FIELD_RULES: Dict[Field, FieldRule] = {
         negative_aliases=("no air conditioning",),
     ),
     Field.WASHING_MACHINE: FieldRule(
-        aliases=("washing machine",),
+        aliases=("washing machine", "washer", "laundry machine"),
         preferred_path_prefixes=("rooms[", "listing.facilities", "listing.description"),
-        negative_aliases=("no washing machine",),
+        negative_aliases=("no washing machine", "washer not available"),
     ),
     Field.OVEN: FieldRule(
         aliases=("oven",),
@@ -59,7 +59,7 @@ FIELD_RULES: Dict[Field, FieldRule] = {
         negative_aliases=("no refrigerator", "no fridge"),
     ),
     Field.BALCONY: FieldRule(
-        aliases=("balcony", "patio", "terrace"),
+        aliases=("balcony", "private balcony", "patio", "terrace"),
         preferred_path_prefixes=("rooms[", "highlights", "listing.description"),
         negative_aliases=("no balcony",),
     ),
@@ -79,8 +79,80 @@ FIELD_RULES: Dict[Field, FieldRule] = {
         negative_aliases=("non-refundable", "no free cancellation"),
     ),
     Field.PET_FRIENDLY: FieldRule(
-        aliases=("pets allowed", "pet friendly", "pets are allowed"),
+        aliases=(
+            "pets allowed",
+            "pet friendly",
+            "pets are allowed",
+            "animals allowed",
+            "dogs allowed",
+            "cats allowed",
+            "pets welcome",
+        ),
+        preferred_path_prefixes=("policies", "listing.description", "highlights"),
+        negative_aliases=(
+            "no pets",
+            "pets not allowed",
+            "pets are not allowed",
+            "animals are not allowed",
+            "dogs are not allowed",
+            "cats are not allowed",
+        ),
+    ),
+    Field.SMOKING_ALLOWED: FieldRule(
+        aliases=(
+            "smoking allowed",
+            "smoking is allowed",
+        ),
         preferred_path_prefixes=("policies", "listing.description"),
-        negative_aliases=("no pets", "pets not allowed", "pets are not allowed"),
+        negative_aliases=(
+            "smoking not allowed",
+            "smoking is not allowed",
+            "no smoking",
+        ),
+    ),
+    Field.PARTIES_ALLOWED: FieldRule(
+        aliases=(
+            "parties allowed",
+            "events allowed",
+            "parties are allowed",
+            "events are allowed",
+        ),
+        preferred_path_prefixes=("policies", "listing.description"),
+        negative_aliases=(
+            "parties not allowed",
+            "events not allowed",
+            "parties/events are not allowed",
+            "parties are not allowed",
+            "events are not allowed",
+            "no parties",
+        ),
+    ),
+    Field.CHILDREN_ALLOWED: FieldRule(
+        aliases=(
+            "children are welcome",
+            "children of any age are welcome",
+            "child policies",
+            "children allowed",
+            "family friendly",
+        ),
+        preferred_path_prefixes=("policies", "listing.description"),
+        negative_aliases=(
+            "children not allowed",
+            "no children",
+            "adults only",
+        ),
+    ),
+    Field.PARKING: FieldRule(
+        aliases=(
+            "parking",
+            "free parking",
+            "private parking",
+            "parking available",
+        ),
+        preferred_path_prefixes=("highlights", "listing.facilities", "listing.description"),
+        negative_aliases=(
+            "no parking",
+            "parking not available",
+        ),
     ),
 }

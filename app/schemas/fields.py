@@ -40,9 +40,15 @@ class Field(str, Enum):
 
     # --- Policies ---
     NON_SMOKING = "non_smoking"
-    PET_FRIENDLY = "pet_friendly"
     FREE_CANCELLATION = "free_cancellation"
     PAY_AT_PROPERTY = "pay_at_property"
+    
+
+    PET_FRIENDLY = "pet_friendly"
+    SMOKING_ALLOWED = "smoking_allowed"
+    PARTIES_ALLOWED = "parties_allowed"
+    CHILDREN_ALLOWED = "children_allowed"
+    PARKING = "parking"
 
     # # --- Property type ---
     # PROPERTY_APARTMENT = "property_apartment"

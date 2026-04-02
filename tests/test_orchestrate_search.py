@@ -21,15 +21,15 @@ async def test_no_dates_requires_clarification():
 async def test_baku_kitchen_returns_apartment():
     intent = {
         "city": "Baku",
-        "check_in": "2026-02-12",
-        "check_out": "2026-02-14",
+        "check_in": "2026-04-08",
+        "check_out": "2026-04-15",
         "must_have_fields": ["kitchen"],
         "nice_to_have_fields": [],
         "unknown_requests": [],
     }
     out = await orchestrate_search("Baku", intent, source="fixtures", max_items=10)
     assert out["need_clarification"] is False
-    assert out["results"][0]["title"] == "Apartment with Kitchen and Kettle"
+    assert out["results"][0]["title"] == "Large Family Apartment"
 
 
 @pytest.mark.asyncio

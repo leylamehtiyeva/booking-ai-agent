@@ -46,6 +46,13 @@ FIELD_DESCRIPTIONS = {
     Field.COFFEE_MACHINE: "Whether a coffee machine / coffee maker is available.",
     Field.FREE_CANCELLATION: "Whether the booking includes free cancellation.",
     Field.PET_FRIENDLY: "Whether pets are allowed.",
+    Field.PET_FRIENDLY: "Whether pets are allowed in the property",
+    Field.SMOKING_ALLOWED: "Whether smoking is allowed in the property",
+    Field.PARTIES_ALLOWED: "Whether parties or events are allowed in the property",
+    Field.CHILDREN_ALLOWED: "Whether children are allowed or welcome in the property",
+    Field.PARKING: "Whether parking is available for guests",
+    Field.BALCONY: "Whether the property has a balcony",
+    Field.WASHING_MACHINE: "Whether the property has a washing machine",
 }
 
 
