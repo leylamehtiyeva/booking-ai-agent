@@ -3,64 +3,50 @@ from __future__ import annotations
 from typing import Any
 
 
-def _first_reason(constraints: list[dict[str, Any]] | None) -> str | None:
-    for item in constraints or []:
-        reason = item.get("reason")
-        if reason:
-            return str(reason)
-    return None
+def _format_bullets(items: list[str] | None, prefix: str = "- ") -> list[str]:
+    out: list[str] = []
+    for item in items or []:
+        if item:
+            out.append(f"{prefix}{item}")
+    return out
 
 
 def _format_top_result(result: dict[str, Any], rank: int) -> str:
     title = result.get("title") or "Unknown option"
     url = result.get("url")
-    matched_must = result.get("matched_must") or "0/0"
-
-    matched_constraints = result.get("matched_constraints") or []
-    uncertain_constraints = result.get("uncertain_constraints") or []
-    key_facts = result.get("key_facts") or {}
-    best_reasons = result.get("best_reasons") or []
 
     lines = [f"{rank}. {title}"]
 
-    must_total = 0
-    if "/" in matched_must:
-        left, right = matched_must.split("/", 1)
-        try:
-            must_total = int(right)
-        except ValueError:
-            must_total = 0
+    fit_summary = result.get("fit_summary")
+    if fit_summary:
+        lines.append(f"Overall fit: {fit_summary}")
 
-    if must_total > 0:
-        lines.append(f"Matched required criteria: {matched_must}.")
+    price_summary = result.get("price_summary")
+    if price_summary:
+        lines.append(f"Price: {price_summary}")
 
-    summary_bits = []
+    budget_summary = result.get("budget_summary")
+    if budget_summary:
+        lines.append(f"Budget: {budget_summary}")
 
-    if key_facts.get("property_type"):
-        summary_bits.append(f"type: {key_facts['property_type']}")
-    if key_facts.get("bedrooms") is not None:
-        summary_bits.append(f"{key_facts['bedrooms']} bedrooms")
-    if key_facts.get("area_sqm") is not None:
-        summary_bits.append(f"{key_facts['area_sqm']} sqm")
-    if key_facts.get("listing_price_total") is not None and key_facts.get("listing_currency"):
-        summary_bits.append(
-            f"total price: {key_facts['listing_price_total']} {key_facts['listing_currency']}"
-        )
+    key_facts_summary = result.get("key_facts_summary")
+    if key_facts_summary:
+        lines.append(f"Key facts: {key_facts_summary}")
 
-    if summary_bits:
-        lines.append("Key facts: " + ", ".join(summary_bits) + ".")
+    why_match = result.get("why_match") or []
+    if why_match:
+        lines.append("Why it matches:")
+        lines.extend(_format_bullets(why_match))
 
-    if best_reasons:
-        lines.append("Why it matches: " + "; ".join(best_reasons) + ".")
+    tradeoffs = result.get("tradeoffs") or []
+    if tradeoffs:
+        lines.append("Trade-offs:")
+        lines.extend(_format_bullets(tradeoffs))
 
-    if uncertain_constraints:
-        uncertain_names = [
-            x.get("name") for x in uncertain_constraints if x.get("name")
-        ]
-        if uncertain_names:
-            lines.append(
-                "Uncertain points: " + ", ".join(uncertain_names) + "."
-            )
+    uncertain_points = result.get("uncertain_points") or []
+    if uncertain_points:
+        lines.append("Uncertain points:")
+        lines.extend(_format_bullets(uncertain_points))
 
     if url:
         lines.append(f"Link: {url}")
@@ -68,12 +54,60 @@ def _format_top_result(result: dict[str, Any], rank: int) -> str:
     return "\n".join(lines)
 
 
+def _build_intro(payload: dict[str, Any]) -> str:
+    active_intent = payload.get("active_intent") or {}
+    city = active_intent.get("city")
+    check_in = active_intent.get("check_in")
+    check_out = active_intent.get("check_out")
+    results_count = payload.get("results_count") or 0
+    shown_count = len(payload.get("top_results") or [])
+
+    parts: list[str] = []
+    if city:
+        parts.append(f"in {city}")
+    if check_in and check_out:
+        parts.append(f"for {check_in} to {check_out}")
+
+    tail = ""
+    if parts:
+        tail = " " + " ".join(parts)
+
+    if results_count > shown_count > 0:
+        return (
+            f"I found {results_count} relevant option(s){tail}. "
+            f"Here are the top {shown_count} matches."
+        )
+    return f"I found {shown_count} relevant option(s){tail}."
+
+
+def _build_refinement_hint(payload: dict[str, Any]) -> str:
+    active_intent = payload.get("active_intent") or {}
+    filters = active_intent.get("filters") or {}
+    must_have_fields = active_intent.get("must_have_fields") or []
+
+    suggestions: list[str] = []
+
+    if must_have_fields:
+        suggestions.append("keep only listings with fully confirmed amenities")
+    if filters.get("price"):
+        suggestions.append("tighten or relax the budget")
+    suggestions.append("narrow by location")
+    suggestions.append("change bedroom / bathroom / area requirements")
+
+    unique: list[str] = []
+    for s in suggestions:
+        if s not in unique:
+            unique.append(s)
+
+    return "I can also refine this further — for example, I can " + ", ".join(unique[:3]) + "."
+
+
 def build_user_answer(payload: dict[str, Any]) -> str:
     """
-    Deterministic user-facing formatter for LLM-ready payload.
+    Deterministic user-facing formatter.
 
-    This is intentionally simple and stable.
-    Later it can be replaced or wrapped by an LLM-based rewriter.
+    This formatter should remain stable, explicit, and safe.
+    It uses active_intent as source of truth and latest_user_query only implicitly.
     """
     if payload.get("need_clarification"):
         questions = payload.get("questions") or []
@@ -83,35 +117,30 @@ def build_user_answer(payload: dict[str, Any]) -> str:
             return questions[0]
         return "I need a few more details:\n- " + "\n- ".join(questions)
 
-    request_summary = payload.get("request_summary") or {}
-    city = request_summary.get("city")
-    check_in = request_summary.get("check_in")
-    check_out = request_summary.get("check_out")
     top_results = payload.get("top_results") or []
+    active_intent = payload.get("active_intent") or {}
+    city = active_intent.get("city")
+    check_in = active_intent.get("check_in")
+    check_out = active_intent.get("check_out")
 
     if not top_results:
         if city and check_in and check_out:
             return (
                 f"I couldn’t find suitable options in {city} "
-                f"for {check_in} to {check_out}."
+                f"for {check_in} to {check_out}. "
+                "I can help relax the budget, area, or amenity constraints."
             )
-        return "I couldn’t find suitable options."
+        return "I couldn’t find suitable options. I can help relax or clarify the constraints."
 
-    intro_bits = []
-    if city:
-        intro_bits.append(f"in {city}")
-    if check_in and check_out:
-        intro_bits.append(f"for {check_in} to {check_out}")
-
-    intro_suffix = ""
-    if intro_bits:
-        intro_suffix = " " + " ".join(intro_bits)
-
-    lines = [f"I found {len(top_results)} option(s){intro_suffix}."]
-    lines.append("Here are the best matches:")
+    lines = [_build_intro(payload)]
+    lines.append("")
 
     for idx, result in enumerate(top_results, start=1):
-        lines.append("")
         lines.append(_format_top_result(result, idx))
+        if idx < len(top_results):
+            lines.append("")
+
+    lines.append("")
+    lines.append(_build_refinement_hint(payload))
 
     return "\n".join(lines)

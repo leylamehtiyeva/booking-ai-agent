@@ -2,17 +2,20 @@ from __future__ import annotations
 
 import asyncio
 import json
+
 from app.logic.answer_generation import build_user_answer
+from app.logic.answer_generation_llm import generate_user_answer_with_llm
 from app.logic.build_answer_payload import build_answer_payload
 from app.logic.intent_router import route_intent_adk_async
 from app.schemas.search_response import NormalizedSearchResponse
 from app.tools.orchestrate_search_tool import orchestrate_search
-from app.logic.answer_generation_llm import generate_user_answer_with_llm
 
 
 USER_TEXT = (
-    "I want an apartment in Baku from 2026-04-08 to 2026-04-15, with kitchen and private bathroom, at least 2 bedrooms, at least 100 sqm, under 80 USD per night."
-)
+        "I want an apartment in Baku from 2026-04-08 to 2026-04-15, "
+        "where I can cook and pets are allowed, "
+        "at least 2 bedrooms, at least 100 sqm, under 80 USD per night."
+    )
 
 
 async def main():
@@ -37,19 +40,25 @@ async def main():
     print(json.dumps(result, ensure_ascii=False, indent=2, default=str))
 
     response_obj = NormalizedSearchResponse.model_validate(result)
-    payload = build_answer_payload(response_obj, top_k=3)
+
+    payload = build_answer_payload(
+        response_obj,
+        latest_user_query=USER_TEXT,
+        top_k=3,
+    )
 
     print("\n=== LLM-READY ANSWER PAYLOAD ===")
     print(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
 
-    answer = build_user_answer(payload)
+    print("\n=== ACTIVE INTENT ===")
+    print(json.dumps(payload.get("active_intent"), ensure_ascii=False, indent=2))
 
-    print("\n=== USER-FACING ANSWER ===")
+    print("\n=== DETERMINISTIC USER-FACING ANSWER ===")
+    answer = build_user_answer(payload)
     print(answer)
 
-    llm_answer = await generate_user_answer_with_llm(payload)
-
     print("\n=== LLM USER-FACING ANSWER ===")
+    llm_answer = await generate_user_answer_with_llm(payload)
     print(llm_answer)
 
 

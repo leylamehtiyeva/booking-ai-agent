@@ -13,6 +13,30 @@ from app.schemas.search_response import (
     ResultFact,
 )
 
+FIELD_DISPLAY_NAMES = {
+    "kitchen": "Kitchen",
+    "private_bathroom": "Private bathroom",
+    "pet_friendly": "Pet policy",
+    "parking": "Parking",
+    "washing_machine": "Washing machine",
+    "balcony": "Balcony",
+    "elevator": "Elevator",
+    "smoking_allowed": "Smoking policy",
+    "parties_allowed": "Party / event policy",
+}
+
+
+def default_uncertain_reason(field_name: str | None) -> str:
+    if not field_name:
+        return "This requirement is not explicitly confirmed in the listing."
+
+    label = FIELD_DISPLAY_NAMES.get(
+        field_name,
+        field_name.replace("_", " ").capitalize(),
+    )
+
+    return f"{label} is not explicitly confirmed in the listing."
+
 
 def _request_summary(req: SearchRequest, dropped_requests: List[str]) -> NormalizedRequestSummary:
     return NormalizedRequestSummary(
@@ -28,11 +52,46 @@ def _request_summary(req: SearchRequest, dropped_requests: List[str]) -> Normali
     )
 
 
+def _humanize_constraint_name(name: str | None) -> str:
+    if not name:
+        return "This requirement"
+
+    mapping = {
+        "kitchen": "Kitchen",
+        "private_bathroom": "Private bathroom",
+        "pet_friendly": "Pet policy",
+        "parking": "Parking",
+        "washing_machine": "Washing machine",
+        "balcony": "Balcony",
+        "elevator": "Elevator",
+        "smoking_allowed": "Smoking policy",
+        "parties_allowed": "Party / event policy",
+        "children_allowed": "Child policy",
+        "property_type": "Property type",
+        "occupancy_type": "Occupancy type",
+        "bedrooms": "Bedroom count",
+        "bathrooms": "Bathroom count",
+        "area_sqm": "Area",
+        "price_total": "Price",
+    }
+    return mapping.get(name, name.replace("_", " ").capitalize())
+
+
+def _default_uncertain_reason(name: str | None) -> str:
+    label = _humanize_constraint_name(name)
+    return f"{label} is not explicitly confirmed in the listing."
+
+
 def _status_bucket(name: str, value: Any, reason: str | None) -> ConstraintStatus:
+    final_reason = reason
+
+    if value == "uncertain" and not final_reason:
+        final_reason = _default_uncertain_reason(name)
+
     return ConstraintStatus(
         name=name,
         status=value,
-        reason=reason,
+        reason=final_reason,
     )
 
 

@@ -73,11 +73,17 @@ def test_build_answer_payload_for_normal_results():
         debug_notes=[],
     )
 
-    payload = build_answer_payload(response, top_k=3)
+    payload = build_answer_payload(
+        response,
+        latest_user_query="I want an apartment in Baku with a kitchen",
+        top_k=3,
+    )
 
     assert payload["need_clarification"] is False
     assert payload["results_count"] == 1
     assert payload["request_summary"]["city"] == "Baku"
+    assert payload["active_intent"]["city"] == "Baku"
+    assert payload["latest_user_query"] == "I want an apartment in Baku with a kitchen"
 
     first = payload["top_results"][0]
     assert first["result_id"] == "abc123"
@@ -90,7 +96,25 @@ def test_build_answer_payload_for_normal_results():
     assert first["key_facts"]["property_type"] == "apartment"
     assert first["key_facts"]["listing_currency"] == "USD"
     assert first["key_facts"]["bedrooms"] == 2
-    assert "best_reasons" in first
+
+    assert first["fit_summary"]
+    assert "Matches all required criteria" in first["fit_summary"]
+
+    assert first["why_match"]
+    assert "Private kitchen" in first["why_match"]
+
+    assert first["uncertain_points"]
+    assert "PRICE: currency mismatch listing=USD, request=AZN" in first["uncertain_points"]
+
+    assert first["tradeoffs"] == []
+
+    assert first["price_summary"] == "493.39 USD total"
+    assert first["budget_summary"] is None
+    assert first["budget_status"] is None
+
+    assert first["key_facts_summary"]
+    assert "type: apartment" in first["key_facts_summary"]
+    assert "2 bedroom(s)" in first["key_facts_summary"]
 
 
 def test_build_answer_payload_for_clarification():
@@ -108,4 +132,57 @@ def test_build_answer_payload_for_clarification():
     assert payload["questions"] == ["В каком городе искать?"]
     assert payload["results_count"] == 0
     assert payload["top_results"] == []
+    
+    
+def test_build_answer_payload_uses_uncertain_reason_instead_of_field_name():
+    response = NormalizedSearchResponse(
+        need_clarification=False,
+        questions=[],
+        request_summary=NormalizedRequestSummary(
+            city="Baku",
+            check_in="2026-04-08",
+            check_out="2026-04-15",
+            must_have_fields=["pet_friendly", "kitchen"],
+            nice_to_have_fields=[],
+            property_types=["apartment"],
+            occupancy_types=[],
+            filters={},
+            unknown_requests=[],
+        ),
+        results=[
+            NormalizedSearchResult(
+                result_id="apt1",
+                title="Test Apartment",
+                url="https://example.com/test",
+                score=10.0,
+                matched_must_count=1,
+                matched_must_total=2,
+                matched_constraints=[
+                    ConstraintStatus(
+                        name="kitchen",
+                        status="matched",
+                        reason="Kitchen",
+                    )
+                ],
+                uncertain_constraints=[
+                    ConstraintStatus(
+                        name="pet_friendly",
+                        status="uncertain",
+                        reason="Pet policy is not explicitly confirmed in the listing.",
+                    )
+                ],
+                failed_constraints=[],
+                facts=[],
+                why=["PET_FRIENDLY: maybe (needs check)", "KITCHEN: Kitchen"],
+            )
+        ],
+        debug_notes=[],
+    )
+
+    payload = build_answer_payload(response, top_k=3)
+    first = payload["top_results"][0]
+
+    assert first["uncertain_points"] == [
+        "Pet policy is not explicitly confirmed in the listing."
+    ]
     
