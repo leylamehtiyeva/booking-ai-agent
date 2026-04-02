@@ -333,6 +333,8 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
                 "report": report,
                 "matches": report.matches,
                 "numeric_results": numeric_results,
+                "property_result": property_result,
+                "occupancy_result": occupancy_result,
                 "score": score,
                 "must_have_matched": must_yes,
                 "must_have_total": must_total,
@@ -365,6 +367,16 @@ async def _apply_fallback_topk(req: SearchRequest, ranked: List[Dict[str, Any]],
             item["matches"],
             numeric_results=item.get("numeric_results"),
         )
+
+        property_result = item.get("property_result")
+        occupancy_result = item.get("occupancy_result")
+
+        if property_result is not None and getattr(property_result, "why", None):
+            why.append(property_result.why)
+
+        if occupancy_result is not None and getattr(occupancy_result, "why", None):
+            why.append(occupancy_result.why)
+
         item["score"] = score
         item["must_have_matched"] = must_yes
         item["must_have_total"] = must_total

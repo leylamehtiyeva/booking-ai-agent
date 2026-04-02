@@ -65,6 +65,9 @@
       {"name": "Kitchen"},
       {"name": "Private bathroom"}
     ],
+    "policies": [
+      {"title": "Pets", "content": "Pets are allowed ..."}
+    ],
     "rooms": [
       {
         "name": "Two-Bedroom Apartment",
