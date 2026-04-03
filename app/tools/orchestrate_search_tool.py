@@ -26,6 +26,60 @@ from app.logic.unknown_field_evidence_search import search_unknown_must_have_evi
 from app.logic.unknown_request_utils import get_unknown_must_have_requests
 
 
+def _has_explicit_negative_unknown_evidence(item: dict) -> bool:
+    evidence = item.get("evidence") or []
+    negative_markers = (
+        "no ",
+        "not allowed",
+        "not available",
+        "unavailable",
+        "without ",
+        "does not have",
+        "is not provided",
+        "not provided",
+        "absent",
+    )
+
+    for ev in evidence:
+        if isinstance(ev, dict):
+            snippet = (ev.get("snippet") or "").lower()
+        else:
+            snippet = (getattr(ev, "snippet", None) or "").lower()
+
+        if any(marker in snippet for marker in negative_markers):
+            return True
+
+    return False
+
+
+def _score_unknown_request_results(unknown_results: list[dict] | None) -> tuple[float, list[str]]:
+    """
+    Soft score adjustment for unknown must-have evidence search.
+
+    Rules:
+    - FOUND: +3
+    - UNCERTAIN: +0
+    - NOT_FOUND with explicit negative evidence: -4
+    - NOT_FOUND without explicit negative evidence: +0
+    """
+    delta = 0.0
+    reasons: list[str] = []
+
+    for item in unknown_results or []:
+        query_text = item.get("query_text") or "Unknown request"
+        value = item.get("value")
+
+        if value == "FOUND":
+            delta += 3.0
+            reasons.append(f"UNKNOWN_MATCH: {query_text} found")
+        elif value == "NOT_FOUND":
+            if _has_explicit_negative_unknown_evidence(item):
+                delta -= 4.0
+                reasons.append(f"UNKNOWN_MATCH: {query_text} explicitly unavailable")
+
+    return delta, reasons
+
+
 def _fails_must(matches: dict[Field, Any], must_fields: List[Field] | None) -> bool:
     """Strict must-have filter: if any must field is explicitly NO -> reject."""
     for f in (must_fields or []):
@@ -476,6 +530,24 @@ def _format_results(req: SearchRequest, ranked: List[Dict[str, Any]], top_n: int
     }
 
 
+def _apply_unknown_request_scoring(ranked_items: list[dict]) -> list[dict]:
+    """
+    Apply soft score adjustments based on unknown must-have evidence search.
+    """
+    for item in ranked_items:
+        unknown_results = item.get("unknown_request_results", [])
+        delta, extra_why = _score_unknown_request_results(unknown_results)
+
+        if delta != 0:
+            item["score"] = float(item.get("score", 0.0)) + delta
+
+        why = list(item.get("why") or [])
+        why.extend(extra_why)
+        item["why"] = why
+
+    ranked_items.sort(key=lambda x: x.get("score", 0.0), reverse=True)
+    return ranked_items
+
 async def orchestrate_search(
     user_text: str,
     intent: Dict[str, Any],
@@ -541,6 +613,7 @@ async def orchestrate_search(
     ranked = _rank_structured(req, listings)
     await _apply_fallback_topk(req, ranked, fallback_top_k=fallback_top_k)
     ranked = await _attach_unknown_request_results(intent, ranked)
+    ranked = _apply_unknown_request_scoring(ranked)
     # 6) Strict must-have filter AFTER fallback too
     ranked = [
         it

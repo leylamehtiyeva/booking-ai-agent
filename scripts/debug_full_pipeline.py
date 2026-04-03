@@ -7,8 +7,7 @@ from app.logic.intent_router import route_intent_adk_async
 from app.tools.orchestrate_search_tool import orchestrate_search
 
 USER_TEXT = (
-    "Найди квартиру в Баку на даты 2026-04-08 to 2026-04-15, "
-    "чтобы я могла готовить и было 2 отдельные комнаты. Не больше чем 80 манат в день"
+"I want an apartment in Baku from 2026-04-08 to 2026-04-15 with satellite TV and ironing facilities."
 )
 
 
@@ -29,7 +28,7 @@ async def main():
     result = await orchestrate_search(
         user_text=USER_TEXT,
         intent=intent_dict,
-        source="apify",
+        source="fixtures",
         max_items=5,        # держим маленьким
         top_n=5,
         fallback_top_k=0,   # чтобы не было лишних LLM-вызовов на fallback
