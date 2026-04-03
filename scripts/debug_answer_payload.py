@@ -12,9 +12,8 @@ from app.tools.orchestrate_search_tool import orchestrate_search
 
 
 USER_TEXT = (
-        "I want an apartment in Baku from 2026-04-08 to 2026-04-15, "
-        "where I can cook and pets are allowed, "
-        "at least 2 bedrooms, at least 100 sqm, under 80 USD per night."
+"I want an apartment in Baku from 2026-04-08 to 2026-04-15 with satellite TV and ironing facilities."
+
     )
 
 

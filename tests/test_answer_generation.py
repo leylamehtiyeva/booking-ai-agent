@@ -152,3 +152,46 @@ def test_build_user_answer_shows_unknown_request_points():
     assert "Compact Apartment" in out
     assert "Other requested details:" in out
     assert "The listing description mentions satellite channels." in out
+    
+    
+def test_build_user_answer_can_show_unknown_request_points_alongside_ranked_option():
+    payload = {
+        "need_clarification": False,
+        "questions": [],
+        "active_intent": {
+            "city": "Baku",
+            "check_in": "2026-04-08",
+            "check_out": "2026-04-15",
+            "must_have_fields": ["iron"],
+            "nice_to_have_fields": [],
+            "property_types": ["apartment"],
+            "occupancy_types": [],
+            "filters": {},
+            "unknown_requests": ["satellite TV"],
+        },
+        "results_count": 1,
+        "top_results": [
+            {
+                "title": "Compact Apartment",
+                "url": "https://example.com/compact",
+                "fit_summary": "Strong overall match.",
+                "price_summary": None,
+                "budget_summary": None,
+                "key_facts_summary": "type: apartment",
+                "why_match": ["Ironing facilities"],
+                "tradeoffs": [],
+                "uncertain_points": [],
+                "unknown_request_points": [
+                    "The listing description mentions satellite channels."
+                ],
+                "ranking_reasons": ["satellite TV found"],
+                "standout_reason": "Explicitly matches your requested detail: satellite TV",
+            }
+        ],
+    }
+
+    out = build_user_answer(payload)
+
+    assert "Compact Apartment" in out
+    assert "Other requested details:" in out
+    assert "The listing description mentions satellite channels." in out
