@@ -13,14 +13,17 @@ import re
 def _cleanup_llm_answer(text: str) -> str:
     text = (text or "").strip()
 
-    # Normalize ugly raw-url markdown
+    text = text.replace(
+        "Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.",
+        ""
+    ).strip()
+
     text = re.sub(
         r"\[(https?://[^\]]+)\]\((https?://[^)]+)\)",
         r"[View listing](\2)",
         text,
     )
 
-    # Bare bullet url -> View listing
     text = re.sub(
         r"(^\s*[-*]\s+)(https?://\S+)$",
         r"\1[View listing](\2)",
@@ -28,22 +31,18 @@ def _cleanup_llm_answer(text: str) -> str:
         flags=re.MULTILINE,
     )
 
-    # Remove bold markdown
     text = text.replace("**", "")
 
-    # Normalize unsafe uncertainty phrasing
     unsafe_patterns = [
         (r"\bmight not allow pets\b", "pet policy is not confirmed"),
         (r"\bprobably does not allow pets\b", "pet policy is not confirmed"),
         (r"\blikely does not allow pets\b", "pet policy is not confirmed"),
-        (r"\bit'?s uncertain if the second one does\b", "the pet policy for the second one is not confirmed"),
-        (r"\bit'?s uncertain if .* allows pets\b", "the pet policy is not confirmed"),
     ]
     for pattern, repl in unsafe_patterns:
         text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
 
-    # Tidy spacing
     text = re.sub(r"[ \t]{2,}", " ", text)
+    text = "\n".join(line.rstrip() for line in text.splitlines() if line.strip())
 
     return text
 
@@ -77,6 +76,16 @@ You will receive a structured payload with:
 - top_results
 - clarification questions if needed
 
+Each top result may also contain:
+- unknown_request_results
+- unknown_request_points
+- ranking_reasons
+- standout_reason
+
+These represent:
+- user-requested must-have details that are not part of the structured schema,
+- and explanation hints for why the results are ordered the way they are.
+
 SOURCE OF TRUTH:
 - active_intent
 - top_results
@@ -87,13 +96,28 @@ ROLE OF latest_user_query:
 - do NOT use it to add, remove, or reinterpret constraints
 - if latest_user_query conflicts with active_intent, follow active_intent
 
-YOUR GOAL:
-Do not simply restate the payload.
-Create a helpful user-facing answer that:
-1. briefly summarizes the outcome,
-2. compares the top options,
-3. helps the user choose,
-4. naturally invites refinement in the next turn.
+IMPORTANT RANKING RULES:
+- The results are already sorted by relevance.
+- Do NOT question or reorder them.
+- Help the user understand why higher-ranked options stand out.
+- If the first option satisfies a requested detail that others do not, explicitly say that it is the only option that does so.
+- Prefer explaining the difference between options, not just describing each one in isolation.
+- Do NOT mention raw scores.
+
+IMPORTANT COMPARISON RULES:
+- Always explain why the first option is better than the others.
+- If only one listing satisfies a requested detail, explicitly say: "the only option that..."
+- Avoid repeating generic facts such as "it's an apartment" unless they are directly useful.
+- Provide decision guidance:
+  - if one option is clearly better for the user's stated request, say so
+  - if the choice depends on trade-offs such as price vs confirmation, explain that briefly
+
+UNKNOWN REQUEST RULES:
+- If unknown_request_points are present, mention them briefly and factually.
+- Treat FOUND as a positive differentiator.
+- Treat UNCERTAIN as "not explicitly confirmed" or "not mentioned".
+- Treat NOT_FOUND as unavailable only if the payload explicitly says so.
+- Do not overemphasize unknown-request matches over core structured constraints.
 
 CRITICAL RULE FOR UNCERTAINTY:
 - If a constraint is uncertain, describe it as "not confirmed", "not explicitly stated", or "needs confirmation".
@@ -111,6 +135,8 @@ STYLE RULES:
 - Do NOT use bold formatting with ** **
 - Keep the same structure for every listing
 - Keep bullets short and parallel in style
+- Avoid duplicate bullets
+- Avoid repeating the same fact in two different bullets
 
 TRUST RULES:
 - Use ONLY the information in the payload
@@ -118,15 +144,29 @@ TRUST RULES:
 - Do NOT claim something is confirmed if it is uncertain
 
 FORMAT:
-- Start with 1 short summary paragraph
+- Start with 1 short natural summary.
+- Begin with what you found (e.g., number of options, location, dates).
+- Then explain the key difference between the options.
+- Do NOT start directly with comparison or conclusions.
+- If the first option is clearly best for one requested detail, say so directly.
 - Then use numbered items: 1), 2), 3)
 - For each option, use exactly this order:
   - one short line saying what makes it stand out
   - price and budget fit
   - key facts
+  - other requested details if present
   - trade-offs or uncertain points if any
   - [View listing](URL)
-- End with one short sentence offering a concrete refinement
+- End with one short sentence that helps the user choose, not just a generic refinement line.
+REDUNDANCY RULE:
+- Do not repeat the same key conclusion (e.g., "only option that...") more than once.
+- If already stated in the summary, do not repeat it again at the end.
+
+TONE RULE:
+- Write as a helpful assistant, not as a report.
+- Avoid abrupt or overly direct openings.
+- Prefer natural phrasing like:
+  "I found X options..." → then explain differences.
 
 STYLE:
 - concise
@@ -151,11 +191,12 @@ async def generate_user_answer_with_llm(
     """
     system = _build_answer_system_prompt()
     user_prompt = (
-    "Write the final user-facing answer based on this payload. "
-    "Focus on comparison, decision support, and next-step refinement. "
-    "Do not restate every field.\n\n"
-    + json.dumps(payload, ensure_ascii=False, indent=2)
-)
+        "Write a natural, user-friendly answer based on this payload. "
+        "Start with a short summary of what was found, then explain the key differences between the options. "
+        "Clearly explain why the top option stands out, but avoid sounding mechanical or repetitive. "
+        "Help the user make a decision.\n\n"
+        + json.dumps(payload, ensure_ascii=False, indent=2)
+    )
 
     def _call_sync() -> str:
         client = _gemini_client()

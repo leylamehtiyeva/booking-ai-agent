@@ -23,6 +23,33 @@ IMPORTANT_FACT_KEYS = {
 }
 
 
+def _build_unknown_request_points(items: list[Any] | None) -> list[str]:
+    out: list[str] = []
+
+    for item in items or []:
+        # поддержка dict и pydantic
+        if isinstance(item, dict):
+            query_text = item.get("query_text")
+            value = item.get("value")
+            reason = item.get("reason")
+        else:
+            query_text = getattr(item, "query_text", None)
+            value = getattr(item, "value", None)
+            reason = getattr(item, "reason", None)
+
+        if reason:
+            out.append(str(reason))
+            continue
+
+        if query_text and value == "FOUND":
+            out.append(f"{query_text} appears to be available in the listing.")
+        elif query_text and value == "NOT_FOUND":
+            out.append(f"{query_text} appears to be unavailable in the listing.")
+        elif query_text:
+            out.append(f"{query_text} is not explicitly confirmed in the listing.")
+
+    return out
+
 def _fact_list_to_dict(facts: list[Any]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for fact in facts or []:
@@ -164,6 +191,52 @@ def _build_key_facts_summary(facts: dict[str, Any]) -> str | None:
         return None
     return ", ".join(parts)
 
+def _build_ranking_reasons(result: dict[str, Any]) -> list[str]:
+    reasons: list[str] = []
+
+    for line in result.get("why") or []:
+        if not line:
+            continue
+
+        text = str(line)
+
+        if text.startswith("UNKNOWN_MATCH:"):
+            reasons.append(text.replace("UNKNOWN_MATCH:", "").strip())
+        elif text.startswith("PRICE:"):
+            reasons.append(text)
+        elif text.startswith("AREA:"):
+            reasons.append(text)
+        elif text.startswith("BEDROOMS:"):
+            reasons.append(text)
+        elif text.startswith("PROPERTY_TYPE:"):
+            reasons.append(text)
+        elif text.startswith("OCCUPANCY_TYPE:"):
+            reasons.append(text)
+
+    return reasons[:4]
+
+
+def _build_standout_reason(
+    *,
+    unknown_request_results: list[dict[str, Any]],
+    why_match: list[str],
+    tradeoffs: list[str],
+    uncertain_points: list[str],
+) -> str | None:
+    for item in unknown_request_results or []:
+        if item.get("value") == "FOUND":
+            query_text = item.get("query_text")
+            if query_text:
+                return f"The only option that explicitly matches your requested detail: {query_text}"
+
+    if why_match:
+        return why_match[0]
+
+    if not tradeoffs and not uncertain_points:
+        return "Strong overall match"
+
+    return None
+
 
 def build_answer_payload(
     response: NormalizedSearchResponse,
@@ -198,7 +271,8 @@ def build_answer_payload(
             "debug_notes": list(response.debug_notes or []),
         }
 
-    top_results = []
+    top_results: list[dict[str, Any]] = []
+
     for r in (response.results or [])[: max(0, top_k)]:
         facts_dict = _fact_list_to_dict(r.facts)
 
@@ -208,6 +282,7 @@ def build_answer_payload(
 
         price_summary = _build_price_summary(facts_dict)
         budget_summary, budget_status = _build_budget_summary(facts_dict)
+
         fit_summary = _build_fit_summary(
             f"{r.matched_must_count}/{r.matched_must_total}",
             matched_details,
@@ -217,12 +292,46 @@ def build_answer_payload(
         )
         key_facts_summary = _build_key_facts_summary(facts_dict)
 
+        # Normalize unknown request results into plain dicts for payload/JSON use
+        raw_unknown_request_results = list(getattr(r, "unknown_request_results", []) or [])
+        unknown_request_results: list[dict[str, Any]] = []
+
+        for item in raw_unknown_request_results:
+            if isinstance(item, dict):
+                unknown_request_results.append(item)
+            elif hasattr(item, "model_dump"):
+                unknown_request_results.append(item.model_dump(mode="json"))
+            else:
+                unknown_request_results.append(
+                    {
+                        "query_text": getattr(item, "query_text", None),
+                        "value": getattr(item, "value", None),
+                        "reason": getattr(item, "reason", None),
+                        "evidence": getattr(item, "evidence", []),
+                    }
+                )
+
+        unknown_request_points = _build_unknown_request_points(unknown_request_results)
+
         why_match = _pick_reason_lines(matched_details, limit=4)
         tradeoffs = _pick_reason_lines(failed_details, limit=4)
         uncertain_points = _pick_reason_lines(uncertain_details, limit=4)
 
         if not why_match and r.why:
             why_match = [str(x) for x in (r.why or [])[:3]]
+
+        ranking_reasons = _build_ranking_reasons(
+            {
+                "why": list(r.why or []),
+            }
+        )
+
+        standout_reason = _build_standout_reason(
+            unknown_request_results=unknown_request_results,
+            why_match=why_match,
+            tradeoffs=tradeoffs,
+            uncertain_points=uncertain_points,
+        )
 
         top_results.append(
             {
@@ -238,6 +347,10 @@ def build_answer_payload(
                 "uncertain_constraint_names": _constraint_names(r.uncertain_constraints),
                 "failed_constraint_names": _constraint_names(r.failed_constraints),
                 "key_facts": facts_dict,
+                "unknown_request_results": unknown_request_results,
+                "unknown_request_points": unknown_request_points,
+                "ranking_reasons": ranking_reasons,
+                "standout_reason": standout_reason,
                 "key_facts_summary": key_facts_summary,
                 "fit_summary": fit_summary,
                 "why_match": why_match,

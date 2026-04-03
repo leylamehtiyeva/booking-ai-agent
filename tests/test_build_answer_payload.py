@@ -1,10 +1,13 @@
 from app.logic.build_answer_payload import build_answer_payload
+
 from app.schemas.search_response import (
     ConstraintStatus,
     NormalizedRequestSummary,
     NormalizedSearchResponse,
     NormalizedSearchResult,
     ResultFact,
+    UnknownFieldEvidence,
+    UnknownRequestResult,
 )
 
 
@@ -186,3 +189,128 @@ def test_build_answer_payload_uses_uncertain_reason_instead_of_field_name():
         "Pet policy is not explicitly confirmed in the listing."
     ]
     
+    
+def test_build_answer_payload_includes_unknown_request_points():
+    response = NormalizedSearchResponse(
+        need_clarification=False,
+        questions=[],
+        request_summary=NormalizedRequestSummary(
+            city="Baku",
+            check_in="2026-04-08",
+            check_out="2026-04-15",
+            must_have_fields=["iron"],
+            nice_to_have_fields=[],
+            property_types=["apartment"],
+            occupancy_types=[],
+            filters={},
+            unknown_requests=["satellite TV"],
+        ),
+        results=[
+            NormalizedSearchResult(
+                result_id="apt1",
+                title="Compact Apartment",
+                url="https://example.com/compact",
+                score=10.0,
+                matched_must_count=1,
+                matched_must_total=1,
+                matched_constraints=[
+                    ConstraintStatus(
+                        name="iron",
+                        status="matched",
+                        reason="Ironing facilities",
+                    )
+                ],
+                uncertain_constraints=[],
+                failed_constraints=[],
+                unknown_request_results=[
+                    UnknownRequestResult(
+                        query_text="satellite TV",
+                        value="FOUND",
+                        reason="The listing description mentions satellite channels.",
+                        evidence=[
+                            UnknownFieldEvidence(
+                                source_path="listing.description",
+                                snippet="and have satellite channels",
+                            )
+                        ],
+                    )
+                ],
+                facts=[],
+                why=[],
+            )
+        ],
+        debug_notes=[],
+    )
+
+    payload = build_answer_payload(response, top_k=3)
+    first = payload["top_results"][0]
+
+    assert "unknown_request_results" in first
+    assert first["unknown_request_results"]
+    assert first["unknown_request_results"][0]["query_text"] == "satellite TV"
+    assert first["unknown_request_points"] == [
+        "The listing description mentions satellite channels."
+    ]
+    
+    
+def test_build_answer_payload_includes_ranking_reasons_and_standout_reason():
+    response = NormalizedSearchResponse(
+        need_clarification=False,
+        questions=[],
+        request_summary=NormalizedRequestSummary(
+            city="Baku",
+            check_in="2026-04-08",
+            check_out="2026-04-15",
+            must_have_fields=["iron"],
+            nice_to_have_fields=[],
+            property_types=["apartment"],
+            occupancy_types=[],
+            filters={},
+            unknown_requests=["satellite TV"],
+        ),
+        results=[
+            NormalizedSearchResult(
+                result_id="apt1",
+                title="Compact Apartment",
+                url="https://example.com/compact",
+                score=10.0,
+                matched_must_count=1,
+                matched_must_total=1,
+                matched_constraints=[
+                    ConstraintStatus(
+                        name="iron",
+                        status="matched",
+                        reason="Ironing facilities",
+                    )
+                ],
+                uncertain_constraints=[],
+                failed_constraints=[],
+                unknown_request_results=[
+                    UnknownRequestResult(
+                        query_text="satellite TV",
+                        value="FOUND",
+                        reason="The listing description mentions satellite channels.",
+                        evidence=[
+                            UnknownFieldEvidence(
+                                source_path="listing.description",
+                                snippet="and have satellite channels",
+                            )
+                        ],
+                    )
+                ],
+                facts=[],
+                why=[
+                    "UNKNOWN_MATCH: satellite TV found",
+                    "PROPERTY_TYPE: matched apartment",
+                ],
+            )
+        ],
+        debug_notes=[],
+    )
+
+    payload = build_answer_payload(response, top_k=3)
+    first = payload["top_results"][0]
+
+    assert first["ranking_reasons"]
+    assert "satellite TV found" in first["ranking_reasons"][0]
+    assert first["standout_reason"] == "The only option that explicitly matches your requested detail: satellite TV"

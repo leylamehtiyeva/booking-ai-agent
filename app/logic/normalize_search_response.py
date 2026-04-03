@@ -282,6 +282,7 @@ def normalize_search_response(
                 title=item.get("listing_name") or getattr(listing, "name", "Unknown"),
                 url=getattr(listing, "url", None),
                 score=float(item.get("score", 0.0)),
+                unknown_request_results=item.get("unknown_request_results", []),
                 matched_must_count=int(item.get("must_have_matched", 0)),
                 matched_must_total=int(item.get("must_have_total", 0)),
                 matched_constraints=matched,

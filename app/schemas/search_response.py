@@ -19,6 +19,16 @@ class NormalizedRequestSummary(BaseModel):
     filters: dict[str, Any] = Field(default_factory=dict)
     unknown_requests: list[str] = Field(default_factory=list)
 
+class UnknownFieldEvidence(BaseModel):
+    source_path: str
+    snippet: str
+
+
+class UnknownRequestResult(BaseModel):
+    query_text: str
+    value: str  # FOUND | NOT_FOUND | UNCERTAIN
+    reason: str
+    evidence: list[UnknownFieldEvidence] = []
 
 class ConstraintStatus(BaseModel):
     name: str
@@ -41,10 +51,10 @@ class NormalizedSearchResult(BaseModel):
     matched_must_count: int
     matched_must_total: int
 
+    unknown_request_results: list[UnknownRequestResult] = []
     matched_constraints: list[ConstraintStatus] = Field(default_factory=list)
     uncertain_constraints: list[ConstraintStatus] = Field(default_factory=list)
     failed_constraints: list[ConstraintStatus] = Field(default_factory=list)
-
     facts: list[ResultFact] = Field(default_factory=list)
 
     why: list[str] = Field(default_factory=list)
