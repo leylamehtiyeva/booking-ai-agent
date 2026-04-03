@@ -379,3 +379,78 @@ async def test_orchestrate_search_returns_normalized_response(monkeypatch):
     assert "matched_constraints" in first
     assert "uncertain_constraints" in first
     assert "facts" in first
+    
+    import pytest
+
+
+@pytest.mark.asyncio
+async def test_orchestrate_search_attaches_unknown_request_results():
+    intent = {
+        "city": "Baku",
+        "check_in": "2026-04-08",
+        "check_out": "2026-04-15",
+        "must_have_fields": ["iron"],
+        "nice_to_have_fields": [],
+        "unknown_requests": ["satellite TV"],
+        "property_types": ["apartment"],
+        "occupancy_types": [],
+        "filters": {},
+    }
+
+    out = await orchestrate_search(
+        "I want an apartment in Baku with satellite TV and ironing facilities",
+        intent,
+        source="fixtures",
+        max_items=5,
+    )
+
+    assert out["need_clarification"] is False
+    assert out["results"]
+
+    first = out["results"][0]
+    assert "unknown_request_results" in first
+    assert isinstance(first["unknown_request_results"], list)
+
+    unknowns = first["unknown_request_results"]
+    assert unknowns
+    assert unknowns[0]["query_text"] == "satellite TV"
+    assert unknowns[0]["value"] in {"FOUND", "NOT_FOUND", "UNCERTAIN"}
+    assert "reason" in unknowns[0]
+    
+    
+@pytest.mark.asyncio
+async def test_orchestrate_search_attaches_unknown_request_results():
+    intent = {
+        "city": "Baku",
+        "check_in": "2026-04-08",
+        "check_out": "2026-04-15",
+        "must_have_fields": ["iron"],
+        "nice_to_have_fields": [],
+        "unknown_requests": ["satellite TV"],
+        "property_types": ["apartment"],
+        "occupancy_types": [],
+        "filters": {},
+    }
+
+    out = await orchestrate_search(
+        "I want an apartment in Baku with satellite TV and ironing facilities",
+        intent,
+        source="fixtures",
+        max_items=5,
+    )
+
+    assert out["need_clarification"] is False
+    assert out["results"]
+
+    found_unknown = False
+    for result in out["results"]:
+        assert "unknown_request_results" in result
+        assert isinstance(result["unknown_request_results"], list)
+
+        for item in result["unknown_request_results"]:
+            if item["query_text"] == "satellite TV":
+                found_unknown = True
+                assert item["value"] in {"FOUND", "UNCERTAIN", "NOT_FOUND"}
+                assert "reason" in item
+
+    assert found_unknown

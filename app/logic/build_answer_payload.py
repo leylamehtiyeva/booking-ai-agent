@@ -23,6 +23,33 @@ IMPORTANT_FACT_KEYS = {
 }
 
 
+def _build_unknown_request_points(items: list[Any] | None) -> list[str]:
+    out: list[str] = []
+
+    for item in items or []:
+        # поддержка dict и pydantic
+        if isinstance(item, dict):
+            query_text = item.get("query_text")
+            value = item.get("value")
+            reason = item.get("reason")
+        else:
+            query_text = getattr(item, "query_text", None)
+            value = getattr(item, "value", None)
+            reason = getattr(item, "reason", None)
+
+        if reason:
+            out.append(str(reason))
+            continue
+
+        if query_text and value == "FOUND":
+            out.append(f"{query_text} appears to be available in the listing.")
+        elif query_text and value == "NOT_FOUND":
+            out.append(f"{query_text} appears to be unavailable in the listing.")
+        elif query_text:
+            out.append(f"{query_text} is not explicitly confirmed in the listing.")
+
+    return out
+
 def _fact_list_to_dict(facts: list[Any]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for fact in facts or []:
@@ -224,6 +251,25 @@ def build_answer_payload(
         if not why_match and r.why:
             why_match = [str(x) for x in (r.why or [])[:3]]
 
+        raw_unknown_request_results = list(getattr(r, "unknown_request_results", []) or [])
+
+        unknown_request_results: list[dict[str, Any]] = []
+        for item in raw_unknown_request_results:
+            if isinstance(item, dict):
+                unknown_request_results.append(item)
+            elif hasattr(item, "model_dump"):
+                unknown_request_results.append(item.model_dump(mode="json"))
+            else:
+                unknown_request_results.append(
+                    {
+                        "query_text": getattr(item, "query_text", None),
+                        "value": getattr(item, "value", None),
+                        "reason": getattr(item, "reason", None),
+                        "evidence": getattr(item, "evidence", []),
+                    }
+                )
+
+        unknown_request_points = _build_unknown_request_points(unknown_request_results)
         top_results.append(
             {
                 "result_id": r.result_id,
@@ -238,6 +284,8 @@ def build_answer_payload(
                 "uncertain_constraint_names": _constraint_names(r.uncertain_constraints),
                 "failed_constraint_names": _constraint_names(r.failed_constraints),
                 "key_facts": facts_dict,
+                "unknown_request_results": unknown_request_results,
+                "unknown_request_points": unknown_request_points,
                 "key_facts_summary": key_facts_summary,
                 "fit_summary": fit_summary,
                 "why_match": why_match,

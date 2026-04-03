@@ -77,6 +77,13 @@ You will receive a structured payload with:
 - top_results
 - clarification questions if needed
 
+Each top result may also contain:
+- unknown_request_results
+- unknown_request_points
+
+These represent user-requested must-have details that are not part of the structured schema,
+but were searched in the listing text and metadata.
+
 SOURCE OF TRUTH:
 - active_intent
 - top_results
@@ -106,6 +113,13 @@ LINK RULE:
 - Do NOT use the URL itself as the visible anchor text.
 - If a result has a URL, format it exactly as:
   [View listing](URL)
+  
+UNKNOWN REQUEST RULES:
+- If unknown_request_points are present, mention them briefly and factually.
+- Treat FOUND as a positive signal.
+- Treat UNCERTAIN as "not explicitly confirmed".
+- Treat NOT_FOUND as unavailable only if the payload explicitly says so.
+- Do not overemphasize unknown-request matches over core structured constraints.
 
 STYLE RULES:
 - Do NOT use bold formatting with ** **
@@ -124,6 +138,7 @@ FORMAT:
   - one short line saying what makes it stand out
   - price and budget fit
   - key facts
+  - other requested details if present
   - trade-offs or uncertain points if any
   - [View listing](URL)
 - End with one short sentence offering a concrete refinement

@@ -21,6 +21,9 @@ from app.schemas.query import SearchRequest
 from app.logic.property_semantics import match_occupancy_types, match_property_types
 from app.schemas.match import Ternary
 from app.logic.normalize_search_response import normalize_search_response
+from app.logic.listing_signals import collect_listing_signals
+from app.logic.unknown_field_evidence_search import search_unknown_must_have_evidence
+from app.logic.unknown_request_utils import get_unknown_must_have_requests
 
 
 def _fails_must(matches: dict[Field, Any], must_fields: List[Field] | None) -> bool:
@@ -42,7 +45,50 @@ def _fails_numeric_filters(numeric_results: List[Any] | None) -> bool:
     return False
 
 
+async def _attach_unknown_request_results(
+    intent: dict,
+    ranked_items: list[dict],
+) -> list[dict]:
+    """
+    For unknown must-have requests, run evidence search per listing and
+    attach results to each ranked item.
 
+    This step does NOT yet hard-filter results. It only enriches them.
+    """
+    unknown_requests = get_unknown_must_have_requests(intent)
+    if not unknown_requests:
+        return ranked_items
+
+    for item in ranked_items:
+        listing = item.get("listing")
+        if listing is None:
+            item["unknown_request_results"] = []
+            continue
+
+        signals = collect_listing_signals(listing)
+        unknown_results = []
+
+        for req_text in unknown_requests:
+            try:
+                result = await search_unknown_must_have_evidence(
+                    query_text=req_text,
+                    listing_signals=signals,
+                )
+                unknown_results.append(result.model_dump(mode="json"))
+            except Exception as e:
+                unknown_results.append(
+                    {
+                        "query_text": req_text,
+                        "value": "UNCERTAIN",
+                        "reason": f"{req_text} could not be verified from the listing.",
+                        "evidence": [],
+                        "error": str(e),
+                    }
+                )
+
+        item["unknown_request_results"] = unknown_results
+
+    return ranked_items
 
 def _parse_iso_date(x: Any) -> Optional[date]:
     if x is None:
@@ -494,7 +540,7 @@ async def orchestrate_search(
     # 5) Structured ranking + fallback on top-K for UNCERTAIN must-have fields
     ranked = _rank_structured(req, listings)
     await _apply_fallback_topk(req, ranked, fallback_top_k=fallback_top_k)
-
+    ranked = await _attach_unknown_request_results(intent, ranked)
     # 6) Strict must-have filter AFTER fallback too
     ranked = [
         it

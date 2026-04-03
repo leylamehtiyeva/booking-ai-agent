@@ -48,6 +48,10 @@ def _format_top_result(result: dict[str, Any], rank: int) -> str:
         lines.append("Uncertain points:")
         lines.extend(_format_bullets(uncertain_points))
 
+    unknown_request_points = result.get("unknown_request_points") or []
+    if unknown_request_points:
+        lines.append("Other requested details:")
+        lines.extend(_format_bullets(unknown_request_points))
     if url:
         lines.append(f"Link: {url}")
 
