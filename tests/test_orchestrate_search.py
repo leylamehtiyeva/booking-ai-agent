@@ -1,5 +1,8 @@
 import pytest
+from datetime import date
 
+from app.agents.intent_router_agent import IntentRoute
+from app.logic.request_resolution import resolve_required_search_context
 from app.tools.orchestrate_search_tool import orchestrate_search
 
 
@@ -525,3 +528,111 @@ async def test_unknown_request_found_improves_listing_priority():
     # Soft check: found listing should be near the top
     top_titles = [r["title"] for r in out["results"][:2]]
     assert "Compact Apartment" in top_titles
+    
+    
+def test_resolve_required_search_context_missing_city_and_dates():
+    intent = IntentRoute(
+        city=None,
+        check_in=None,
+        check_out=None,
+        nights=None,
+        must_have_fields=[],
+        nice_to_have_fields=[],
+        unknown_requests=[],
+    )
+
+    resolved = resolve_required_search_context(intent)
+
+    assert resolved.need_clarification is True
+    assert any("city" in q.lower() for q in resolved.questions)
+    assert any("date" in q.lower() or "travel dates" in q.lower() for q in resolved.questions)
+    
+    
+def test_resolve_required_search_context_single_date_defaults_to_one_night():
+    intent = IntentRoute(
+        city="Baku",
+        check_in="2026-04-20",
+        check_out=None,
+        nights=1,
+        must_have_fields=[],
+        nice_to_have_fields=[],
+        unknown_requests=[],
+    )
+
+    resolved = resolve_required_search_context(intent)
+
+    assert resolved.need_clarification is False
+    assert resolved.check_in == date(2026, 4, 20)
+    assert resolved.check_out == date(2026, 4, 21)
+    
+    
+def test_resolve_required_search_context_from_date_for_n_nights():
+    intent = IntentRoute(
+        city="Baku",
+        check_in="2026-04-20",
+        check_out=None,
+        nights=6,
+        must_have_fields=[],
+        nice_to_have_fields=[],
+        unknown_requests=[],
+    )
+
+    resolved = resolve_required_search_context(intent)
+
+    assert resolved.need_clarification is False
+    assert resolved.check_in == date(2026, 4, 20)
+    assert resolved.check_out == date(2026, 4, 26)
+    
+    
+@pytest.mark.asyncio
+async def test_missing_city_requires_clarification():
+    intent = {
+        "city": None,
+        "check_in": "2026-04-08",
+        "check_out": "2026-04-15",
+        "must_have_fields": [],
+        "nice_to_have_fields": [],
+        "unknown_requests": [],
+    }
+
+    out = await orchestrate_search("Need a place from 2026-04-08 to 2026-04-15", intent, source="fixtures", max_items=10)
+
+    assert out["need_clarification"] is True
+    assert any("city" in q.lower() for q in out["questions"])
+    
+    
+    
+@pytest.mark.asyncio
+async def test_single_date_without_checkout_searches_one_night():
+    intent = {
+        "city": "Baku",
+        "check_in": "2026-04-08",
+        "check_out": None,
+        "nights": 1,
+        "must_have_fields": ["kitchen"],
+        "nice_to_have_fields": [],
+        "unknown_requests": [],
+    }
+
+    out = await orchestrate_search("Baku on 2026-04-08 with kitchen", intent, source="fixtures", max_items=10)
+
+    assert out["need_clarification"] is False
+    assert out["results"][0]["title"] == "Large Family Apartment"
+    
+    
+@pytest.mark.asyncio
+async def test_from_date_for_n_nights_is_resolved_before_search():
+    intent = {
+        "city": "Baku",
+        "check_in": "2026-04-08",
+        "check_out": None,
+        "nights": 7,
+        "must_have_fields": ["kitchen"],
+        "nice_to_have_fields": [],
+        "unknown_requests": [],
+    }
+
+    out = await orchestrate_search("Baku from 2026-04-08 for 7 nights with kitchen", intent, source="fixtures", max_items=10)
+
+    assert out["need_clarification"] is False
+    assert out["results"][0]["title"] == "Large Family Apartment"
