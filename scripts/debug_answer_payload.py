@@ -57,8 +57,10 @@ async def main():
     print(answer)
 
     print("\n=== LLM USER-FACING ANSWER ===")
-    llm_answer = await generate_user_answer_with_llm(payload)
-    print(llm_answer)
+    print("\n=== Ответ закоментирован ===")
+
+    # llm_answer = await generate_user_answer_with_llm(payload)
+    # print(llm_answer)
 
 
 if __name__ == "__main__":
