@@ -636,3 +636,27 @@ async def test_from_date_for_n_nights_is_resolved_before_search():
 
     assert out["need_clarification"] is False
     assert out["results"][0]["title"] == "Large Family Apartment"
+    
+    
+@pytest.mark.asyncio
+async def test_occupancy_filter_is_applied():
+    intent = {
+        "city": "Baku",
+        "check_in": "2026-04-08",
+        "check_out": "2026-04-15",
+        "adults": 7,
+        "children": 0,
+        "rooms": 1,
+        "must_have_fields": ["kitchen"],
+        "nice_to_have_fields": [],
+        "unknown_requests": [],
+    }
+
+    out = await orchestrate_search(
+        "Apartment in Baku for 7 adults with kitchen",
+        intent,
+        source="fixtures",
+        max_items=10,
+    )
+
+    assert out["need_clarification"] is False

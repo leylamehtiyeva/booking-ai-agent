@@ -18,6 +18,9 @@ class IntentRoute(BaseModel):
     check_in: Optional[str] = None
     check_out: Optional[str] = None
     nights: int | None = None
+    adults: int | None = None
+    children: int | None = None
+    rooms: int | None = None
 
     must_have_fields: List[Field] = PydanticField(default_factory=list)
     nice_to_have_fields: List[Field] = PydanticField(default_factory=list)
@@ -131,6 +134,17 @@ DATES:
 - If the user says "from X for N nights", set check_in to X, set check_out = null, and set nights = N
 - If the user does not provide a resolvable date or period, set check_in = null, check_out = null, nights = null
 - Do not invent dates
+
+OCCUPANCY:
+- If the user specifies number of adults, set adults
+- If the user specifies number of children, set children
+- If the user specifies number of rooms, set rooms
+- Examples:
+  - "for 4 adults" -> adults = 4
+  - "2 adults and 2 children" -> adults = 2, children = 2
+  - "for 5 people" -> adults = 5, children = 0
+  - "2 rooms" -> rooms = 2
+- If occupancy is not mentioned, keep these fields null
 """
 
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
