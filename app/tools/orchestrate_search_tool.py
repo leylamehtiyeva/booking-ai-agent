@@ -24,6 +24,7 @@ from app.logic.normalize_search_response import normalize_search_response
 from app.logic.listing_signals import collect_listing_signals
 from app.logic.unknown_field_evidence_search import search_unknown_must_have_evidence
 from app.logic.unknown_request_utils import get_unknown_must_have_requests
+from app.logic.request_resolution import resolve_required_search_context
 
 
 def _has_explicit_negative_unknown_evidence(item: dict) -> bool:
@@ -218,6 +219,7 @@ async def _repair_intent_with_llm(
             "city": "string|null",
             "check_in": "YYYY-MM-DD|null",
             "check_out": "YYYY-MM-DD|null",
+            "nights": "int|null",
             "must_have_fields": "list[canonical_key]",
             "nice_to_have_fields": "list[canonical_key]",
             "property_types": [
@@ -263,16 +265,11 @@ async def _repair_intent_with_llm(
 
 
 def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
-    """Last resort: keep only enum-parsable items.
-
-    - canonical amenity fields are preserved if they parse into Field
-    - property_types / occupancy_types are preserved if they parse into their enums
-    - everything else is moved to unknown_requests
-    """
     out: Dict[str, Any] = {
         "city": intent_dict.get("city"),
         "check_in": intent_dict.get("check_in"),
         "check_out": intent_dict.get("check_out"),
+        "nights": intent_dict.get("nights"),
         "must_have_fields": [],
         "nice_to_have_fields": [],
         "filters": intent_dict.get("filters") or {},
@@ -291,14 +288,12 @@ def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
             if isinstance(x, str):
                 s = x.strip()
 
-                # parse by enum value
                 try:
                     ok.append(enum_cls(s))
                     continue
                 except Exception:
                     pass
 
-                # parse by enum member name
                 try:
                     ok.append(enum_cls[s])
                     continue
@@ -320,9 +315,6 @@ def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
 
     out["must_have_fields"] = parse_enum_list(intent_dict.get("must_have_fields"), Field)
     out["nice_to_have_fields"] = parse_enum_list(intent_dict.get("nice_to_have_fields"), Field)
-
-    # For typed property/occupancy semantics we keep only valid enum-parsable items.
-    # Invalid values also go to unknown_requests.
     out["property_types"] = parse_enum_list(intent_dict.get("property_types"), PropertyType)
     out["occupancy_types"] = parse_enum_list(intent_dict.get("occupancy_types"), OccupancyType)
 
@@ -367,10 +359,16 @@ def _require_dates(intent_obj: IntentRoute) -> Tuple[Optional[date], Optional[da
     )
 
 
-def _build_request(user_text: str, intent_obj: IntentRoute, check_in: date, check_out: date) -> SearchRequest:
+def _build_request(
+    user_text: str,
+    intent_obj: IntentRoute,
+    city: str,
+    check_in: date,
+    check_out: date,
+) -> SearchRequest:
     return SearchRequest(
         user_message=user_text,
-        city=intent_obj.city,
+        city=city,
         check_in=check_in,
         check_out=check_out,
         adults=2,
@@ -518,7 +516,8 @@ def _format_results(req: SearchRequest, ranked: List[Dict[str, Any]], top_n: int
         f"city={req.city}, check_in={req.check_in}, check_out={req.check_out}, "
         f"must_have={[f.value for f in (req.must_have_fields or [])]}, "
         f"nice_to_have={[f.value for f in (req.nice_to_have_fields or [])]}, "
-        f"filters={req.filters.model_dump() if req.filters else None}"
+        f"property_types={[p.value for p in (req.property_types or [])]}, "
+        f"occupancy_types={[o.value for o in (req.occupancy_types or [])]}"
     )
     if notes:
         summary += " | " + " | ".join(notes)
@@ -565,14 +564,22 @@ async def orchestrate_search(
 
     intent_obj, dropped_requests = await _validate_and_repair_intent(intent, attempts=2)
 
-    check_in, check_out = _require_dates(intent_obj)
-    if check_in is None or check_out is None:
+    resolved = resolve_required_search_context(intent_obj)
+
+    if resolved.need_clarification:
         return {
             "need_clarification": True,
-            "questions": ["Какие даты заезда и выезда? (формат YYYY-MM-DD)"],
+            "questions": resolved.questions,
+            "dropped_requests": dropped_requests,
         }
 
-    req = _build_request(user_text=user_text, intent_obj=intent_obj, check_in=check_in, check_out=check_out)
+    req = _build_request(
+        user_text=user_text,
+        intent_obj=intent_obj,
+        city=resolved.city,
+        check_in=resolved.check_in,
+        check_out=resolved.check_out,
+    )
 
     # 1) Retrieve candidates (Apify строго 1 раз / fixtures — просто читаем файл)
     try:

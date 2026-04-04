@@ -7,7 +7,7 @@ from app.logic.intent_router import route_intent_adk_async
 from app.tools.orchestrate_search_tool import orchestrate_search
 
 USER_TEXT = (
-"I want an apartment in Baku from 2026-04-08 to 2026-04-15 with satellite TV and ironing facilities."
+"I want an apartment in Baku with satellite TV and ironing facilities."
 )
 
 

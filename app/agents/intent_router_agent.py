@@ -2,29 +2,30 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Optional
-from app.schemas.property_semantics import OccupancyType, PropertyType
-from pydantic import BaseModel, Field as PydanticField
+from typing import List, Optional
+
 from google.adk.agents import Agent
 from google.adk.models.google_llm import Gemini
-from app.schemas.fields import Field
-from app.schemas.filters import PriceConstraint, SearchFilters
-from typing import List
 from pydantic import BaseModel, Field as PydanticField, field_validator
+
+from app.schemas.fields import Field
+from app.schemas.filters import SearchFilters
+from app.schemas.property_semantics import OccupancyType, PropertyType
 
 
 class IntentRoute(BaseModel):
-    # model_config = ConfigDict(extra="forbid")
-
     city: Optional[str] = None
     check_in: Optional[str] = None
     check_out: Optional[str] = None
+    nights: int | None = None
+
     must_have_fields: List[Field] = PydanticField(default_factory=list)
     nice_to_have_fields: List[Field] = PydanticField(default_factory=list)
     filters: SearchFilters = PydanticField(default_factory=SearchFilters)
     property_types: list[PropertyType] = PydanticField(default_factory=list)
     occupancy_types: list[OccupancyType] = PydanticField(default_factory=list)
     unknown_requests: List[str] = PydanticField(default_factory=list)
+
     @field_validator(
         "must_have_fields",
         "nice_to_have_fields",
@@ -39,7 +40,6 @@ class IntentRoute(BaseModel):
 
 
 def build_intent_router_agent() -> Agent:
-    # IMPORTANT: Use Field VALUES, not names
     allowed_fields = [f.value for f in Field]
     schema = IntentRoute.model_json_schema()
 
@@ -63,7 +63,6 @@ CANONICAL FIELDS:
 
 FILTERS (IMPORTANT):
 Some user requests are NOT amenities. They are structured constraints.
-
 These MUST go into "filters", not into must_have_fields.
 
 Use the following mapping rules:
@@ -90,7 +89,6 @@ Bathrooms:
 - "between A and B bathrooms" → filters.bathrooms_min = A AND filters.bathrooms_max = B
 - Support decimal bathroom counts such as "1.5 bathrooms"
 
-
 Price:
 - Price constraints MUST go into filters.price
 - If the user says "per night", "a night", "nightly" → filters.price.scope = "per_night"
@@ -98,18 +96,8 @@ Price:
 - Put the numeric amount into filters.price.max_amount unless the user clearly asks for a minimum
 - Put the currency into filters.price.currency when mentioned
 - If the user gives a price amount but does not specify whether it is per night or total, set filters.price.scope = null
-- Examples:
-  - "under 50 dollars per night" →
-    filters.price = {{"min_amount": null, "max_amount": 50, "currency": "USD", "scope": "per_night"}}
-  - "up to 500 manat total" →
-    filters.price = {{"min_amount": null, "max_amount": 500, "currency": "AZN", "scope": "total_stay"}}
-  - "budget at least 100 USD per night" →
-    filters.price = {{"min_amount": 100, "max_amount": null, "currency": "USD", "scope": "per_night"}}
 
 PROPERTY TYPE / OCCUPANCY (IMPORTANT):
-Some user requests are not amenities and not numeric filters. They describe the class
-of property or the occupancy mode.
-
 Use "property_types" for:
 - apartment
 - hotel
@@ -118,32 +106,19 @@ Use "property_types" for:
 - aparthotel
 - guesthouse
 
-Examples:
-- "I want an apartment" -> property_types = ["apartment"]
-- "hotel is okay" -> property_types = ["hotel"]
-- "not a hostel" -> add "hostel" to unknown_requests for now if negation cannot be expressed structurally
-
 Use "occupancy_types" for:
 - entire_place
 - private_room
 - shared_room
 - hotel_room
 
-Examples:
-- "entire place" -> occupancy_types = ["entire_place"]
-- "private room" -> occupancy_types = ["private_room"]
-- "shared room" / "bed in dorm" -> occupancy_types = ["shared_room"]
-- "hotel room" -> occupancy_types = ["hotel_room"]
-- For must_have_fields, nice_to_have_fields, property_types, occupancy_types, and unknown_requests:
-  always return arrays, never null.
-  Use [] when empty.
+For must_have_fields, nice_to_have_fields, property_types, occupancy_types, and unknown_requests:
+- always return arrays, never null
+- use [] when empty
 
 IMPORTANT:
 - Do NOT put apartment / hotel / hostel / house into must_have_fields
 - Do NOT put entire place / private room / shared room into must_have_fields
-- These belong only in property_types / occupancy_types
-
-IMPORTANT:
 - Do NOT put numeric constraints into must_have_fields
 - Do NOT leave them in unknown_requests if they can be mapped to filters
 
@@ -151,9 +126,13 @@ UNKNOWN REQUESTS:
 - If a request cannot be mapped to either canonical fields or filters, add it to unknown_requests
 
 DATES:
-- If the user provided check-in/check-out dates, output them as ISO strings YYYY-MM-DD
-- Otherwise set them to null
+- If the user provides both check-in and check-out dates, output both as ISO strings YYYY-MM-DD
+- If the user provides only one exact date, set check_in to that date, set check_out = null, and set nights = 1
+- If the user says "from X for N nights", set check_in to X, set check_out = null, and set nights = N
+- If the user does not provide a resolvable date or period, set check_in = null, check_out = null, nights = null
+- Do not invent dates
 """
+
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     if not api_key:
         raise ValueError("Missing GEMINI_API_KEY/GOOGLE_API_KEY")
@@ -171,13 +150,7 @@ DATES:
 
 
 async def route_intent(user_text: str) -> IntentRoute:
-    """
-    Convenience wrapper for running the intent router agent and parsing JSON output.
-    """
     agent = build_intent_router_agent()
-
-    # TODO: replace this block with your actual ADK runner call pattern
-    # depending on how you already run agents elsewhere in the project.
     raise NotImplementedError(
         "route_intent() wrapper is not wired yet. "
         "Use the same ADK runner pattern you already use in your debug script/agent execution flow."
