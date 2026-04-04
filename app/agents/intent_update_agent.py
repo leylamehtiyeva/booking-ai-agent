@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 
@@ -11,36 +13,67 @@ def build_intent_update_agent() -> Agent:
     schema = SearchIntentPatch.model_json_schema()
 
     instruction = f"""
-You update an existing search request.
+You update an existing structured booking search request.
 
-Return ONLY JSON matching schema:
+Return ONLY valid JSON matching this schema:
 {json.dumps(schema, ensure_ascii=False)}
 
-You receive:
-- previous state
-- new user message
+IMPORTANT:
+- Return ONLY a PATCH, not the full state
+- Only include changes caused by the new user message
+- Do NOT repeat unchanged values from previous state
+- Use empty arrays where nothing should be added/removed
 
-Rules:
+SEMANTICS:
+- "also", "add", "with too", "include" -> add_*
+- "remove", "not needed", "no longer important" -> remove_* or clear_*
+- "instead", "actually", "not X but Y", "change to" -> set_*
+- Use clear_city / clear_dates / clear_filters only when the user explicitly removes the whole slot
 
-- Do NOT rebuild full intent
-- Only return CHANGES
+DATES:
+- If user gives one date only, set_check_in to that date and set_nights = 1
+- If user says "from X for N nights", set_check_in = X and set_nights = N
+- If user gives both dates, set_check_in and set_check_out
+- Do not invent dates
 
-Examples:
+FILTERS:
+- For filters, return only the changed filter fields
+- Do NOT rebuild the entire filters object if only one field changed
+- Example: if user says "now at least 3 bedrooms", only set bedrooms_min = 3
 
-"add kettle"
-→ add_must_have_fields = ["kettle"]
+PROPERTY TYPES:
+- apartment / hotel / hostel / house / aparthotel / guesthouse
 
-"not in Baku, but Tbilisi"
-→ set_city = "Tbilisi"
+OCCUPANCY TYPES:
+- entire_place / private_room / shared_room / hotel_room
 
-"kitchen is not required anymore"
-→ remove_must_have_fields = ["kitchen"]
+EXAMPLES:
 
-"at least 3 bedrooms"
-→ set_filters.bedrooms_min = 3
-"""
+Previous state has city=Baku.
+User: "actually Tbilisi"
+Return:
+{{"set_city":"Tbilisi"}}
+
+User: "also I want a kettle"
+Return:
+{{"add_must_have_fields":["kettle"]}}
+
+User: "kitchen is no longer required"
+Return:
+{{"remove_must_have_fields":["kitchen"]}}
+
+User: "now at least 3 bedrooms"
+Return:
+{{"set_filters":{{"bedrooms_min":3}}}}
+
+User: "dates do not matter anymore"
+Return:
+{{"clear_dates":true}}
+""".strip()
 
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise ValueError("Missing GEMINI_API_KEY/GOOGLE_API_KEY")
 
     llm = Gemini(
         model="models/gemini-2.0-flash",
