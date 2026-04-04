@@ -25,6 +25,7 @@ from app.logic.listing_signals import collect_listing_signals
 from app.logic.unknown_field_evidence_search import search_unknown_must_have_evidence
 from app.logic.unknown_request_utils import get_unknown_must_have_requests
 from app.logic.request_resolution import resolve_required_search_context
+from app.logic.occupancy import evaluate_occupancy
 
 
 def _has_explicit_negative_unknown_evidence(item: dict) -> bool:
@@ -371,9 +372,9 @@ def _build_request(
         city=city,
         check_in=check_in,
         check_out=check_out,
-        adults=2,
-        children=0,
-        rooms=1,
+        adults=intent_obj.adults or 2,
+        children=intent_obj.children or 0,
+        rooms=intent_obj.rooms or 1,
         currency="USD",
         budget_max=None,
         must_have_fields=intent_obj.must_have_fields,
@@ -608,6 +609,20 @@ async def orchestrate_search(
 
     # 3) Dates safety (особенно для fixtures)
     listings = [lst for lst in listings if _covers_dates(lst, req.check_in, req.check_out)]
+        # 3.5) Occupancy safety
+    occupancy_results = {
+        getattr(lst, "id", None) or getattr(lst, "url", None) or str(i): evaluate_occupancy(lst, req)
+        for i, lst in enumerate(listings)
+    }
+
+    filtered_listings = []
+    for i, lst in enumerate(listings):
+        key = getattr(lst, "id", None) or getattr(lst, "url", None) or str(i)
+        occ = occupancy_results[key]
+        if occ.passed:
+            filtered_listings.append(lst)
+
+    listings = filtered_listings
 
     # 4) No candidates after filters → ask to change dates / clarify
     if not listings:
