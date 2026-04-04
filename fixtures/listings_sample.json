@@ -72,7 +72,7 @@
       {
         "name": "Two-Bedroom Apartment",
         "roomType": "Two-Bedroom Apartment",
-        "facilities": ["Kitchen", "Private bathroom"]
+        "facilities": ["Kitchen", "Private bathroom", "kettle"]
       }
     ]
   },
