@@ -5,6 +5,7 @@ import os
 import uuid
 from datetime import date
 from typing import Optional
+from app.logic.date_normalization import normalize_intent_dates
 
 from google.adk.agents.run_config import RunConfig
 from google.adk.runners import Runner
@@ -86,6 +87,7 @@ def route_intent_adk(user_text: str) -> IntentRoute:
 
 async def build_search_request_adk_async(user_text: str) -> SearchRequest:
     intent = await route_intent_adk_async(user_text)
+    intent = normalize_intent_dates(intent, user_text)
 
     print("\n=== PARSED INTENT ===")
     print(intent.model_dump())

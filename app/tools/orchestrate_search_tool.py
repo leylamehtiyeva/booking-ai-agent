@@ -628,7 +628,7 @@ async def orchestrate_search(
     if not listings:
         return {
             "need_clarification": True,
-            "questions": ["На выбранные даты ничего не найдено. Попробуешь другие даты?"],
+            "questions": ["Ничего не найдено по текущим условиям. Попробуй изменить требования."],
         }
 
     # 5) Structured ranking + fallback on top-K for UNCERTAIN must-have fields
