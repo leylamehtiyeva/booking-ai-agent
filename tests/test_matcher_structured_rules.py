@@ -31,7 +31,6 @@ def test_match_listing_structured_uses_signal_rules():
     )
 
     req = SearchRequest(
-        user_message="test",
         city="Baku",
         check_in="2026-04-08",
         check_out="2026-04-15",

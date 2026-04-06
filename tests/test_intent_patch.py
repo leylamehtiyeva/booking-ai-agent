@@ -5,7 +5,7 @@ from app.schemas.query import SearchRequest
 
 
 def test_add_must_have():
-    state = SearchRequest(user_message="test", city="Baku")
+    state = SearchRequest(city="Baku")
 
     patch = SearchIntentPatch(add_must_have_fields=[Field.KITCHEN])
 
@@ -16,7 +16,6 @@ def test_add_must_have():
 
 def test_remove_must_have():
     state = SearchRequest(
-        user_message="test",
         city="Baku",
         must_have_fields=[Field.KITCHEN],
     )
@@ -29,7 +28,7 @@ def test_remove_must_have():
 
 
 def test_replace_city():
-    state = SearchRequest(user_message="test", city="Baku")
+    state = SearchRequest(city="Baku")
 
     patch = SearchIntentPatch(set_city="Tbilisi")
 

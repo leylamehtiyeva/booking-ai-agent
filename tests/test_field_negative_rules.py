@@ -15,7 +15,6 @@ def test_pet_friendly_negative_rule_returns_no():
     )
 
     req = SearchRequest(
-        user_message="pet friendly place",
         city="Baku",
         check_in="2026-04-08",
         check_out="2026-04-15",
@@ -44,7 +43,6 @@ def test_free_cancellation_negative_rule_returns_no():
     )
 
     req = SearchRequest(
-        user_message="free cancellation",
         city="Baku",
         check_in="2026-04-08",
         check_out="2026-04-15",
@@ -71,7 +69,6 @@ def test_private_bathroom_negative_rule_shared_bathroom_returns_no():
     )
 
     req = SearchRequest(
-        user_message="private bathroom",
         city="Baku",
         check_in="2026-04-08",
         check_out="2026-04-15",

@@ -23,7 +23,6 @@ async def test_update_search_state_adds_field_and_updates_filter(monkeypatch):
     )
 
     previous_state = SearchRequest(
-        user_message="initial",
         city="Baku",
         check_in=date(2026, 4, 20),
         check_out=date(2026, 4, 26),

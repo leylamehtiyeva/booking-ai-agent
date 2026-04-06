@@ -14,8 +14,6 @@ class SearchRequest(BaseModel):
     and consumed by all downstream services.
     """
 
-    user_message: str
-
     city: str | None = None
     check_in: Optional[date] = None
     check_out: Optional[date] = None

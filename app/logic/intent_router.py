@@ -96,7 +96,6 @@ async def build_search_request_adk_async(user_text: str) -> SearchRequest:
     clean_filters = _clean_filters(intent.filters)
 
     req = SearchRequest(
-        user_message=user_text,
         city=resolved.city,
         check_in=resolved.check_in,
         check_out=resolved.check_out,

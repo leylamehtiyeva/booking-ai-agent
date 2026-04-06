@@ -368,7 +368,6 @@ def _build_request(
     check_out: date,
 ) -> SearchRequest:
     return SearchRequest(
-        user_message=user_text,
         city=city,
         check_in=check_in,
         check_out=check_out,

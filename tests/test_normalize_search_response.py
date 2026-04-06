@@ -19,7 +19,6 @@ class DummyPropertyResult:
 
 def test_normalize_search_response_builds_request_summary_and_results():
     req = SearchRequest(
-        user_message="test query",
         city="Baku",
         check_in=date(2026, 4, 8),
         check_out=date(2026, 4, 15),

@@ -11,7 +11,6 @@ from app.schemas.query import SearchRequest
 async def test_conversation_flow_first_turn_builds_state_and_searches(monkeypatch):
     async def _fake_build_search_request(user_message: str) -> SearchRequest:
         return SearchRequest(
-            user_message=user_message,
             city="Baku",
             check_in=date(2026, 4, 20),
             check_out=date(2026, 4, 26),
@@ -48,7 +47,6 @@ async def test_conversation_flow_first_turn_builds_state_and_searches(monkeypatc
 @pytest.mark.asyncio
 async def test_conversation_flow_followup_updates_existing_state(monkeypatch):
     previous_state = SearchRequest(
-        user_message="initial",
         city="Baku",
         check_in=date(2026, 4, 20),
         check_out=date(2026, 4, 26),
@@ -58,7 +56,6 @@ async def test_conversation_flow_followup_updates_existing_state(monkeypatch):
 
     async def _fake_update_search_state(prev_state: SearchRequest, user_message: str) -> SearchRequest:
         return SearchRequest(
-            user_message=prev_state.user_message,
             city=prev_state.city,
             check_in=prev_state.check_in,
             check_out=prev_state.check_out,
@@ -97,7 +94,6 @@ async def test_conversation_flow_followup_updates_existing_state(monkeypatch):
 @pytest.mark.asyncio
 async def test_conversation_flow_returns_clarification_if_updated_state_is_incomplete(monkeypatch):
     previous_state = SearchRequest(
-        user_message="initial",
         city="Baku",
         check_in=date(2026, 4, 20),
         check_out=date(2026, 4, 26),
@@ -106,7 +102,6 @@ async def test_conversation_flow_returns_clarification_if_updated_state_is_incom
 
     async def _fake_update_search_state(prev_state: SearchRequest, user_message: str) -> SearchRequest:
         return SearchRequest(
-            user_message=prev_state.user_message,
             city=None,
             check_in=prev_state.check_in,
             check_out=prev_state.check_out,

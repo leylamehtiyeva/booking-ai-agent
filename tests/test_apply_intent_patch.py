@@ -9,7 +9,6 @@ from app.schemas.query import SearchRequest
 
 def test_set_nights_updates_checkout_from_existing_checkin():
     state = SearchRequest(
-        user_message="test",
         city="Baku",
         check_in=date(2026, 4, 20),
         check_out=date(2026, 4, 21),
@@ -24,7 +23,6 @@ def test_set_nights_updates_checkout_from_existing_checkin():
 
 def test_filter_merge_preserves_existing_fields():
     state = SearchRequest(
-        user_message="test",
         city="Baku",
         filters=SearchFilters(bedrooms_min=2, area_sqm_min=80),
     )
@@ -40,7 +38,6 @@ def test_filter_merge_preserves_existing_fields():
 
 def test_price_merge_preserves_other_price_fields():
     state = SearchRequest(
-        user_message="test",
         city="Baku",
         filters=SearchFilters(
             price=PriceConstraint(max_amount=120, currency="USD", scope="per_night")
@@ -61,7 +58,6 @@ def test_price_merge_preserves_other_price_fields():
 
 def test_add_and_remove_must_have_fields():
     state = SearchRequest(
-        user_message="test",
         city="Baku",
         must_have_fields=[Field.KITCHEN, Field.PRIVATE_BATHROOM],
     )
@@ -78,7 +74,7 @@ def test_add_and_remove_must_have_fields():
 
 
 def test_clear_city_sets_city_to_none():
-    state = SearchRequest(user_message="test", city="Baku")
+    state = SearchRequest(city="Baku")
     patch = SearchIntentPatch(clear_city=True)
 
     new_state = apply_intent_patch(state, patch)
