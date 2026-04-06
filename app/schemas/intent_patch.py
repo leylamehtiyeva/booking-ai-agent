@@ -18,6 +18,10 @@ class SearchIntentPatch(BaseModel):
     set_check_out: Optional[str] = None
     set_nights: Optional[int] = None
     clear_dates: bool = False
+    
+    set_adults: Optional[int] = None
+    set_children: Optional[int] = None
+    set_rooms: Optional[int] = None
 
     # --- must-have ---
     add_must_have_fields: List[Field] = PydanticField(default_factory=list)

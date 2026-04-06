@@ -80,3 +80,46 @@ def test_clear_city_sets_city_to_none():
     new_state = apply_intent_patch(state, patch)
 
     assert new_state.city is None
+    
+    
+from app.logic.apply_intent_patch import apply_intent_patch
+from app.schemas.intent_patch import SearchIntentPatch
+from app.schemas.query import SearchRequest
+
+
+def test_apply_patch_updates_adults_children_and_rooms():
+    state = SearchRequest(
+        city="Baku",
+        adults=2,
+        children=0,
+        rooms=1,
+    )
+
+    patch = SearchIntentPatch(
+        set_adults=3,
+        set_children=1,
+        set_rooms=2,
+    )
+
+    new_state = apply_intent_patch(state, patch)
+
+    assert new_state.adults == 3
+    assert new_state.children == 1
+    assert new_state.rooms == 2
+    
+    
+def test_apply_patch_updates_only_adults_without_touching_other_fields():
+    state = SearchRequest(
+        city="Baku",
+        adults=2,
+        children=1,
+        rooms=1,
+    )
+
+    patch = SearchIntentPatch(set_adults=4)
+
+    new_state = apply_intent_patch(state, patch)
+
+    assert new_state.adults == 4
+    assert new_state.children == 1
+    assert new_state.rooms == 1

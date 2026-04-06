@@ -91,6 +91,15 @@ def apply_intent_patch(state: SearchRequest, patch: SearchIntentPatch) -> Search
 
     if patch.clear_filters:
         data.filters = None
+        
+    if patch.set_adults is not None:
+        data.adults = patch.set_adults
+
+    if patch.set_children is not None:
+        data.children = patch.set_children
+
+    if patch.set_rooms is not None:
+        data.rooms = patch.set_rooms
 
     # set scalar fields
     if patch.set_city:

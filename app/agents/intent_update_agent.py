@@ -44,6 +44,18 @@ FILTERS:
 PROPERTY TYPES:
 - apartment / hotel / hostel / house / aparthotel / guesthouse
 
+
+GUESTS AND ROOMS:
+- If the user changes the number of people, update guest counts
+- "for 3 people" -> set_adults = 3, set_children = 0
+- "for 4 adults" -> set_adults = 4
+- "2 adults and 1 child" -> set_adults = 2, set_children = 1
+- "2 adults and 2 children" -> set_adults = 2, set_children = 2
+- "1 child" -> set_children = 1
+- "3 rooms" -> set_rooms = 3
+- If the user only says total people and does not mention children, treat them as adults
+- Only update the fields explicitly changed by the user
+
 OCCUPANCY TYPES:
 - entire_place / private_room / shared_room / hotel_room
 
@@ -65,6 +77,22 @@ Return:
 User: "now at least 3 bedrooms"
 Return:
 {{"set_filters":{{"bedrooms_min":3}}}}
+
+User: "for 3 people"
+Return:
+{{"set_adults":3,"set_children":0}}
+
+User: "now 2 adults and 1 child"
+Return:
+{{"set_adults":2,"set_children":1}}
+
+User: "actually 2 rooms"
+Return:
+{{"set_rooms":2}}
+
+User: "for 4 adults"
+Return:
+{{"set_adults":4}}
 
 User: "dates do not matter anymore"
 Return:
