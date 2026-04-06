@@ -98,5 +98,28 @@
         "facilities": ["Private bathroom"]
       }
     ]
+  },
+  { "city": "Tbilisi",
+    "id": "hotel-large",
+    "name": "Tbilisi hotel",
+    "url": "https://example.com/hotel-large",
+    "price": 70,
+    "currency": "USD",
+    "property_type": "hotel",
+    "available_dates": {
+      "check_in": "2026-04-01",
+      "check_out": "2026-04-30"
+    },
+    "description": "Hotel in Tbilisi with private bathroom and 120 square meters.",
+    "facilities": [
+      {"name": "Private bathroom"}
+    ],
+    "rooms": [
+      {
+        "name": "Hotel Room",
+        "roomType": "Hotel Room",
+        "facilities": ["Private bathroom"]
+      }
+    ]
   }
 ]
