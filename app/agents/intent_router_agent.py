@@ -133,6 +133,8 @@ DATES:
 - If the user provides only one exact date, set check_in to that date, set check_out = null, and set nights = 1
 - If the user says "from X for N nights", set check_in to X, set check_out = null, and set nights = N
 - If the user does not provide a resolvable date or period, set check_in = null, check_out = null, nights = null
+- If the user provides day/month without a year, prefer the current year rather than inventing an old year
+- Never default missing year to a past year unless the user explicitly said that year
 - Do not invent dates
 
 OCCUPANCY:
