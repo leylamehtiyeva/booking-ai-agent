@@ -42,15 +42,24 @@ def _build_update_prompt(previous_state: SearchRequest, user_message: str) -> st
         indent=2,
     )
     return f"""
-Previous structured search state:
+Current structured search state (source of truth):
 {state_json}
 
 New user message:
 {user_message}
 
-Return ONLY a JSON patch.
-Do NOT return the full state.
-Do NOT repeat unchanged fields.
+Task:
+Return ONLY a JSON patch describing the changes caused by the new user message.
+
+Rules:
+- Do NOT return the full state
+- Do NOT repeat unchanged fields
+- Do NOT reconstruct or restate the whole request
+- Preserve all existing values unless the user explicitly changes or removes them
+- If the message changes only one slot, return only that slot change
+- If the message is unsupported by the schema, return an empty patch: {{}}
+- If the message contains an unsupported but meaningful must-have constraint, return it in add_unknown_requests
+- The user may write in any language
 """.strip()
 
 
@@ -148,6 +157,9 @@ async def update_search_state_async(
     user_message: str,
 ) -> SearchRequest:
     patch = await route_intent_update_patch_async(previous_state, user_message)
+    
+    print("\n=== INTENT UPDATE PATCH ===")
+    print(patch.model_dump(exclude_none=True))
 
     normalized_check_in, normalized_check_out = normalize_patch_dates(
         set_check_in=patch.set_check_in,

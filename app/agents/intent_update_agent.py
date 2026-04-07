@@ -22,6 +22,11 @@ IMPORTANT:
 - Return ONLY a PATCH, not the full state
 - Only include changes caused by the new user message
 - Do NOT repeat unchanged values from previous state
+- The current structured state is the source of truth
+- Do NOT reconstruct the full request from memory or from earlier wording
+- Do NOT revert existing fields unless the user explicitly changes or removes them
+- If the user asks for something unsupported by the schema, return an empty patch
+- The user may write in any language
 - Use empty arrays where nothing should be added/removed
 
 SEMANTICS:
@@ -29,12 +34,30 @@ SEMANTICS:
 - "remove", "not needed", "no longer important" -> remove_* or clear_*
 - "instead", "actually", "not X but Y", "change to" -> set_*
 - Use clear_city / clear_dates / clear_filters only when the user explicitly removes the whole slot
+- If the user changes only one slot, update only that slot
+- If the message is ambiguous or unsupported, return an empty patch
+
+SOURCE OF TRUTH:
+- The provided previous structured state is the only source of truth for the current search
+- Preserve all existing values unless the new user message explicitly changes them
+- Never re-derive city, dates, guests, or other slots from older wording
+- Never return values just because they existed before; only return actual changes
 
 DATES:
 - If user gives one date only, set_check_in to that date and set_nights = 1
 - If user says "from X for N nights", set_check_in = X and set_nights = N
 - If user gives both dates, set_check_in and set_check_out
 - Do not invent dates
+
+UNKNOWN REQUESTS:
+- If the user asks for a must-have constraint that cannot be mapped to canonical fields, filters, property_types, or occupancy_types, add it to add_unknown_requests
+- Keep the phrase short but meaningful
+- Do NOT convert "2 beds" into bedrooms_min
+- Do NOT convert unsupported bed configuration requests into must_have_fields
+- Examples of unsupported but meaningful requests:
+  - "2 beds"
+  - "quiet neighborhood"
+  - "sea view balcony"
 
 FILTERS:
 - For filters, return only the changed filter fields
@@ -78,9 +101,37 @@ User: "now at least 3 bedrooms"
 Return:
 {{"set_filters":{{"bedrooms_min":3}}}}
 
+User: "хочу чтобы были 2 кровати"
+Return:
+{{"add_unknown_requests":["2 beds"]}}
+
+User: "I need satellite TV"
+Return:
+{{"add_unknown_requests":["satellite TV"]}}
+
 User: "for 3 people"
 Return:
 {{"set_adults":3,"set_children":0}}
+
+Previous state has city=Baku, check_in=2026-04-19, check_out=2026-04-23, adults=2.
+User: "change city to Tbilisi"
+Return:
+{{"set_city":"Tbilisi"}}
+
+Previous state has city=Baku, check_in=2026-04-19, check_out=2026-04-23, adults=2.
+User: "на 3 человек"
+Return:
+{{"set_adults":3,"set_children":0}}
+
+Previous state has city=Baku, check_in=2026-04-19, check_out=2026-04-23, adults=2.
+User: "хочу чтобы были 2 кровати"
+Return:
+{{}}
+
+Previous state has city=Baku, check_in=2026-04-19, check_out=2026-04-23, adults=2.
+User: "actually city does not matter"
+Return:
+{{"clear_city":true}}
 
 User: "now 2 adults and 1 child"
 Return:

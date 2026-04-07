@@ -148,6 +148,12 @@ def apply_intent_patch(state: SearchRequest, patch: SearchIntentPatch) -> Search
     occupancy_types = [x for x in occupancy_types if x not in patch.remove_occupancy_types]
     occupancy_types.extend(patch.add_occupancy_types)
     data.occupancy_types = _unique(occupancy_types) or None
+    
+    # unknown requests
+    unknown = list(data.unknown_requests or [])
+    unknown = [x for x in unknown if x not in patch.remove_unknown_requests]
+    unknown.extend(patch.add_unknown_requests)
+    data.unknown_requests = _unique(unknown)
 
     # filters
     data.filters = _merge_filters(data.filters, patch.set_filters)

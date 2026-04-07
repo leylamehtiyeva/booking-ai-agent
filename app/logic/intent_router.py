@@ -96,19 +96,20 @@ async def build_search_request_adk_async(user_text: str) -> SearchRequest:
     clean_filters = _clean_filters(intent.filters)
 
     req = SearchRequest(
-        city=resolved.city,
-        check_in=resolved.check_in,
-        check_out=resolved.check_out,
-        adults=intent.adults or 2,
-        children=intent.children or 0,
-        rooms=intent.rooms or 1,
-        must_have_fields=intent.must_have_fields,
-        nice_to_have_fields=intent.nice_to_have_fields,
-        forbidden_fields=[],
-        filters=clean_filters,
-        property_types=intent.property_types,
-        occupancy_types=intent.occupancy_types,
-    )
+    city=resolved.city,
+    check_in=resolved.check_in,
+    check_out=resolved.check_out,
+    adults=intent.adults or 2,
+    children=intent.children or 0,
+    rooms=intent.rooms or 1,
+    must_have_fields=intent.must_have_fields,
+    nice_to_have_fields=intent.nice_to_have_fields,
+    forbidden_fields=[],
+    filters=clean_filters,
+    property_types=intent.property_types,
+    occupancy_types=intent.occupancy_types,
+    unknown_requests=intent.unknown_requests,
+)
 
     print("\n=== SEARCH REQUEST ===")
     print(req.model_dump(mode="json", exclude_none=True))

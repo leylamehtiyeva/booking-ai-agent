@@ -123,3 +123,33 @@ def test_apply_patch_updates_only_adults_without_touching_other_fields():
     assert new_state.adults == 4
     assert new_state.children == 1
     assert new_state.rooms == 1
+    
+    
+    def test_apply_patch_adds_unknown_requests():
+    state = SearchRequest(
+        city="Baku",
+        unknown_requests=[],
+    )
+
+    patch = SearchIntentPatch(
+        add_unknown_requests=["2 beds"],
+    )
+
+    new_state = apply_intent_patch(state, patch)
+
+    assert new_state.unknown_requests == ["2 beds"]
+
+
+def test_apply_patch_removes_unknown_requests():
+    state = SearchRequest(
+        city="Baku",
+        unknown_requests=["2 beds", "satellite TV"],
+    )
+
+    patch = SearchIntentPatch(
+        remove_unknown_requests=["2 beds"],
+    )
+
+    new_state = apply_intent_patch(state, patch)
+
+    assert new_state.unknown_requests == ["satellite TV"]
