@@ -125,7 +125,7 @@ def test_apply_patch_updates_only_adults_without_touching_other_fields():
     assert new_state.rooms == 1
     
     
-    def test_apply_patch_adds_unknown_requests():
+def test_apply_patch_adds_unknown_requests():
     state = SearchRequest(
         city="Baku",
         unknown_requests=[],

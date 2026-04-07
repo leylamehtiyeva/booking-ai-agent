@@ -41,6 +41,11 @@ class IntentRoute(BaseModel):
     def _none_to_empty_list(cls, v):
         return [] if v is None else v
 
+    @field_validator("filters", mode="before")
+    @classmethod
+    def _none_to_empty_filters(cls, v):
+        return {} if v is None else v
+
 
 def build_intent_router_agent() -> Agent:
     allowed_fields = [f.value for f in Field]
@@ -118,6 +123,9 @@ Use "occupancy_types" for:
 For must_have_fields, nice_to_have_fields, property_types, occupancy_types, and unknown_requests:
 - always return arrays, never null
 - use [] when empty
+
+
+
 
 IMPORTANT:
 - Do NOT put apartment / hotel / hostel / house into must_have_fields

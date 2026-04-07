@@ -67,6 +67,26 @@ FILTERS:
 PROPERTY TYPES:
 - apartment / hotel / hostel / house / aparthotel / guesthouse
 
+PROPERTY TYPE REPLACEMENT:
+- If the user changes the accommodation type, remove the old type and add the new one
+- Example:
+  Previous state has property_types=["apartment"]
+  User: "change it to a hotel"
+  Return:
+  {{"remove_property_types":["apartment"],"add_property_types":["hotel"]}}
+
+- Example:
+  Previous state has property_types=["apartment"]
+  User: "change to hotel"
+  Return:
+  {{"remove_property_types":["apartment"],"add_property_types":["hotel"]}}
+
+- Example:
+  Previous state has property_types=["hotel"]
+  User: "want an apartment"
+  Return:
+  {{"remove_property_types":["hotel"],"add_property_types":["apartment"]}}
+
 
 GUESTS AND ROOMS:
 - If the user changes the number of people, update guest counts
