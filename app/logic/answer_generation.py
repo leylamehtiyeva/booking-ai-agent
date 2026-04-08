@@ -48,10 +48,14 @@ def _format_top_result(result: dict[str, Any], rank: int) -> str:
         lines.append("Uncertain points:")
         lines.extend(_format_bullets(uncertain_points))
 
-    unknown_request_points = result.get("unknown_request_points") or []
-    if unknown_request_points:
+    unresolved_constraint_points = (
+        result.get("unresolved_constraint_points")
+        or result.get("unknown_request_points")
+        or []
+    )
+    if unresolved_constraint_points:
         lines.append("Other requested details:")
-        lines.extend(_format_bullets(unknown_request_points))
+        lines.extend(_format_bullets(unresolved_constraint_points))
     if url:
         lines.append(f"Link: {url}")
 
@@ -88,10 +92,13 @@ def _build_refinement_hint(payload: dict[str, Any]) -> str:
     active_intent = payload.get("active_intent") or {}
     filters = active_intent.get("filters") or {}
     must_have_fields = active_intent.get("must_have_fields") or []
+    constraints = active_intent.get("constraints") or []
 
     suggestions: list[str] = []
 
-    if must_have_fields:
+    if constraints:
+        suggestions.append("focus on listings with more fully confirmed requested constraints")
+    elif must_have_fields:
         suggestions.append("keep only listings with fully confirmed amenities")
     if filters.get("price"):
         suggestions.append("tighten or relax the budget")

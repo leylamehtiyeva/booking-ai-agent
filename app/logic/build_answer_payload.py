@@ -23,30 +23,31 @@ IMPORTANT_FACT_KEYS = {
 }
 
 
-def _build_unknown_request_points(items: list[Any] | None) -> list[str]:
+def _build_unresolved_constraint_points(items: list[Any] | None) -> list[str]:
     out: list[str] = []
 
     for item in items or []:
-        # поддержка dict и pydantic
+        # 🟢 dict-style (новая архитектура)
         if isinstance(item, dict):
-            query_text = item.get("query_text")
+            constraint = item.get("constraint") or {}
+            label = constraint.get("normalized_text") or item.get("query_text")
             value = item.get("value")
             reason = item.get("reason")
-        else:
-            query_text = getattr(item, "query_text", None)
-            value = getattr(item, "value", None)
-            reason = getattr(item, "reason", None)
 
-        if reason:
-            out.append(str(reason))
-            continue
+            if reason:
+                out.append(str(reason))
+                continue
 
-        if query_text and value == "FOUND":
-            out.append(f"{query_text} appears to be available in the listing.")
-        elif query_text and value == "NOT_FOUND":
-            out.append(f"{query_text} appears to be unavailable in the listing.")
-        elif query_text:
-            out.append(f"{query_text} is not explicitly confirmed in the listing.")
+            if label and value == "FOUND":
+                out.append(f"{label} is explicitly supported in the listing.")
+            elif label and value == "NOT_FOUND":
+                out.append(f"{label} appears to be unavailable in the listing.")
+            elif label:
+                out.append(f"{label} is not explicitly confirmed in the listing.")
+
+        # 🟡 legacy string-style
+        elif isinstance(item, str):
+            out.append(item)
 
     return out
 
@@ -81,6 +82,25 @@ def _constraint_details(items: list[Any]) -> list[dict[str, Any]]:
                 "reason": getattr(item, "reason", None),
             }
         )
+    return out
+
+def _requested_constraint_details(active_intent: dict[str, Any] | None) -> list[dict[str, Any]]:
+    constraints = (active_intent or {}).get("constraints") or []
+    out: list[dict[str, Any]] = []
+
+    for c in constraints:
+        if isinstance(c, dict):
+            out.append(
+                {
+                    "raw_text": c.get("raw_text"),
+                    "normalized_text": c.get("normalized_text"),
+                    "priority": c.get("priority"),
+                    "category": c.get("category"),
+                    "mapping_status": c.get("mapping_status"),
+                    "mapped_fields": list(c.get("mapped_fields") or []),
+                    "evidence_strategy": c.get("evidence_strategy"),
+                }
+            )
     return out
 
 
@@ -218,16 +238,35 @@ def _build_ranking_reasons(result: dict[str, Any]) -> list[str]:
 
 def _build_standout_reason(
     *,
-    unknown_request_results: list[dict[str, Any]],
+    unresolved_constraint_results: list[Any],
     why_match: list[str],
     tradeoffs: list[str],
     uncertain_points: list[str],
 ) -> str | None:
-    for item in unknown_request_results or []:
-        if item.get("value") == "FOUND":
-            query_text = item.get("query_text")
-            if query_text:
+    for item in unresolved_constraint_results or []:
+        # New dict-style unresolved constraint result
+        if isinstance(item, dict):
+            value = item.get("value")
+            constraint = item.get("constraint") or {}
+            label = constraint.get("normalized_text") or item.get("query_text")
+
+            if value == "FOUND" and label:
+                return f"The only option that explicitly matches your requested detail: {label}"
+
+            if isinstance(item.get("reason"), str) and item.get("reason"):
+                return item["reason"]
+
+        # Legacy pydantic object / object-style result
+        else:
+            value = getattr(item, "value", None)
+            query_text = getattr(item, "query_text", None)
+            reason = getattr(item, "reason", None)
+
+            if value == "FOUND" and query_text:
                 return f"The only option that explicitly matches your requested detail: {query_text}"
+
+            if reason:
+                return reason
 
     if why_match:
         return why_match[0]
@@ -311,8 +350,7 @@ def build_answer_payload(
                     }
                 )
 
-        unknown_request_points = _build_unknown_request_points(unknown_request_results)
-
+        unresolved_constraint_points = _build_unresolved_constraint_points(unknown_request_results)
         why_match = _pick_reason_lines(matched_details, limit=4)
         tradeoffs = _pick_reason_lines(failed_details, limit=4)
         uncertain_points = _pick_reason_lines(uncertain_details, limit=4)
@@ -327,7 +365,7 @@ def build_answer_payload(
         )
 
         standout_reason = _build_standout_reason(
-            unknown_request_results=unknown_request_results,
+            unresolved_constraint_results=unknown_request_results,
             why_match=why_match,
             tradeoffs=tradeoffs,
             uncertain_points=uncertain_points,
@@ -348,7 +386,9 @@ def build_answer_payload(
                 "failed_constraint_names": _constraint_names(r.failed_constraints),
                 "key_facts": facts_dict,
                 "unknown_request_results": unknown_request_results,
-                "unknown_request_points": unknown_request_points,
+                "unknown_request_points": unresolved_constraint_points,
+                "unresolved_constraint_points": unresolved_constraint_points,
+                "requested_constraints": _requested_constraint_details(request_summary),
                 "ranking_reasons": ranking_reasons,
                 "standout_reason": standout_reason,
                 "key_facts_summary": key_facts_summary,
