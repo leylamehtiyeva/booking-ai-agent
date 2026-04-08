@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field as PydanticField, model_validator
 
+from app.schemas.constraints import UserConstraint
 from app.schemas.fields import Field
 from app.schemas.filters import SearchFilters
 from app.schemas.property_semantics import OccupancyType, PropertyType
@@ -29,7 +30,7 @@ class SearchRequest(BaseModel):
 
     property_types: list[PropertyType] | None = None
     occupancy_types: list[OccupancyType] | None = None
-
+    constraints: list[UserConstraint] = PydanticField(default_factory=list)
     unknown_requests: list[str] = PydanticField(default_factory=list)
 
     @model_validator(mode="after")

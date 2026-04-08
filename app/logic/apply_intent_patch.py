@@ -6,6 +6,7 @@ from app.logic.request_resolution import parse_iso_date
 from app.schemas.filters import PriceConstraint, SearchFilters
 from app.schemas.intent_patch import SearchIntentPatch
 from app.schemas.query import SearchRequest
+from app.logic.constraint_state import sync_constraints_from_legacy_state
 
 
 def _unique(seq):
@@ -169,4 +170,4 @@ def apply_intent_patch(state: SearchRequest, patch: SearchIntentPatch) -> Search
         x for x in data.nice_to_have_fields if x not in data.forbidden_fields
     ]
 
-    return data
+    return sync_constraints_from_legacy_state(data)

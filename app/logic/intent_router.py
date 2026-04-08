@@ -15,6 +15,7 @@ from google.genai.types import Content, Part
 from app.agents.intent_router_agent import IntentRoute, build_intent_router_agent
 from app.logic.request_resolution import resolve_required_search_context
 from app.schemas.query import SearchRequest
+from app.logic.constraint_state import sync_constraints_from_legacy_state
 
 APP_NAME = "booking-ai-agent"
 USER_ID = "local-user"
@@ -96,20 +97,25 @@ async def build_search_request_adk_async(user_text: str) -> SearchRequest:
     clean_filters = _clean_filters(intent.filters)
 
     req = SearchRequest(
-    city=resolved.city,
-    check_in=resolved.check_in,
-    check_out=resolved.check_out,
-    adults=intent.adults or 2,
-    children=intent.children or 0,
-    rooms=intent.rooms or 1,
-    must_have_fields=intent.must_have_fields,
-    nice_to_have_fields=intent.nice_to_have_fields,
-    forbidden_fields=[],
-    filters=clean_filters,
-    property_types=intent.property_types,
-    occupancy_types=intent.occupancy_types,
-    unknown_requests=intent.unknown_requests,
-)
+        city=resolved.city,
+        check_in=resolved.check_in,
+        check_out=resolved.check_out,
+        adults=intent.adults or 2,
+        children=intent.children or 0,
+        rooms=intent.rooms or 1,
+        must_have_fields=intent.must_have_fields,
+        nice_to_have_fields=intent.nice_to_have_fields,
+        forbidden_fields=[],
+        filters=clean_filters,
+        property_types=intent.property_types,
+        occupancy_types=intent.occupancy_types,
+        unknown_requests=intent.unknown_requests,
+    )
+    req = sync_constraints_from_legacy_state(req)
+
+    print("\n=== SEARCH REQUEST ===")
+    print(req.model_dump(mode="json", exclude_none=True))
+    return req
 
     print("\n=== SEARCH REQUEST ===")
     print(req.model_dump(mode="json", exclude_none=True))

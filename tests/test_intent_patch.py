@@ -12,6 +12,10 @@ def test_add_must_have():
     new_state = apply_intent_patch(state, patch)
 
     assert Field.KITCHEN in new_state.must_have_fields
+    assert any(
+        c.normalized_text == "kitchen" and c.priority.value == "must"
+        for c in new_state.constraints
+    )
 
 
 def test_remove_must_have():
@@ -25,6 +29,7 @@ def test_remove_must_have():
     new_state = apply_intent_patch(state, patch)
 
     assert Field.KITCHEN not in new_state.must_have_fields
+    assert all(c.normalized_text != "kitchen" for c in new_state.constraints)
 
 
 def test_replace_city():
@@ -35,3 +40,4 @@ def test_replace_city():
     new_state = apply_intent_patch(state, patch)
 
     assert new_state.city == "Tbilisi"
+    assert new_state.constraints == []
