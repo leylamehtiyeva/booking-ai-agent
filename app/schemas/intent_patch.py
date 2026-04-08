@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field as PydanticField
 
+from app.schemas.constraints import UserConstraint
 from app.schemas.fields import Field
 from app.schemas.filters import SearchFilters
 from app.schemas.property_semantics import OccupancyType, PropertyType
@@ -34,6 +35,10 @@ class SearchIntentPatch(BaseModel):
     # --- forbidden ---
     add_forbidden_fields: List[Field] = PydanticField(default_factory=list)
     remove_forbidden_fields: List[Field] = PydanticField(default_factory=list)
+    
+    # --- constraints (new source-of-truth patch layer) ---
+    add_constraints: List[UserConstraint] = PydanticField(default_factory=list)
+    remove_constraint_texts: List[str] = PydanticField(default_factory=list)
 
     # --- filters ---
     set_filters: Optional[SearchFilters] = None

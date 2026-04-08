@@ -22,7 +22,6 @@ _FIELD_CATEGORY_MAP: dict[Field, ConstraintCategory] = {
     Field.COOKWARE: ConstraintCategory.AMENITY,
     Field.KETTLE: ConstraintCategory.AMENITY,
     Field.COFFEE_MACHINE: ConstraintCategory.AMENITY,
-
     # bathroom
     Field.PRIVATE_BATHROOM: ConstraintCategory.AMENITY,
     Field.BATHTUB: ConstraintCategory.AMENITY,
@@ -31,7 +30,6 @@ _FIELD_CATEGORY_MAP: dict[Field, ConstraintCategory] = {
     Field.TOWELS: ConstraintCategory.AMENITY,
     Field.HAIR_DRYER: ConstraintCategory.AMENITY,
     Field.TOILETRIES: ConstraintCategory.AMENITY,
-
     # comfort / living
     Field.WIFI: ConstraintCategory.AMENITY,
     Field.AIR_CONDITIONING: ConstraintCategory.AMENITY,
@@ -42,7 +40,6 @@ _FIELD_CATEGORY_MAP: dict[Field, ConstraintCategory] = {
     Field.WORKSPACE: ConstraintCategory.AMENITY,
     Field.ELEVATOR: ConstraintCategory.AMENITY,
     Field.BALCONY: ConstraintCategory.AMENITY,
-
     # policies
     Field.NON_SMOKING: ConstraintCategory.POLICY,
     Field.FREE_CANCELLATION: ConstraintCategory.POLICY,
@@ -103,6 +100,29 @@ def _dedupe_constraints(constraints: list[UserConstraint]) -> list[UserConstrain
     return out
 
 
+def _dedupe_fields(fields: list[Field]) -> list[Field]:
+    out: list[Field] = []
+    seen: set[Field] = set()
+    for field in fields:
+        if field in seen:
+            continue
+        seen.add(field)
+        out.append(field)
+    return out
+
+
+def _dedupe_strings(values: list[str]) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        key = value.strip().casefold()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        out.append(value.strip())
+    return out
+
+
 def build_constraints_from_legacy_state(request: SearchRequest) -> list[UserConstraint]:
     constraints: list[UserConstraint] = []
 
@@ -125,4 +145,60 @@ def build_constraints_from_legacy_state(request: SearchRequest) -> list[UserCons
 def sync_constraints_from_legacy_state(request: SearchRequest) -> SearchRequest:
     updated = request.model_copy(deep=True)
     updated.constraints = build_constraints_from_legacy_state(updated)
+    return updated
+
+
+def build_legacy_state_from_constraints(
+    constraints: list[UserConstraint],
+) -> dict[str, list[Field] | list[str]]:
+    must_have_fields: list[Field] = []
+    nice_to_have_fields: list[Field] = []
+    forbidden_fields: list[Field] = []
+    unknown_requests: list[str] = []
+
+    for constraint in constraints:
+        if constraint.mapping_status == ConstraintMappingStatus.KNOWN and constraint.mapped_fields:
+            if constraint.priority == ConstraintPriority.MUST:
+                must_have_fields.extend(constraint.mapped_fields)
+            elif constraint.priority == ConstraintPriority.NICE:
+                nice_to_have_fields.extend(constraint.mapped_fields)
+            elif constraint.priority == ConstraintPriority.FORBIDDEN:
+                forbidden_fields.extend(constraint.mapped_fields)
+            continue
+
+        # Temporary compatibility rule:
+        # current downstream unknown_requests behaves like unresolved MUST constraints only.
+        if (
+            constraint.mapping_status == ConstraintMappingStatus.UNRESOLVED
+            and constraint.priority == ConstraintPriority.MUST
+            and constraint.normalized_text.strip()
+        ):
+            unknown_requests.append(constraint.normalized_text.strip())
+
+    must_have_fields = _dedupe_fields(must_have_fields)
+    nice_to_have_fields = _dedupe_fields(
+        [field for field in nice_to_have_fields if field not in must_have_fields]
+    )
+    forbidden_fields = _dedupe_fields(forbidden_fields)
+
+    must_have_fields = [field for field in must_have_fields if field not in forbidden_fields]
+    nice_to_have_fields = [field for field in nice_to_have_fields if field not in forbidden_fields]
+    unknown_requests = _dedupe_strings(unknown_requests)
+
+    return {
+        "must_have_fields": must_have_fields,
+        "nice_to_have_fields": nice_to_have_fields,
+        "forbidden_fields": forbidden_fields,
+        "unknown_requests": unknown_requests,
+    }
+
+
+def sync_legacy_state_from_constraints(request: SearchRequest) -> SearchRequest:
+    updated = request.model_copy(deep=True)
+    legacy = build_legacy_state_from_constraints(updated.constraints)
+
+    updated.must_have_fields = legacy["must_have_fields"]
+    updated.nice_to_have_fields = legacy["nice_to_have_fields"]
+    updated.forbidden_fields = legacy["forbidden_fields"]
+    updated.unknown_requests = legacy["unknown_requests"]
     return updated

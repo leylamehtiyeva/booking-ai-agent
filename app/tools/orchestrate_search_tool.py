@@ -26,6 +26,10 @@ from app.logic.unknown_field_evidence_search import search_unknown_must_have_evi
 from app.logic.unknown_request_utils import get_unknown_must_have_requests
 from app.logic.request_resolution import resolve_required_search_context
 from app.logic.occupancy import evaluate_occupancy
+from app.logic.constraint_state import (
+    build_constraints_from_legacy_state,
+    sync_legacy_state_from_constraints,
+)
 
 
 def _has_explicit_negative_unknown_evidence(item: dict) -> bool:
@@ -367,7 +371,7 @@ def _build_request(
     check_in: date,
     check_out: date,
 ) -> SearchRequest:
-    return SearchRequest(
+    req = SearchRequest(
         city=city,
         check_in=check_in,
         check_out=check_out,
@@ -376,14 +380,31 @@ def _build_request(
         rooms=intent_obj.rooms or 1,
         currency="USD",
         budget_max=None,
-        must_have_fields=intent_obj.must_have_fields,
-        nice_to_have_fields=intent_obj.nice_to_have_fields,
+        must_have_fields=[],
+        nice_to_have_fields=[],
         forbidden_fields=[],
         min_guest_rating=None,
         filters=intent_obj.filters,
-        property_types=intent_obj.property_types,
-        occupancy_types=intent_obj.occupancy_types,
+        property_types=intent_obj.property_types or None,
+        occupancy_types=intent_obj.occupancy_types or None,
+        constraints=intent_obj.constraints,
+        unknown_requests=[],
     )
+
+    # Backward-compatibility bridge:
+    # some callers/tests still pass legacy intent payloads with must_have_fields /
+    # nice_to_have_fields / unknown_requests. IntentRoute no longer stores them,
+    # so if constraints are empty we reconstruct them from the already-parsed
+    # SearchRequest compatibility fields that may exist on the raw payload layer.
+    if not req.constraints and (
+        req.must_have_fields
+        or req.nice_to_have_fields
+        or req.forbidden_fields
+        or req.unknown_requests
+    ):
+        req.constraints = build_constraints_from_legacy_state(req)
+
+    return sync_legacy_state_from_constraints(req)
 
 
 def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dict[str, Any]]:
@@ -563,6 +584,30 @@ async def orchestrate_search(
         }
 
     intent_obj, dropped_requests = await _validate_and_repair_intent(intent, attempts=2)
+    # 🔴 BACKWARD COMPATIBILITY BRIDGE
+    # If intent came in legacy format (must_have_fields, etc.),
+    # but constraints are empty → reconstruct constraints
+    if not intent_obj.constraints:
+        legacy_req = SearchRequest(
+            city=intent_obj.city,
+            check_in=intent_obj.check_in,
+            check_out=intent_obj.check_out,
+            nights=intent_obj.nights,
+            adults=intent_obj.adults or 2,
+            children=intent_obj.children or 0,
+            rooms=intent_obj.rooms or 1,
+            must_have_fields=intent.get("must_have_fields", []),
+            nice_to_have_fields=intent.get("nice_to_have_fields", []),
+            forbidden_fields=intent.get("forbidden_fields", []),
+            unknown_requests=intent.get("unknown_requests", []),
+            filters=intent_obj.filters,
+            property_types=intent_obj.property_types or None,
+            occupancy_types=intent_obj.occupancy_types or None,
+        )
+
+        intent_obj = intent_obj.model_copy(
+            update={"constraints": build_constraints_from_legacy_state(legacy_req)}
+        )
 
     resolved = resolve_required_search_context(intent_obj)
 

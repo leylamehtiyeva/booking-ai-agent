@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import json
 import os
-from typing import List, Optional
+from typing import Optional
 
 from google.adk.agents import Agent
 from google.adk.models.google_llm import Gemini
 from pydantic import BaseModel, Field as PydanticField, field_validator
 
+from app.schemas.constraints import UserConstraint
 from app.schemas.fields import Field
 from app.schemas.filters import SearchFilters
 from app.schemas.property_semantics import OccupancyType, PropertyType
@@ -22,26 +23,29 @@ class IntentRoute(BaseModel):
     children: int | None = None
     rooms: int | None = None
 
-    must_have_fields: List[Field] = PydanticField(default_factory=list)
-    nice_to_have_fields: List[Field] = PydanticField(default_factory=list)
+    constraints: list[UserConstraint] = PydanticField(default_factory=list)
     filters: SearchFilters = PydanticField(default_factory=SearchFilters)
     property_types: list[PropertyType] = PydanticField(default_factory=list)
     occupancy_types: list[OccupancyType] = PydanticField(default_factory=list)
-    unknown_requests: List[str] = PydanticField(default_factory=list)
+    unknown_requests: list[str] = PydanticField(default_factory=list)
 
     @field_validator(
-        "must_have_fields",
-        "nice_to_have_fields",
+        "constraints",
         "property_types",
         "occupancy_types",
-        "unknown_requests",
         mode="before",
     )
     @classmethod
     def _none_to_empty_list(cls, v):
         return [] if v is None else v
 
-    @field_validator("filters", mode="before")
+    @field_validator(
+        "constraints",
+        "property_types",
+        "occupancy_types",
+        "unknown_requests",
+        mode="before",
+    )
     @classmethod
     def _none_to_empty_filters(cls, v):
         return {} if v is None else v
@@ -60,53 +64,44 @@ Return ONLY VALID JSON matching this schema:
 Rules:
 
 GENERAL:
-- The user may write in ANY language. Map the meaning to canonical keys.
+- The user may write in ANY language.
 - Return ONLY a valid JSON object. No markdown. No explanations.
+- constraints is the source of truth for user constraints.
+- Always return arrays, never null, for:
+  - constraints
+  - property_types
+  - occupancy_types
 
-CANONICAL FIELDS:
-- Choose fields ONLY from allowed_fields (canonical keys): {allowed_fields}
-- Put boolean amenities (e.g. kitchen, private_bathroom, wifi) into:
-  - must_have_fields
-  - nice_to_have_fields
+CITY:
+- Normalize city names to the English form used by providers when possible.
+- Example: Bakı -> Baku, Баку -> Baku, Tiflis -> Tbilisi
 
-FILTERS (IMPORTANT):
-Some user requests are NOT amenities. They are structured constraints.
-These MUST go into "filters", not into must_have_fields.
+DATES:
+- If the user provides both check-in and check-out, fill both.
+- If the user says "from X for N nights", set check_in and nights.
+- If the user provides only one date, set check_in only.
+- Do not invent dates.
 
-Use the following mapping rules:
+GUESTS AND ROOMS:
+- "for 3 people" -> adults=3, children=0
+- "2 adults and 1 child" -> adults=2, children=1
+- "3 rooms" -> rooms=3
 
-Bedrooms:
-- "X bedrooms" → filters.bedrooms_min = X
-- "at least X bedrooms" → filters.bedrooms_min = X
-- "more than X bedrooms" → filters.bedrooms_min = X
-- "up to X bedrooms" / "at most X bedrooms" / "less than X bedrooms" → filters.bedrooms_max = X
-- "between A and B bedrooms" → filters.bedrooms_min = A AND filters.bedrooms_max = B
+FILTERS:
+Some user requests are structured numeric constraints and MUST go into filters, not constraints:
+- bedrooms
+- area / square meters / sqm
+- bathrooms
+- price
 
-Area:
-- "X sqm" / "X square meters" → filters.area_sqm_min = X
-- "at least X sqm" / "more than X sqm" / "bigger than X square meters" → filters.area_sqm_min = X
-- "up to X sqm" / "less than X sqm" / "at most X square meters" → filters.area_sqm_max = X
-- "between A and B sqm" → filters.area_sqm_min = A AND filters.area_sqm_max = B
+Price rules:
+- per night / nightly -> filters.price.scope = "per_night"
+- total / overall / for whole stay -> filters.price.scope = "total_stay"
+- Use max_amount unless the user clearly asks for a minimum
+- Include currency when mentioned
 
-Bathrooms:
-- "X bathrooms" → filters.bathrooms_min = X
-- "X bathroom" → filters.bathrooms_min = X
-- "at least X bathrooms" → filters.bathrooms_min = X
-- "more than X bathrooms" → filters.bathrooms_min = X
-- "up to X bathrooms" / "at most X bathrooms" / "less than X bathrooms" → filters.bathrooms_max = X
-- "between A and B bathrooms" → filters.bathrooms_min = A AND filters.bathrooms_max = B
-- Support decimal bathroom counts such as "1.5 bathrooms"
-
-Price:
-- Price constraints MUST go into filters.price
-- If the user says "per night", "a night", "nightly" → filters.price.scope = "per_night"
-- If the user says "total", "for the whole stay", "for all dates", "overall", "in total" → filters.price.scope = "total_stay"
-- Put the numeric amount into filters.price.max_amount unless the user clearly asks for a minimum
-- Put the currency into filters.price.currency when mentioned
-- If the user gives a price amount but does not specify whether it is per night or total, set filters.price.scope = null
-
-PROPERTY TYPE / OCCUPANCY (IMPORTANT):
-Use "property_types" for:
+PROPERTY TYPE / OCCUPANCY:
+Use property_types only for:
 - apartment
 - hotel
 - hostel
@@ -114,48 +109,105 @@ Use "property_types" for:
 - aparthotel
 - guesthouse
 
-Use "occupancy_types" for:
+Use occupancy_types only for:
 - entire_place
 - private_room
 - shared_room
 - hotel_room
 
-For must_have_fields, nice_to_have_fields, property_types, occupancy_types, and unknown_requests:
-- always return arrays, never null
-- use [] when empty
+Do NOT duplicate property_types or occupancy_types inside constraints.
 
+CONSTRAINTS:
+Use constraints for meaningful non-numeric user requirements such as:
+- amenities
+- policies
+- location preferences
+- layout preferences
+- semantic preferences that do not fit the structured schema
 
+Each constraint object should preserve user meaning.
 
+Constraint fields:
+- raw_text: short phrase representing the original user meaning
+- normalized_text: concise normalized English phrase
+- priority:
+  - "must" for required constraints
+  - "nice" for preferences / desirable items
+  - "forbidden" for exclusions / things the user does not want
+- category:
+  - amenity
+  - policy
+  - location
+  - layout
+  - numeric
+  - property_type
+  - occupancy
+  - other
+- mapping_status:
+  - "known" if the constraint can be grounded to one or more canonical fields
+  - "unresolved" if it cannot be cleanly mapped
+- mapped_fields:
+  - use ONLY canonical keys from allowed_fields: {allowed_fields}
+  - use [] when unresolved
+- evidence_strategy:
+  - "structured" for canonical provider/amenity style matching
+  - "textual" for description/policy/highlights evidence
+  - "geo" for location-style evidence
+  - "none" only if there is truly no downstream evidence path yet
+
+KNOWN MAPPING:
+If a constraint clearly maps to canonical fields:
+- set mapping_status = "known"
+- fill mapped_fields
+- usually set evidence_strategy = "structured"
+
+Examples:
+- "place for cooking" -> known, mapped_fields=["kitchen"]
+- "hair dryer" -> known, mapped_fields=["hair_dryer"]
+- "can live with dog" -> known, mapped_fields=["pet_friendly"]
+
+UNRESOLVED CONSTRAINTS:
+If a constraint is meaningful but cannot be safely mapped to canonical fields:
+- keep it as a constraint
+- set mapping_status = "unresolved"
+- mapped_fields = []
+- choose the best category
+- use evidence_strategy = "textual" or "geo"
+
+Examples:
+- "in the city center" -> unresolved location, evidence_strategy="geo"
+- "quiet neighborhood" -> unresolved location, evidence_strategy="textual"
+- "good for working" -> unresolved other or amenity, evidence_strategy="textual"
+- "not on the first floor" -> unresolved layout, evidence_strategy="textual"
 
 IMPORTANT:
-- Do NOT put apartment / hotel / hostel / house into must_have_fields
-- Do NOT put entire place / private room / shared room into must_have_fields
-- Do NOT put numeric constraints into must_have_fields
-- Do NOT leave them in unknown_requests if they can be mapped to filters
+- Do NOT force uncertain meaning into the wrong canonical field.
+- Do NOT drop meaningful constraints.
+- Do NOT put numeric constraints into constraints if they fit filters.
+- Do NOT use constraints for property_types / occupancy_types if they already fit dedicated slots.
+- A user may express positive, negative, and soft-preference constraints in one message.
 
-UNKNOWN REQUESTS:
-- If a request cannot be mapped to either canonical fields or filters, add it to unknown_requests
+Examples:
 
-DATES:
-- If the user provides both check-in and check-out dates, output both as ISO strings YYYY-MM-DD
-- If the user provides only one exact date, set check_in to that date, set check_out = null, and set nights = 1
-- If the user says "from X for N nights", set check_in to X, set check_out = null, and set nights = N
-- If the user does not provide a resolvable date or period, set check_in = null, check_out = null, nights = null
-- If the user provides day/month without a year, prefer the current year rather than inventing an old year
-- Never default missing year to a past year unless the user explicitly said that year
-- Do not invent dates
+User: "I want an apartment in Baku from 10 to 15 April for 4 people with a place for cooking and ideally a balcony"
+Return a JSON where:
+- city="Baku"
+- check_in / check_out set
+- adults=4
+- property_types=["apartment"]
+- constraints contains:
+  - must constraint for cooking mapped to ["kitchen"]
+  - nice constraint for balcony mapped to ["balcony"]
 
-OCCUPANCY:
-- If the user specifies number of adults, set adults
-- If the user specifies number of children, set children
-- If the user specifies number of rooms, set rooms
-- Examples:
-  - "for 4 adults" -> adults = 4
-  - "2 adults and 2 children" -> adults = 2, children = 2
-  - "for 5 people" -> adults = 5, children = 0
-  - "2 rooms" -> rooms = 2
-- If occupancy is not mentioned, keep these fields null
-"""
+User: "хочу чтобы можно было жить с собакой и желательно в центре"
+Return constraints containing:
+- must policy constraint mapped to ["pet_friendly"]
+- nice unresolved location constraint for city center
+
+User: "без шумного района"
+Return constraints containing:
+- forbidden unresolved location/other constraint with textual evidence strategy
+""".strip()
 
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     if not api_key:
@@ -170,12 +222,4 @@ OCCUPANCY:
         name="intent_router",
         model=llm,
         instruction=instruction,
-    )
-
-
-async def route_intent(user_text: str) -> IntentRoute:
-    agent = build_intent_router_agent()
-    raise NotImplementedError(
-        "route_intent() wrapper is not wired yet. "
-        "Use the same ADK runner pattern you already use in your debug script/agent execution flow."
     )
