@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
+from app.logic.constraint_state import (
+    sync_constraints_from_legacy_state,
+    sync_legacy_state_from_constraints,
+)
 
 from app.logic.intent_router import build_search_request_adk_async
 from app.logic.intent_update import update_search_state_async
@@ -10,6 +14,7 @@ from app.logic.listing_signals import collect_listing_signals
 from app.logic.unknown_field_evidence_search import search_unknown_must_have_evidence
 from app.schemas.query import SearchRequest
 from app.tools.orchestrate_search_tool import orchestrate_search
+from app.logic.constraint_state import sync_legacy_state_from_constraints
 
 
 async def _answer_listing_question(
@@ -59,6 +64,28 @@ async def _answer_listing_question(
     }
 
 
+def _build_orchestrate_intent_payload(state: SearchRequest) -> dict[str, Any]:
+    """
+    Ensure the payload handed to orchestrate_search is fully synchronized
+    with the constraint-centric state.
+
+    If a mocked / legacy state still arrives with only must_have_fields /
+    unknown_requests and empty constraints, first lift it into constraints,
+    then derive legacy fields back from constraints.
+    """
+    synced = state
+
+    if not synced.constraints and (
+        synced.must_have_fields
+        or synced.nice_to_have_fields
+        or synced.forbidden_fields
+        or synced.unknown_requests
+    ):
+        synced = sync_constraints_from_legacy_state(synced)
+
+    synced = sync_legacy_state_from_constraints(synced)
+    return synced.model_dump(mode="json", exclude_none=True)
+
 async def handle_user_message(
     user_message: str,
     previous_state: Optional[SearchRequest] = None,
@@ -84,6 +111,15 @@ async def handle_user_message(
             "router": route_debug,
             "user_message": user_message,
             "previous_state": None,
+            "constraint_count": len(state.constraints or []),
+            "constraints": [
+                {
+                    "normalized_text": c.normalized_text,
+                    "priority": c.priority.value,
+                    "mapping_status": c.mapping_status.value,
+                }
+                for c in (state.constraints or [])
+            ],
         }
     else:
         route = await route_conversation_async(
@@ -127,9 +163,18 @@ async def handle_user_message(
             "router": route_debug,
             "user_message": user_message,
             "previous_state": previous_state_json,
+            "constraint_count": len(state.constraints or []),
+            "constraints": [
+                {
+                    "normalized_text": c.normalized_text,
+                    "priority": c.priority.value,
+                    "mapping_status": c.mapping_status.value,
+                }
+                for c in (state.constraints or [])
+            ],
         }
 
-    state_json = state.model_dump(mode="json", exclude_none=True)
+    state_json = _build_orchestrate_intent_payload(state)
 
     print("\n=== UPDATED STATE ===")
     print(state_json)
