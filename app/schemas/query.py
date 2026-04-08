@@ -9,13 +9,6 @@ from app.schemas.property_semantics import OccupancyType, PropertyType
 
 
 class SearchRequest(BaseModel):
-    """
-    Canonical search request produced by intent router
-    and consumed by all downstream services.
-    """
-
-    user_message: str
-
     city: str | None = None
     check_in: Optional[date] = None
     check_out: Optional[date] = None
@@ -36,6 +29,8 @@ class SearchRequest(BaseModel):
 
     property_types: list[PropertyType] | None = None
     occupancy_types: list[OccupancyType] | None = None
+
+    unknown_requests: list[str] = PydanticField(default_factory=list)
 
     @model_validator(mode="after")
     def validate_date_range(self):

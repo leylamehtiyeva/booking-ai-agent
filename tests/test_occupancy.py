@@ -49,7 +49,6 @@ def test_evaluate_occupancy_passes_when_capacity_is_enough():
     )
 
     req = SearchRequest(
-        user_message="test",
         city="Baku",
         adults=4,
         children=2,
@@ -69,7 +68,6 @@ def test_evaluate_occupancy_fails_when_capacity_is_too_small():
     )
 
     req = SearchRequest(
-        user_message="test",
         city="Baku",
         adults=5,
         children=1,
@@ -85,7 +83,6 @@ def test_evaluate_occupancy_keeps_listing_when_capacity_unknown():
     listing = Listing(rooms=[])
 
     req = SearchRequest(
-        user_message="test",
         city="Baku",
         adults=3,
         children=0,

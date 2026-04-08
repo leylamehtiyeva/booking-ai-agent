@@ -5,7 +5,6 @@ from app.schemas.query import SearchRequest
 
 def test_followup_inherits_month_from_previous_state():
     previous_state = SearchRequest(
-        user_message="apartment in Baku from 20 april to 25 april",
         city="Baku",
         check_in="2026-04-20",
         check_out="2026-04-25",

@@ -37,6 +37,8 @@ def main() -> None:
 
     st.markdown('<div class="bottom-spacer"></div>', unsafe_allow_html=True)
     render_input_area()
+    
+    
 
 
 if __name__ == "__main__":
