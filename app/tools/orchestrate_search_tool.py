@@ -23,8 +23,8 @@ from app.schemas.match import Ternary
 from app.logic.normalize_search_response import normalize_search_response
 from app.logic.listing_signals import collect_listing_signals
 from app.logic.unknown_field_evidence_search import search_unknown_must_have_evidence
-from app.logic.unknown_request_utils import get_unknown_must_have_requests
 from app.logic.request_resolution import resolve_required_search_context
+from app.logic.unresolved_constraint_utils import get_unresolved_must_constraints
 from app.logic.occupancy import evaluate_occupancy
 from app.logic.constraint_state import (
     build_constraints_from_legacy_state,
@@ -106,17 +106,17 @@ def _fails_numeric_filters(numeric_results: List[Any] | None) -> bool:
 
 
 async def _attach_unknown_request_results(
-    intent: dict,
+    req: SearchRequest,
     ranked_items: list[dict],
 ) -> list[dict]:
     """
-    For unknown must-have requests, run evidence search per listing and
+    For unresolved must-have constraints, run evidence search per listing and
     attach results to each ranked item.
 
     This step does NOT yet hard-filter results. It only enriches them.
     """
-    unknown_requests = get_unknown_must_have_requests(intent)
-    if not unknown_requests:
+    unresolved_constraints = get_unresolved_must_constraints(req)
+    if not unresolved_constraints:
         return ranked_items
 
     for item in ranked_items:
@@ -128,21 +128,38 @@ async def _attach_unknown_request_results(
         signals = collect_listing_signals(listing)
         unknown_results = []
 
-        for req_text in unknown_requests:
+        for constraint in unresolved_constraints:
             try:
                 result = await search_unknown_must_have_evidence(
-                    query_text=req_text,
+                    query_text=constraint.normalized_text,
                     listing_signals=signals,
                 )
-                unknown_results.append(result.model_dump(mode="json"))
+                payload = result.model_dump(mode="json")
+                payload["constraint"] = {
+                    "raw_text": constraint.raw_text,
+                    "normalized_text": constraint.normalized_text,
+                    "priority": constraint.priority.value,
+                    "category": constraint.category.value,
+                    "mapping_status": constraint.mapping_status.value,
+                    "evidence_strategy": constraint.evidence_strategy.value,
+                }
+                unknown_results.append(payload)
             except Exception as e:
                 unknown_results.append(
                     {
-                        "query_text": req_text,
+                        "query_text": constraint.normalized_text,
                         "value": "UNCERTAIN",
-                        "reason": f"{req_text} could not be verified from the listing.",
+                        "reason": f"{constraint.normalized_text} could not be verified from the listing.",
                         "evidence": [],
                         "error": str(e),
+                        "constraint": {
+                            "raw_text": constraint.raw_text,
+                            "normalized_text": constraint.normalized_text,
+                            "priority": constraint.priority.value,
+                            "category": constraint.category.value,
+                            "mapping_status": constraint.mapping_status.value,
+                            "evidence_strategy": constraint.evidence_strategy.value,
+                        },
                     }
                 )
 
@@ -678,9 +695,7 @@ async def orchestrate_search(
     # 5) Structured ranking + fallback on top-K for UNCERTAIN must-have fields
     ranked = _rank_structured(req, listings)
     await _apply_fallback_topk(req, ranked, fallback_top_k=fallback_top_k)
-    ranked = await _attach_unknown_request_results(intent, ranked)
-    ranked = _apply_unknown_request_scoring(ranked)
-    # 6) Strict must-have filter AFTER fallback too
+    ranked = await _attach_unknown_request_results(req, ranked)    # 6) Strict must-have filter AFTER fallback too
     ranked = [
         it
         for it in ranked

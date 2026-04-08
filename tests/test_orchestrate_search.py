@@ -387,7 +387,7 @@ async def test_orchestrate_search_returns_normalized_response(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_orchestrate_search_attaches_unknown_request_results():
+async def test_orchestrate_search_attaches_unknown_request_results_first_item():
     intent = {
         "city": "Baku",
         "check_in": "2026-04-08",
