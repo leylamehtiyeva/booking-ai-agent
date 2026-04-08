@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+import json
 import asyncio
 import os
 import uuid
@@ -75,8 +75,27 @@ async def _route_intent_via_adk(user_text: str) -> IntentRoute:
     if not final_text:
         raise ValueError("ADK returned empty response text")
 
+
     clean = _strip_json_fence(final_text)
-    return IntentRoute.model_validate_json(clean)
+
+    payload = json.loads(clean)
+
+    if payload.get("filters") is None:
+        payload["filters"] = {}
+
+    if payload.get("constraints") is None:
+        payload["constraints"] = []
+
+    if payload.get("property_types") is None:
+        payload["property_types"] = []
+
+    if payload.get("occupancy_types") is None:
+        payload["occupancy_types"] = []
+
+    if payload.get("unknown_requests") is None:
+        payload["unknown_requests"] = []
+
+    return IntentRoute.model_validate(payload)
 
 
 async def route_intent_adk_async(user_text: str) -> IntentRoute:

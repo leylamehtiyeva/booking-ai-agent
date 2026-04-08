@@ -29,6 +29,21 @@ class IntentRoute(BaseModel):
     occupancy_types: list[OccupancyType] = PydanticField(default_factory=list)
     unknown_requests: list[str] = PydanticField(default_factory=list)
 
+class IntentRoute(BaseModel):
+    city: Optional[str] = None
+    check_in: Optional[str] = None
+    check_out: Optional[str] = None
+    nights: int | None = None
+    adults: int | None = None
+    children: int | None = None
+    rooms: int | None = None
+
+    constraints: list[UserConstraint] = PydanticField(default_factory=list)
+    filters: SearchFilters = PydanticField(default_factory=SearchFilters)
+    property_types: list[PropertyType] = PydanticField(default_factory=list)
+    occupancy_types: list[OccupancyType] = PydanticField(default_factory=list)
+    unknown_requests: list[str] = PydanticField(default_factory=list)
+
     @field_validator(
         "constraints",
         "property_types",
