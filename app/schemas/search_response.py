@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
-
+from pydantic import BaseModel, Field, Field as PydanticField
 
 class NormalizedRequestSummary(BaseModel):
     city: str | None = None
@@ -18,6 +17,7 @@ class NormalizedRequestSummary(BaseModel):
 
     filters: dict[str, Any] = Field(default_factory=dict)
     unknown_requests: list[str] = Field(default_factory=list)
+    constraints: list[dict] = PydanticField(default_factory=list)
 
 class UnknownFieldEvidence(BaseModel):
     source_path: str
@@ -29,11 +29,13 @@ class UnknownRequestResult(BaseModel):
     value: str  # FOUND | NOT_FOUND | UNCERTAIN
     reason: str
     evidence: list[UnknownFieldEvidence] = []
+    constraint: dict[str, Any] | None = None
 
 class ConstraintStatus(BaseModel):
     name: str
     status: str   # matched | uncertain | failed
     reason: str | None = None
+    constraint: dict[str, Any] | None = None
 
 
 class ResultFact(BaseModel):
@@ -51,7 +53,7 @@ class NormalizedSearchResult(BaseModel):
     matched_must_count: int
     matched_must_total: int
 
-    unknown_request_results: list[UnknownRequestResult] = []
+    unknown_request_results: list[UnknownRequestResult] = Field(default_factory=list)    
     matched_constraints: list[ConstraintStatus] = Field(default_factory=list)
     uncertain_constraints: list[ConstraintStatus] = Field(default_factory=list)
     failed_constraints: list[ConstraintStatus] = Field(default_factory=list)

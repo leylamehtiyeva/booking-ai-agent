@@ -49,6 +49,18 @@ def _request_summary(req: SearchRequest, dropped_requests: List[str]) -> Normali
         occupancy_types=[x.value if hasattr(x, "value") else str(x) for x in (req.occupancy_types or [])],
         filters=req.filters.model_dump() if req.filters else {},
         unknown_requests=dropped_requests,
+        constraints=[
+            {
+                "raw_text": c.raw_text,
+                "normalized_text": c.normalized_text,
+                "priority": c.priority.value,
+                "category": c.category.value,
+                "mapping_status": c.mapping_status.value,
+                "mapped_fields": [f.value for f in c.mapped_fields],
+                "evidence_strategy": c.evidence_strategy.value,
+            }
+            for c in (req.constraints or [])
+        ],
     )
 
 

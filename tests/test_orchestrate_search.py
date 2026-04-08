@@ -382,6 +382,9 @@ async def test_orchestrate_search_returns_normalized_response(monkeypatch):
     assert "matched_constraints" in first
     assert "uncertain_constraints" in first
     assert "facts" in first
+    assert "constraints" in out["request_summary"]
+    assert out["request_summary"]["constraints"]
+    assert out["request_summary"]["constraints"][0]["normalized_text"] == "kitchen"
     
     import pytest
 
@@ -422,7 +425,7 @@ async def test_orchestrate_search_attaches_unknown_request_results_first_item():
     
     
 @pytest.mark.asyncio
-async def test_orchestrate_search_attaches_unknown_request_results():
+async def test_orchestrate_search_attaches_unknown_request_results_all_items():
     intent = {
         "city": "Baku",
         "check_in": "2026-04-08",
@@ -445,21 +448,21 @@ async def test_orchestrate_search_attaches_unknown_request_results():
     assert out["need_clarification"] is False
     assert out["results"]
 
-    found_unknown = False
+    found_unknown_item = None
+
     for result in out["results"]:
         assert "unknown_request_results" in result
         assert isinstance(result["unknown_request_results"], list)
 
         for item in result["unknown_request_results"]:
             if item["query_text"] == "satellite TV":
-                found_unknown = True
+                found_unknown_item = item
                 assert item["value"] in {"FOUND", "UNCERTAIN", "NOT_FOUND"}
                 assert "reason" in item
 
-    assert found_unknown
-    
-    
-import pytest
+    assert found_unknown_item is not None
+    assert "constraint" in found_unknown_item
+    assert found_unknown_item["constraint"]["normalized_text"] == "satellite TV"
 
 
 @pytest.mark.asyncio

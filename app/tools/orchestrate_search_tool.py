@@ -58,9 +58,11 @@ def _has_explicit_negative_unknown_evidence(item: dict) -> bool:
     return False
 
 
-def _score_unknown_request_results(unknown_results: list[dict] | None) -> tuple[float, list[str]]:
+def _score_unknown_request_results(
+    unknown_results: list[dict] | None,
+) -> tuple[float, list[str]]:
     """
-    Soft score adjustment for unknown must-have evidence search.
+    Soft score adjustment for unresolved must-have constraint evidence search.
 
     Rules:
     - FOUND: +3
@@ -72,19 +74,25 @@ def _score_unknown_request_results(unknown_results: list[dict] | None) -> tuple[
     reasons: list[str] = []
 
     for item in unknown_results or []:
-        query_text = item.get("query_text") or "Unknown request"
+        constraint = item.get("constraint") or {}
+        label = (
+            constraint.get("normalized_text")
+            or item.get("query_text")
+            or "Unresolved constraint"
+        )
         value = item.get("value")
 
         if value == "FOUND":
             delta += 3.0
-            reasons.append(f"UNKNOWN_MATCH: {query_text} found")
+            reasons.append(f"CONSTRAINT_MATCH: {label} confirmed")
         elif value == "NOT_FOUND":
             if _has_explicit_negative_unknown_evidence(item):
                 delta -= 4.0
-                reasons.append(f"UNKNOWN_MATCH: {query_text} explicitly unavailable")
+                reasons.append(f"CONSTRAINT_MATCH: {label} explicitly not supported")
+        elif value == "UNCERTAIN":
+            reasons.append(f"CONSTRAINT_MATCH: {label} not confirmed")
 
     return delta, reasons
-
 
 def _fails_must(matches: dict[Field, Any], must_fields: List[Field] | None) -> bool:
     """Strict must-have filter: if any must field is explicitly NO -> reject."""
@@ -585,6 +593,35 @@ def _apply_unknown_request_scoring(ranked_items: list[dict]) -> list[dict]:
     ranked_items.sort(key=lambda x: x.get("score", 0.0), reverse=True)
     return ranked_items
 
+
+def _build_constraint_statuses(ranked_items: list[dict]) -> list[dict]:
+    """
+    Flatten unresolved-constraint fallback results into a response-friendly
+    constraint status representation.
+    """
+    statuses: list[dict] = []
+
+    for item in ranked_items:
+        listing = item.get("listing")
+        listing_id = getattr(listing, "id", None)
+        listing_title = item.get("listing_name")
+
+        for result in item.get("unknown_request_results", []) or []:
+            constraint = result.get("constraint") or {}
+            statuses.append(
+                {
+                    "listing_id": listing_id,
+                    "listing_title": listing_title,
+                    "constraint": constraint,
+                    "query_text": result.get("query_text"),
+                    "value": result.get("value"),
+                    "reason": result.get("reason"),
+                    "evidence": result.get("evidence", []),
+                }
+            )
+
+    return statuses
+
 async def orchestrate_search(
     user_text: str,
     intent: Dict[str, Any],
@@ -704,13 +741,15 @@ async def orchestrate_search(
     ]
     ranked.sort(key=lambda x: x["score"], reverse=True)
     normalized = normalize_search_response(
-    req,
-    ranked,
-    top_n=top_n,
-    dropped_requests=dropped_requests,
+        req,
+        ranked,
+        top_n=top_n,
+        dropped_requests=dropped_requests,
     )
 
-    return normalized.model_dump(mode="json", exclude_none=True)
+    payload = normalized.model_dump(mode="json", exclude_none=True)
+    payload["constraint_statuses"] = _build_constraint_statuses(ranked[: max(0, top_n)])
+    return payload
     
 def _format_match_why(field: Field, fm: Any) -> str:
     if fm is None:
