@@ -16,6 +16,7 @@ from app.logic.date_normalization import normalize_patch_dates
 from app.logic.request_resolution import parse_iso_date
 from app.schemas.intent_patch import SearchIntentPatch
 from app.schemas.query import SearchRequest
+from app.logic.constraint_state import sync_constraints_from_legacy_state
 
 APP_NAME = "booking-ai-agent"
 USER_ID = "local-user"
@@ -35,7 +36,23 @@ def _strip_json_fence(text: str) -> str:
     return t
 
 
+def _ensure_constraint_state(previous_state: SearchRequest) -> SearchRequest:
+    if previous_state.constraints:
+        return previous_state
+
+    if (
+        previous_state.must_have_fields
+        or previous_state.nice_to_have_fields
+        or previous_state.forbidden_fields
+        or previous_state.unknown_requests
+    ):
+        return sync_constraints_from_legacy_state(previous_state)
+
+    return previous_state
+
 def _build_update_prompt(previous_state: SearchRequest, user_message: str) -> str:
+    previous_state = _ensure_constraint_state(previous_state)
+
     state_json = json.dumps(
         previous_state.model_dump(mode="json", exclude_none=True),
         ensure_ascii=False,
@@ -57,9 +74,33 @@ Rules:
 - Do NOT reconstruct or restate the whole request
 - Preserve all existing values unless the user explicitly changes or removes them
 - If the message changes only one slot, return only that slot change
-- If the message is unsupported by the schema, return an empty patch: {{}}
-- If the message contains an unsupported but meaningful must-have constraint, return it in add_unknown_requests
 - The user may write in any language
+
+CONSTRAINT-CENTRIC RULES:
+- constraints are the main representation for meaningful user requirements
+- Prefer add_constraints for new meaningful requirements
+- Prefer remove_constraint_texts when the user removes a previous requirement
+- Do NOT silently drop meaningful constraints
+- If a requirement cannot be represented as a structured filter/property/occupancy slot, preserve it as an unresolved constraint
+- Return an empty patch only when the user message truly does not change the search state
+
+DATES:
+- If user gives one date only, set_check_in to that date and set_nights = 1
+- If user says "from X for N nights", set_check_in = X and set_nights = N
+- If user gives both dates, set_check_in and set_check_out
+- Do not invent dates
+
+FILTERS:
+- Use set_filters only for structured numeric changes like bedrooms, bathrooms, area, price
+- Do NOT rebuild the whole filters object if only one field changes
+
+PROPERTY / OCCUPANCY:
+- Use property_types / occupancy_types slots for those concepts directly
+- Do not duplicate them as constraints when a dedicated slot exists
+
+RETURN EMPTY PATCH ONLY IF:
+- the message does not change the search state
+- or it is not a search update at all
 """.strip()
 
 
@@ -68,6 +109,7 @@ async def route_intent_update_patch_async(
     user_message: str,
 ) -> SearchIntentPatch:
     _ensure_gemini_key()
+    previous_state = _ensure_constraint_state(previous_state)
 
     agent = build_intent_update_agent()
     session_service = InMemorySessionService()
@@ -156,6 +198,7 @@ async def update_search_state_async(
     previous_state: SearchRequest,
     user_message: str,
 ) -> SearchRequest:
+    previous_state = _ensure_constraint_state(previous_state)
     patch = await route_intent_update_patch_async(previous_state, user_message)
     
     print("\n=== INTENT UPDATE PATCH ===")
