@@ -29,7 +29,16 @@ async def test_orchestrate_search_returns_constraint_statuses():
     assert out["constraint_statuses"]
 
     first = out["constraint_statuses"][0]
-    assert "constraint" in first
-    assert first["constraint"]["normalized_text"] == "satellite TV"
-    assert first["value"] in {"FOUND", "NOT_FOUND", "UNCERTAIN"}
+
+    assert "normalized_text" in first
+    assert "decision" in first
+    assert "resolution_status" in first
     assert "reason" in first
+
+    assert first["decision"] in {"YES", "NO", "UNCERTAIN"}
+    assert first["resolution_status"] in {"matched", "failed", "uncertain"}
+
+    assert any(
+        item["normalized_text"] == "satellite TV"
+        for item in out["constraint_statuses"]
+    )

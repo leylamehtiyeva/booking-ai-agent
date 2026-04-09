@@ -12,6 +12,7 @@ from app.schemas.search_response import (
     NormalizedSearchResponse,
     NormalizedSearchResult,
     ResultFact,
+    ConstraintResolutionItem
 )
 
 FIELD_DISPLAY_NAMES = {
@@ -139,6 +140,62 @@ def _status_bucket(name: str, value: Any, reason: str | None) -> ConstraintStatu
     )
 
 
+def _merge_constraint_resolution_statuses(
+    item: dict[str, Any],
+    matched: list[ConstraintStatus],
+    uncertain: list[ConstraintStatus],
+    failed: list[ConstraintStatus],
+) -> tuple[list[ConstraintStatus], list[ConstraintStatus], list[ConstraintStatus]]:
+    resolution_results = item.get("constraint_resolution_results") or []
+    if not resolution_results:
+        return matched, uncertain, failed
+
+    resolved_names = {
+        str(r.get("normalized_text") or "").strip().casefold()
+        for r in resolution_results
+        if isinstance(r, dict)
+    }
+
+    def _keep(statuses: list[ConstraintStatus]) -> list[ConstraintStatus]:
+        kept: list[ConstraintStatus] = []
+        for s in statuses:
+            if s.constraint and s.constraint.get("normalized_text"):
+                key = str(s.constraint.get("normalized_text")).strip().casefold()
+            else:
+                key = str(s.name or "").strip().casefold()
+
+            if key and key in resolved_names:
+                continue
+            kept.append(s)
+        return kept
+
+    matched = _keep(matched)
+    uncertain = _keep(uncertain)
+    failed = _keep(failed)
+
+    for raw in resolution_results:
+        item_obj = ConstraintResolutionItem.model_validate(raw)
+        status = ConstraintStatus(
+            name=item_obj.normalized_text,
+            status=item_obj.resolution_status,
+            reason=item_obj.reason,
+            constraint={
+                "id": item_obj.constraint_id,
+                "raw_text": item_obj.raw_text,
+                "normalized_text": item_obj.normalized_text,
+            },
+        )
+
+        if item_obj.resolution_status == "matched":
+            matched.append(status)
+        elif item_obj.resolution_status == "failed":
+            failed.append(status)
+        else:
+            uncertain.append(status)
+
+    return matched, uncertain, failed
+
+
 def _collect_constraint_statuses(
     item: dict[str, Any],
 ) -> tuple[list[ConstraintStatus], list[ConstraintStatus], list[ConstraintStatus]]:
@@ -193,8 +250,7 @@ def _collect_constraint_statuses(
         else:
             failed.append(_status_bucket("occupancy_type", "failed", occupancy_result.why))
 
-    return matched, uncertain, failed
-
+    return _merge_constraint_resolution_statuses(item, matched, uncertain, failed)
 
 def _collect_facts(item: dict[str, Any], req: SearchRequest) -> list[ResultFact]:
     listing = item.get("listing")
@@ -329,6 +385,7 @@ def normalize_search_response(
                 url=getattr(listing, "url", None),
                 score=float(item.get("score", 0.0)),
                 unknown_request_results=item.get("unknown_request_results", []),
+                constraint_resolution_results=item.get("constraint_resolution_results", []),
                 matched_must_count=int(item.get("must_have_matched", 0)),
                 matched_must_total=int(item.get("must_have_total", 0)),
                 matched_constraints=matched,

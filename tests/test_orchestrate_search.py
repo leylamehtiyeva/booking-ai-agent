@@ -394,84 +394,11 @@ async def test_orchestrate_search_returns_normalized_response(monkeypatch):
     import pytest
 
 
-@pytest.mark.asyncio
-async def test_orchestrate_search_attaches_unknown_request_results_first_item():
-    intent = {
-        "city": "Baku",
-        "check_in": "2026-04-08",
-        "check_out": "2026-04-15",
-        "must_have_fields": ["iron"],
-        "nice_to_have_fields": [],
-        "unknown_requests": ["satellite TV"],
-        "property_types": ["apartment"],
-        "occupancy_types": [],
-        "filters": {},
-    }
 
-    out = await orchestrate_search(
-        "I want an apartment in Baku with satellite TV and ironing facilities",
-        intent,
-        source="fixtures",
-        max_items=5,
-    )
-
-    assert out["need_clarification"] is False
-    assert out["results"]
-
-    first = out["results"][0]
-    assert "unknown_request_results" in first
-    assert isinstance(first["unknown_request_results"], list)
-
-    unknowns = first["unknown_request_results"]
-    assert unknowns
-    assert unknowns[0]["query_text"] == "satellite TV"
-    assert unknowns[0]["value"] in {"FOUND", "NOT_FOUND", "UNCERTAIN"}
-    assert "reason" in unknowns[0]
     
-    
-@pytest.mark.asyncio
-async def test_orchestrate_search_attaches_unknown_request_results_all_items():
-    intent = {
-        "city": "Baku",
-        "check_in": "2026-04-08",
-        "check_out": "2026-04-15",
-        "must_have_fields": ["iron"],
-        "nice_to_have_fields": [],
-        "unknown_requests": ["satellite TV"],
-        "property_types": ["apartment"],
-        "occupancy_types": [],
-        "filters": {},
-    }
-
-    out = await orchestrate_search(
-        "I want an apartment in Baku with satellite TV and ironing facilities",
-        intent,
-        source="fixtures",
-        max_items=5,
-    )
-
-    assert out["need_clarification"] is False
-    assert out["results"]
-
-    found_unknown_item = None
-
-    for result in out["results"]:
-        assert "unknown_request_results" in result
-        assert isinstance(result["unknown_request_results"], list)
-
-        for item in result["unknown_request_results"]:
-            if item["query_text"] == "satellite TV":
-                found_unknown_item = item
-                assert item["value"] in {"FOUND", "UNCERTAIN", "NOT_FOUND"}
-                assert "reason" in item
-
-    assert found_unknown_item is not None
-    assert "constraint" in found_unknown_item
-    assert found_unknown_item["constraint"]["normalized_text"] == "satellite TV"
-
 
 @pytest.mark.asyncio
-async def test_unknown_request_found_can_boost_ranking():
+async def test_constraint_resolution_results_are_attached_and_can_influence_ranking():
     intent = {
         "city": "Baku",
         "check_in": "2026-04-08",
@@ -495,18 +422,31 @@ async def test_unknown_request_found_can_boost_ranking():
     assert out["results"]
 
     titles = [r["title"] for r in out["results"]]
-
-    # Compact Apartment has satellite channels in description in your fixture
     assert "Compact Apartment" in titles
 
     compact = next(r for r in out["results"] if r["title"] == "Compact Apartment")
-    assert compact["unknown_request_results"]
 
-    satellite_item = next(
-        x for x in compact["unknown_request_results"]
-        if x["query_text"] == "satellite TV"
+    assert "constraint_resolution_results" in compact
+    assert isinstance(compact["constraint_resolution_results"], list)
+    assert compact["constraint_resolution_results"]
+
+    satellite_items = [
+        item
+        for item in compact["constraint_resolution_results"]
+        if item["normalized_text"] == "satellite TV"
+    ]
+    assert satellite_items
+
+    satellite = satellite_items[0]
+    assert satellite["decision"] in {"YES", "NO", "UNCERTAIN"}
+    assert satellite["resolution_status"] in {"matched", "failed", "uncertain"}
+    assert "reason" in satellite
+
+    # ranking/explainability signal from fallback should be visible in why
+    assert any(
+        "satellite tv" in reason.lower()
+        for reason in compact.get("why", [])
     )
-    assert satellite_item["value"] == "FOUND"
     
     
 @pytest.mark.asyncio

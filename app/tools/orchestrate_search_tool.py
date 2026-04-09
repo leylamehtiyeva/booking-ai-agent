@@ -10,7 +10,6 @@ from google.genai import types as genai_types
 from pydantic import ValidationError
 from app.agents.intent_router_agent import IntentRoute
 from app.config import MAX_ITEMS_DEFAULT, MAX_ITEMS_HARD_CAP
-from app.logic.llm_field_fallback import classify_field_from_description
 from app.logic.matcher_structured import match_listing_structured
 from app.logic.numeric_filters import evaluate_numeric_filters
 from app.retrieval import Source, get_candidates
@@ -21,78 +20,21 @@ from app.schemas.query import SearchRequest
 from app.logic.property_semantics import match_occupancy_types, match_property_types
 from app.schemas.match import Ternary
 from app.logic.normalize_search_response import normalize_search_response
-from app.logic.listing_signals import collect_listing_signals
-from app.logic.unknown_field_evidence_search import search_unknown_must_have_evidence
 from app.logic.request_resolution import resolve_required_search_context
-from app.logic.unresolved_constraint_utils import get_unresolved_must_constraints
 from app.logic.occupancy import evaluate_occupancy
 from app.logic.constraint_state import (
     build_constraints_from_legacy_state,
     sync_legacy_state_from_constraints,
 )
 
-
-def _has_explicit_negative_unknown_evidence(item: dict) -> bool:
-    evidence = item.get("evidence") or []
-    negative_markers = (
-        "no ",
-        "not allowed",
-        "not available",
-        "unavailable",
-        "without ",
-        "does not have",
-        "is not provided",
-        "not provided",
-        "absent",
-    )
-
-    for ev in evidence:
-        if isinstance(ev, dict):
-            snippet = (ev.get("snippet") or "").lower()
-        else:
-            snippet = (getattr(ev, "snippet", None) or "").lower()
-
-        if any(marker in snippet for marker in negative_markers):
-            return True
-
-    return False
+from app.logic.constraint_evidence_resolution import (
+    resolve_listing_constraints_with_fallback,
+)
 
 
-def _score_unknown_request_results(
-    unknown_results: list[dict] | None,
-) -> tuple[float, list[str]]:
-    """
-    Soft score adjustment for unresolved must-have constraint evidence search.
 
-    Rules:
-    - FOUND: +3
-    - UNCERTAIN: +0
-    - NOT_FOUND with explicit negative evidence: -4
-    - NOT_FOUND without explicit negative evidence: +0
-    """
-    delta = 0.0
-    reasons: list[str] = []
 
-    for item in unknown_results or []:
-        constraint = item.get("constraint") or {}
-        label = (
-            constraint.get("normalized_text")
-            or item.get("query_text")
-            or "Unresolved constraint"
-        )
-        value = item.get("value")
 
-        if value == "FOUND":
-            delta += 3.0
-            reasons.append(f"CONSTRAINT_MATCH: {label} confirmed")
-        elif value == "NOT_FOUND":
-            if _has_explicit_negative_unknown_evidence(item):
-                delta -= 4.0
-                reasons.append(f"CONSTRAINT_MATCH: {label} explicitly not supported")
-        elif value == "UNCERTAIN":
-            reasons.append(f"CONSTRAINT_MATCH: {label} not confirmed")
-
-    return delta, reasons
 
 def _fails_must(matches: dict[Field, Any], must_fields: List[Field] | None) -> bool:
     """Strict must-have filter: if any must field is explicitly NO -> reject."""
@@ -113,67 +55,7 @@ def _fails_numeric_filters(numeric_results: List[Any] | None) -> bool:
     return False
 
 
-async def _attach_unknown_request_results(
-    req: SearchRequest,
-    ranked_items: list[dict],
-) -> list[dict]:
-    """
-    For unresolved must-have constraints, run evidence search per listing and
-    attach results to each ranked item.
 
-    This step does NOT yet hard-filter results. It only enriches them.
-    """
-    unresolved_constraints = get_unresolved_must_constraints(req)
-    if not unresolved_constraints:
-        return ranked_items
-
-    for item in ranked_items:
-        listing = item.get("listing")
-        if listing is None:
-            item["unknown_request_results"] = []
-            continue
-
-        signals = collect_listing_signals(listing)
-        unknown_results = []
-
-        for constraint in unresolved_constraints:
-            try:
-                result = await search_unknown_must_have_evidence(
-                    query_text=constraint.normalized_text,
-                    listing_signals=signals,
-                )
-                payload = result.model_dump(mode="json")
-                payload["constraint"] = {
-                    "raw_text": constraint.raw_text,
-                    "normalized_text": constraint.normalized_text,
-                    "priority": constraint.priority.value,
-                    "category": constraint.category.value,
-                    "mapping_status": constraint.mapping_status.value,
-                    "evidence_strategy": constraint.evidence_strategy.value,
-                }
-                unknown_results.append(payload)
-            except Exception as e:
-                unknown_results.append(
-                    {
-                        "query_text": constraint.normalized_text,
-                        "value": "UNCERTAIN",
-                        "reason": f"{constraint.normalized_text} could not be verified from the listing.",
-                        "evidence": [],
-                        "error": str(e),
-                        "constraint": {
-                            "raw_text": constraint.raw_text,
-                            "normalized_text": constraint.normalized_text,
-                            "priority": constraint.priority.value,
-                            "category": constraint.category.value,
-                            "mapping_status": constraint.mapping_status.value,
-                            "evidence_strategy": constraint.evidence_strategy.value,
-                        },
-                    }
-                )
-
-        item["unknown_request_results"] = unknown_results
-
-    return ranked_items
 
 def _parse_iso_date(x: Any) -> Optional[date]:
     if x is None:
@@ -521,44 +403,7 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
     ranked.sort(key=lambda x: x["score"], reverse=True)
     return ranked
 
-async def _apply_fallback_topk(req: SearchRequest, ranked: List[Dict[str, Any]], fallback_top_k: int) -> None:
-    for item in ranked[: max(0, fallback_top_k)]:
-        has_uncertain = any(
-            item["matches"].get(f) is not None and item["matches"][f].value == Ternary.UNCERTAIN
-            for f in (req.must_have_fields or [])
-        )
-        if not has_uncertain:
-            continue
 
-        for f in (req.must_have_fields or []):
-            fm = item["matches"].get(f)
-            if fm is not None and fm.value == Ternary.UNCERTAIN:
-                fm2 = await classify_field_from_description(item["listing"], f)
-                if fm2.value != Ternary.UNCERTAIN or fm2.evidence:
-                    item["matches"][f] = fm2  # updates both item["matches"] and report.matches (same dict)
-
-        # ✅ re-score after fallback
-        score, must_yes, must_total, why = _score_listing(
-            req,
-            item["matches"],
-            numeric_results=item.get("numeric_results"),
-        )
-
-        property_result = item.get("property_result")
-        occupancy_result = item.get("occupancy_result")
-
-        if property_result is not None and getattr(property_result, "why", None):
-            why.append(property_result.why)
-
-        if occupancy_result is not None and getattr(occupancy_result, "why", None):
-            why.append(occupancy_result.why)
-
-        item["score"] = score
-        item["must_have_matched"] = must_yes
-        item["must_have_total"] = must_total
-        item["why"] = why
-
-    ranked.sort(key=lambda x: x["score"], reverse=True)
 
 
 def _format_results(req: SearchRequest, ranked: List[Dict[str, Any]], top_n: int, dropped_requests: List[str]) -> Dict[str, Any]:
@@ -606,24 +451,6 @@ def _format_results(req: SearchRequest, ranked: List[Dict[str, Any]], top_n: int
         "results": results_out,
     }
 
-
-def _apply_unknown_request_scoring(ranked_items: list[dict]) -> list[dict]:
-    """
-    Apply soft score adjustments based on unknown must-have evidence search.
-    """
-    for item in ranked_items:
-        unknown_results = item.get("unknown_request_results", [])
-        delta, extra_why = _score_unknown_request_results(unknown_results)
-
-        if delta != 0:
-            item["score"] = float(item.get("score", 0.0)) + delta
-
-        why = list(item.get("why") or [])
-        why.extend(extra_why)
-        item["why"] = why
-
-    ranked_items.sort(key=lambda x: x.get("score", 0.0), reverse=True)
-    return ranked_items
 
 
 def _build_constraint_statuses(ranked_items: list[dict]) -> list[dict]:
@@ -761,17 +588,25 @@ async def orchestrate_search(
             "questions": ["Ничего не найдено по текущим условиям. Попробуй изменить требования."],
         }
 
-    # 5) Structured ranking + fallback on top-K for UNCERTAIN must-have fields
     ranked = _rank_structured(req, listings)
-    await _apply_fallback_topk(req, ranked, fallback_top_k=fallback_top_k)
-    ranked = await _attach_unknown_request_results(req, ranked)    # 6) Strict must-have filter AFTER fallback too
+
+    await _apply_constraint_fallback_layer(
+        req,
+        ranked,
+        fallback_top_k=fallback_top_k,
+    )
+
+    ranked = _apply_constraint_resolution_scoring(ranked)
+
     ranked = [
         it
         for it in ranked
         if not _fails_must(it["matches"], req.must_have_fields)
         and not _fails_numeric_filters(it.get("numeric_results"))
     ]
+
     ranked.sort(key=lambda x: x["score"], reverse=True)
+
     normalized = normalize_search_response(
         req,
         ranked,
@@ -859,3 +694,67 @@ def _score_listing(
         why.append(nr.why)
 
     return score, must_yes, must_total, why
+
+
+async def _apply_constraint_fallback_layer(
+    req: SearchRequest,
+    ranked: list[dict],
+    *,
+    fallback_top_k: int,
+) -> None:
+    for item in ranked[: max(0, fallback_top_k)]:
+        listing = item.get("listing")
+        if listing is None:
+            item["constraint_resolution_results"] = []
+            continue
+
+        results = await resolve_listing_constraints_with_fallback(
+            listing=listing,
+            constraints=req.constraints or [],
+            structured_matches_by_field=item.get("matches", {}),
+            must_only=True,
+        )
+
+        item["constraint_resolution_results"] = [
+            r.model_dump(mode="json") for r in results
+        ]
+
+
+def _apply_constraint_resolution_scoring(ranked_items: list[dict]) -> list[dict]:
+    for item in ranked_items:
+        delta = 0.0
+        extra_why: list[str] = []
+
+        for r in item.get("constraint_resolution_results", []) or []:
+            label = r.get("normalized_text") or "constraint"
+            decision = r.get("decision")
+
+            if decision == "YES":
+                delta += 3.0
+                extra_why.append(f"CONSTRAINT_MATCH: {label} confirmed by listing text")
+            elif decision == "NO":
+                if r.get("explicit_negative"):
+                    delta -= 4.0
+                    extra_why.append(f"CONSTRAINT_MATCH: {label} explicitly not supported")
+            else:
+                extra_why.append(f"CONSTRAINT_MATCH: {label} not confirmed")
+
+        if delta != 0:
+            item["score"] = float(item.get("score", 0.0)) + delta
+
+        why = list(item.get("why") or [])
+        why.extend(extra_why)
+        item["why"] = why
+
+    ranked_items.sort(key=lambda x: x.get("score", 0.0), reverse=True)
+    return ranked_items
+
+
+def _build_constraint_statuses(ranked_items: list[dict]) -> list[dict]:
+    statuses: list[dict] = []
+
+    for item in ranked_items:
+        for result in item.get("constraint_resolution_results", []) or []:
+            statuses.append(result)
+
+    return statuses
