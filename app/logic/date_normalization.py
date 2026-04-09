@@ -4,6 +4,7 @@ import re
 from datetime import date, timedelta
 
 from app.logic.request_resolution import parse_iso_date
+from app.schemas.constraints import ConstraintMappingStatus
 
 
 YEAR_PATTERN = re.compile(r"\b(19|20)\d{2}\b")
@@ -16,13 +17,30 @@ def user_explicitly_mentioned_year(user_text: str) -> bool:
     )
 
 
+def _has_unresolved_constraints(intent) -> bool:
+    """
+    Canonical check for semantic uncertainty.
+
+    constraints is the source of truth. unknown_requests is only a legacy
+    compatibility fallback for older payloads that have not yet been lifted into
+    constraints.
+    """
+    constraints = getattr(intent, "constraints", None) or []
+    for constraint in constraints:
+        if getattr(constraint, "mapping_status", None) == ConstraintMappingStatus.UNRESOLVED:
+            return True
+
+    legacy_unknown_requests = getattr(intent, "unknown_requests", None) or []
+    return bool(legacy_unknown_requests)
+
+
 def normalize_intent_dates(intent, user_text: str, *, today: date | None = None):
     """
     Normalize parsed intent dates for the first user turn.
 
     Rules:
     - if user did NOT explicitly mention a year, force parsed dates to current year
-    - if the model marked part of the request as unknown, do not trust guessed dates
+    - if part of the request is still semantically unresolved, do not trust guessed dates
     - if check_in exists and check_out is missing but nights exists -> compute check_out
     - if only check_in exists -> default to 1 night
     """
@@ -33,8 +51,7 @@ def normalize_intent_dates(intent, user_text: str, *, today: date | None = None)
     check_out = parse_iso_date(getattr(intent, "check_out", None))
     nights = getattr(intent, "nights", None)
 
-    unknown_requests = getattr(intent, "unknown_requests", None) or []
-    if unknown_requests:
+    if _has_unresolved_constraints(intent):
         check_in = None
         check_out = None
 

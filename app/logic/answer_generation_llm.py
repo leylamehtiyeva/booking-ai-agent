@@ -77,10 +77,11 @@ You will receive a structured payload with:
 - clarification questions if needed
 
 Each top result may also contain:
+- unresolved_constraint_points
 - unknown_request_results
-- unknown_request_points
 - ranking_reasons
 - standout_reason
+
 
 These represent:
 - user-requested must-have details that are not part of the structured schema,
@@ -112,12 +113,12 @@ IMPORTANT COMPARISON RULES:
   - if one option is clearly better for the user's stated request, say so
   - if the choice depends on trade-offs such as price vs confirmation, explain that briefly
 
-UNKNOWN REQUEST RULES:
-- If unknown_request_points are present, mention them briefly and factually.
+UNRESOLVED CONSTRAINT RULES:
+- If unresolved_constraint_points are present, mention them briefly and factually.
 - Treat FOUND as a positive differentiator.
 - Treat UNCERTAIN as "not explicitly confirmed" or "not mentioned".
 - Treat NOT_FOUND as unavailable only if the payload explicitly says so.
-- Do not overemphasize unknown-request matches over core structured constraints.
+- Do not overemphasize unresolved-constraint matches over core structured constraints.
 
 CRITICAL RULE FOR UNCERTAINTY:
 - If a constraint is uncertain, describe it as "not confirmed", "not explicitly stated", or "needs confirmation".

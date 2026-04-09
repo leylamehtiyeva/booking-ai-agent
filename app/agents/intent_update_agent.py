@@ -25,7 +25,8 @@ IMPORTANT:
 - The current structured state is the source of truth
 - Do NOT reconstruct the full request from memory or from earlier wording
 - Do NOT revert existing fields unless the user explicitly changes or removes them
-- If the user asks for something unsupported by the schema, return an empty patch
+- If the user asks for something that cannot be represented as structured filters/property/occupancy slots, preserve it as an unresolved constraint when it is a meaningful search requirement
+- Return an empty patch only when the message truly does not change the search state
 - The user may write in any language
 - Use empty arrays where nothing should be added/removed
 
@@ -49,15 +50,36 @@ DATES:
 - If user gives both dates, set_check_in and set_check_out
 - Do not invent dates
 
-UNKNOWN REQUESTS:
-- If the user asks for a must-have constraint that cannot be mapped to canonical fields, filters, property_types, or occupancy_types, add it to add_unknown_requests
-- Keep the phrase short but meaningful
-- Do NOT convert "2 beds" into bedrooms_min
-- Do NOT convert unsupported bed configuration requests into must_have_fields
-- Examples of unsupported but meaningful requests:
-  - "2 beds"
-  - "quiet neighborhood"
-  - "sea view balcony"
+CONSTRAINTS:
+- add_constraints is the canonical way to express meaningful new user constraints
+- remove_constraint_texts is the canonical way to remove previously expressed constraints
+- Each added constraint should preserve the user meaning
+- Use canonical mapped_fields only when the mapping is clearly correct
+- Do NOT force uncertain meaning into the wrong field
+
+CONSTRAINT PRIORITY:
+- required / must / need / have to -> priority="must"
+- ideally / preferably / nice to have / desirable -> priority="nice"
+- no / without / do not want / avoid -> priority="forbidden"
+
+WHEN TO USE add_constraints:
+- for meaningful amenity / policy / location / layout / semantic requirements
+- both known and unresolved constraints are allowed
+- known constraints should use:
+  - mapping_status="known"
+  - mapped_fields=[...]
+  - evidence_strategy="structured"
+- unresolved constraints should use:
+  - mapping_status="unresolved"
+  - mapped_fields=[]
+  - evidence_strategy="textual" or "geo"
+
+LEGACY COMPATIBILITY:
+- Old fields like add_must_have_fields / add_unknown_requests still exist in the schema for backward compatibility
+- But they are NOT the preferred semantic interface
+- Prefer add_constraints whenever possible
+- Prefer remove_constraint_texts whenever possible
+- In normal cases, leave legacy unknown patch fields empty
 
 FILTERS:
 - For filters, return only the changed filter fields
@@ -111,11 +133,11 @@ Return:
 
 User: "also I want a kettle"
 Return:
-{{"add_must_have_fields":["kettle"]}}
+{{"add_constraints":[{{"raw_text":"kettle","normalized_text":"kettle","priority":"must","category":"amenity","mapping_status":"known","mapped_fields":["kettle"],"evidence_strategy":"structured"}}]}}
 
 User: "kitchen is no longer required"
 Return:
-{{"remove_must_have_fields":["kitchen"]}}
+{{"remove_constraint_texts":["kitchen"]}}
 
 User: "now at least 3 bedrooms"
 Return:
@@ -123,11 +145,11 @@ Return:
 
 User: "хочу чтобы были 2 кровати"
 Return:
-{{"add_unknown_requests":["2 beds"]}}
+{{"add_constraints":[{{"raw_text":"2 кровати","normalized_text":"2 beds","priority":"must","category":"layout","mapping_status":"unresolved","mapped_fields":[],"evidence_strategy":"textual"}}]}}
 
 User: "I need satellite TV"
 Return:
-{{"add_unknown_requests":["satellite TV"]}}
+{{"add_constraints":[{{"raw_text":"satellite TV","normalized_text":"satellite TV","priority":"must","category":"amenity","mapping_status":"unresolved","mapped_fields":[],"evidence_strategy":"textual"}}]}}
 
 User: "for 3 people"
 Return:
@@ -146,7 +168,7 @@ Return:
 Previous state has city=Baku, check_in=2026-04-19, check_out=2026-04-23, adults=2.
 User: "хочу чтобы были 2 кровати"
 Return:
-{{}}
+{{"add_constraints":[{{"raw_text":"2 кровати","normalized_text":"2 beds","priority":"must","category":"layout","mapping_status":"unresolved","mapped_fields":[],"evidence_strategy":"textual"}}]}}
 
 Previous state has city=Baku, check_in=2026-04-19, check_out=2026-04-23, adults=2.
 User: "actually city does not matter"

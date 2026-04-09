@@ -269,5 +269,87 @@ async def test_conversation_flow_new_search_rebuilds_state(monkeypatch):
     assert out["state"]["city"] == "Paris"
     
     
+    
+@pytest.mark.asyncio
+async def test_conversation_flow_listing_question_returns_synchronized_legacy_state(monkeypatch):
+    previous_state = SearchRequest(
+        city="Baku",
+        must_have_fields=[Field.KITCHEN],
+        unknown_requests=["2 beds"],
+    )
+
+    async def _fake_route_conversation(**kwargs):
+        from app.schemas.conversation_route import ConversationRouteDecision
+        return ConversationRouteDecision(
+            route="listing_question",
+            reason="Question about shown listing",
+        )
+
+    async def _fake_answer_listing_question(**kwargs):
+        from app.logic.conversation_flow import _build_state_payload
+
+        return {
+            "need_clarification": False,
+            "response_type": "listing_question",
+            "answer": "1 bed option is explicitly mentioned in the listing.",
+            "state": _build_state_payload(previous_state),
+        }
+
+    monkeypatch.setattr(
+        "app.logic.conversation_flow.route_conversation_async",
+        _fake_route_conversation,
+    )
+    monkeypatch.setattr(
+        "app.logic.conversation_flow._answer_listing_question",
+        _fake_answer_listing_question,
+    )
+
+    from app.logic.conversation_flow import handle_user_message
+
+    out = await handle_user_message(
+        "Есть ли у этого отеля вариант с 1 кроватью?",
+        previous_state=previous_state,
+        shown_listing={"name": "Test Hotel"},
+    )
+
+    assert out["response_type"] == "listing_question"
+    assert out["state"]["unknown_requests"] == ["2 beds"]
+    assert any(c["normalized_text"] == "kitchen" for c in out["state"]["constraints"])
+    assert any(c["normalized_text"] == "2 beds" for c in out["state"]["constraints"])
+
+
+@pytest.mark.asyncio
+async def test_conversation_flow_other_route_returns_synchronized_previous_state(monkeypatch):
+    previous_state = SearchRequest(
+        city="Baku",
+        must_have_fields=[Field.KITCHEN],
+        unknown_requests=["quiet neighborhood"],
+    )
+
+    async def _fake_route_conversation_async(**kwargs):
+        from app.schemas.conversation_route import ConversationRouteDecision
+        return ConversationRouteDecision(
+            route="other",
+            reason="not a search action",
+        )
+
+    monkeypatch.setattr(
+        "app.logic.conversation_flow.route_conversation_async",
+        _fake_route_conversation_async,
+    )
+
+    from app.logic.conversation_flow import handle_user_message
+
+    out = await handle_user_message(
+        "thanks",
+        previous_state=previous_state,
+    )
+
+    assert out["response_type"] == "other"
+    assert out["state"]["unknown_requests"] == ["quiet neighborhood"]
+    assert any(c["normalized_text"] == "kitchen" for c in out["state"]["constraints"])
+    assert any(c["normalized_text"] == "quiet neighborhood" for c in out["state"]["constraints"])
+    assert out["parsed_intent"]["previous_state"]["unknown_requests"] == ["quiet neighborhood"]
+    
 
     

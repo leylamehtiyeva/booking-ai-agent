@@ -23,9 +23,13 @@ from app.schemas.match import Ternary
 from app.logic.normalize_search_response import normalize_search_response
 from app.logic.listing_signals import collect_listing_signals
 from app.logic.unknown_field_evidence_search import search_unknown_must_have_evidence
-from app.logic.unknown_request_utils import get_unknown_must_have_requests
 from app.logic.request_resolution import resolve_required_search_context
+from app.logic.unresolved_constraint_utils import get_unresolved_must_constraints
 from app.logic.occupancy import evaluate_occupancy
+from app.logic.constraint_state import (
+    build_constraints_from_legacy_state,
+    sync_legacy_state_from_constraints,
+)
 
 
 def _has_explicit_negative_unknown_evidence(item: dict) -> bool:
@@ -54,9 +58,11 @@ def _has_explicit_negative_unknown_evidence(item: dict) -> bool:
     return False
 
 
-def _score_unknown_request_results(unknown_results: list[dict] | None) -> tuple[float, list[str]]:
+def _score_unknown_request_results(
+    unknown_results: list[dict] | None,
+) -> tuple[float, list[str]]:
     """
-    Soft score adjustment for unknown must-have evidence search.
+    Soft score adjustment for unresolved must-have constraint evidence search.
 
     Rules:
     - FOUND: +3
@@ -68,19 +74,25 @@ def _score_unknown_request_results(unknown_results: list[dict] | None) -> tuple[
     reasons: list[str] = []
 
     for item in unknown_results or []:
-        query_text = item.get("query_text") or "Unknown request"
+        constraint = item.get("constraint") or {}
+        label = (
+            constraint.get("normalized_text")
+            or item.get("query_text")
+            or "Unresolved constraint"
+        )
         value = item.get("value")
 
         if value == "FOUND":
             delta += 3.0
-            reasons.append(f"UNKNOWN_MATCH: {query_text} found")
+            reasons.append(f"CONSTRAINT_MATCH: {label} confirmed")
         elif value == "NOT_FOUND":
             if _has_explicit_negative_unknown_evidence(item):
                 delta -= 4.0
-                reasons.append(f"UNKNOWN_MATCH: {query_text} explicitly unavailable")
+                reasons.append(f"CONSTRAINT_MATCH: {label} explicitly not supported")
+        elif value == "UNCERTAIN":
+            reasons.append(f"CONSTRAINT_MATCH: {label} not confirmed")
 
     return delta, reasons
-
 
 def _fails_must(matches: dict[Field, Any], must_fields: List[Field] | None) -> bool:
     """Strict must-have filter: if any must field is explicitly NO -> reject."""
@@ -102,17 +114,17 @@ def _fails_numeric_filters(numeric_results: List[Any] | None) -> bool:
 
 
 async def _attach_unknown_request_results(
-    intent: dict,
+    req: SearchRequest,
     ranked_items: list[dict],
 ) -> list[dict]:
     """
-    For unknown must-have requests, run evidence search per listing and
+    For unresolved must-have constraints, run evidence search per listing and
     attach results to each ranked item.
 
     This step does NOT yet hard-filter results. It only enriches them.
     """
-    unknown_requests = get_unknown_must_have_requests(intent)
-    if not unknown_requests:
+    unresolved_constraints = get_unresolved_must_constraints(req)
+    if not unresolved_constraints:
         return ranked_items
 
     for item in ranked_items:
@@ -124,21 +136,38 @@ async def _attach_unknown_request_results(
         signals = collect_listing_signals(listing)
         unknown_results = []
 
-        for req_text in unknown_requests:
+        for constraint in unresolved_constraints:
             try:
                 result = await search_unknown_must_have_evidence(
-                    query_text=req_text,
+                    query_text=constraint.normalized_text,
                     listing_signals=signals,
                 )
-                unknown_results.append(result.model_dump(mode="json"))
+                payload = result.model_dump(mode="json")
+                payload["constraint"] = {
+                    "raw_text": constraint.raw_text,
+                    "normalized_text": constraint.normalized_text,
+                    "priority": constraint.priority.value,
+                    "category": constraint.category.value,
+                    "mapping_status": constraint.mapping_status.value,
+                    "evidence_strategy": constraint.evidence_strategy.value,
+                }
+                unknown_results.append(payload)
             except Exception as e:
                 unknown_results.append(
                     {
-                        "query_text": req_text,
+                        "query_text": constraint.normalized_text,
                         "value": "UNCERTAIN",
-                        "reason": f"{req_text} could not be verified from the listing.",
+                        "reason": f"{constraint.normalized_text} could not be verified from the listing.",
                         "evidence": [],
                         "error": str(e),
+                        "constraint": {
+                            "raw_text": constraint.raw_text,
+                            "normalized_text": constraint.normalized_text,
+                            "priority": constraint.priority.value,
+                            "category": constraint.category.value,
+                            "mapping_status": constraint.mapping_status.value,
+                            "evidence_strategy": constraint.evidence_strategy.value,
+                        },
                     }
                 )
 
@@ -197,9 +226,13 @@ async def _repair_intent_with_llm(
     errors: list[dict],
     model: str = "gemini-2.0-flash",
 ) -> Dict[str, Any]:
-    """Ask LLM to repair intent to match IntentRoute exactly.
+    """Ask LLM to repair intent so it matches IntentRoute exactly.
 
-    No synonym dictionary is used here. The model must map meaning to Field.value.
+    Contract:
+    - constraints is the canonical semantic state
+    - unknown_requests is NOT the semantic fallback target
+    - invalid legacy enum-like items may be dropped from enum slots; they can be
+      reported separately as dropped_requests later by the salvage layer
     """
     allowed_values = [f.value for f in Field]
 
@@ -207,9 +240,11 @@ async def _repair_intent_with_llm(
         "You are a JSON repair assistant.\n"
         "Return ONLY a valid JSON object. No markdown. No code fences.\n"
         "Fix the JSON to match the target schema EXACTLY.\n"
-        "must_have_fields and nice_to_have_fields MUST contain ONLY canonical keys from allowed_fields.\n"
-        "If you cannot map an item to a canonical key, move it to unknown_requests.\n"
-        "Do not invent new keys.\n"
+        "constraints is the source of truth for user constraints.\n"
+        "Do NOT invent new keys.\n"
+        "Do NOT use unknown_requests as a semantic fallback bucket.\n"
+        "If a legacy enum-like item cannot be mapped safely, remove it from that enum list.\n"
+        "Preserve meaningful user meaning inside constraints whenever possible.\n"
     )
 
     payload = {
@@ -221,13 +256,19 @@ async def _repair_intent_with_llm(
             "check_in": "YYYY-MM-DD|null",
             "check_out": "YYYY-MM-DD|null",
             "nights": "int|null",
-            "must_have_fields": "list[canonical_key]",
-            "nice_to_have_fields": "list[canonical_key]",
-            "property_types": [
-                "apartment|hotel|hostel|house|aparthotel|guesthouse"
-            ],
-            "occupancy_types": [
-                "entire_place|private_room|shared_room|hotel_room"
+            "adults": "int|null",
+            "children": "int|null",
+            "rooms": "int|null",
+            "constraints": [
+                {
+                    "raw_text": "string",
+                    "normalized_text": "string",
+                    "priority": "must|nice|forbidden",
+                    "category": "amenity|policy|location|layout|numeric|property_type|occupancy|other",
+                    "mapping_status": "known|unresolved",
+                    "mapped_fields": "list[canonical_key]",
+                    "evidence_strategy": "structured|textual|geo|none",
+                }
             ],
             "filters": {
                 "bedrooms_min": "int|null",
@@ -243,7 +284,12 @@ async def _repair_intent_with_llm(
                     "scope": "per_night|total_stay|null",
                 },
             },
-            "unknown_requests": "list[str]",
+            "property_types": [
+                "apartment|hotel|hostel|house|aparthotel|guesthouse"
+            ],
+            "occupancy_types": [
+                "entire_place|private_room|shared_room|hotel_room"
+            ],
         },
     }
 
@@ -265,21 +311,35 @@ async def _repair_intent_with_llm(
     return await asyncio.to_thread(_call_sync)
 
 
-def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
+def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
+    """
+    Keep only safely parseable enum-based values and collect dropped legacy residue separately.
+
+    Contract:
+    - returned intent dict is safe to validate as IntentRoute
+    - unknown_requests is not used as a salvage bucket
+    - dropped_requests contains invalid legacy enum-like items that could not be preserved
+    """
+    dropped_requests: list[str] = []
+
     out: Dict[str, Any] = {
         "city": intent_dict.get("city"),
         "check_in": intent_dict.get("check_in"),
         "check_out": intent_dict.get("check_out"),
         "nights": intent_dict.get("nights"),
+        "adults": intent_dict.get("adults"),
+        "children": intent_dict.get("children"),
+        "rooms": intent_dict.get("rooms"),
+        "constraints": intent_dict.get("constraints") or [],
         "must_have_fields": [],
         "nice_to_have_fields": [],
         "filters": intent_dict.get("filters") or {},
         "property_types": [],
         "occupancy_types": [],
-        "unknown_requests": list(intent_dict.get("unknown_requests") or []),
+        "unknown_requests": [],
     }
 
-    def parse_enum_list(xs, enum_cls, *, push_unknown: bool = True):
+    def parse_enum_list(xs, enum_cls):
         ok = []
         for x in xs or []:
             if isinstance(x, enum_cls):
@@ -307,11 +367,10 @@ def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
                 except Exception:
                     pass
 
-                if push_unknown:
-                    out["unknown_requests"].append(x)
+                if s:
+                    dropped_requests.append(s)
             else:
-                if push_unknown:
-                    out["unknown_requests"].append(str(x))
+                dropped_requests.append(str(x))
         return ok
 
     out["must_have_fields"] = parse_enum_list(intent_dict.get("must_have_fields"), Field)
@@ -319,15 +378,30 @@ def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
     out["property_types"] = parse_enum_list(intent_dict.get("property_types"), PropertyType)
     out["occupancy_types"] = parse_enum_list(intent_dict.get("occupancy_types"), OccupancyType)
 
-    return out
+    seen: set[str] = set()
+    deduped_dropped: list[str] = []
+    for item in dropped_requests:
+        cleaned = item.strip()
+        key = cleaned.casefold()
+        if not cleaned or key in seen:
+            continue
+        seen.add(key)
+        deduped_dropped.append(cleaned)
+
+    return out, deduped_dropped
 
 async def _validate_and_repair_intent(intent: Any, attempts: int = 2) -> Tuple[IntentRoute, List[str]]:
     """Validate intent as IntentRoute with up to N LLM repair attempts.
 
     Returns (intent_obj, dropped_requests).
-    dropped_requests are items we could not map (ignored but later reported).
+
+    dropped_requests:
+    - invalid legacy enum-like residue we could not preserve cleanly
+    - NOT compatibility unknown_requests
+    - NOT canonical unresolved constraints
     """
     intent_work: Dict[str, Any] = intent if isinstance(intent, dict) else {}
+    dropped_requests: list[str] = []
 
     intent_obj: Optional[IntentRoute] = None
     for _ in range(max(0, attempts)):
@@ -344,14 +418,11 @@ async def _validate_and_repair_intent(intent: Any, attempts: int = 2) -> Tuple[I
         try:
             intent_obj = IntentRoute.model_validate(intent_work)
         except ValidationError:
-            salvaged = _salvage_only_enum_keys(intent_work)
+            salvaged, salvage_dropped = _salvage_only_enum_keys(intent_work)
+            dropped_requests.extend(salvage_dropped)
             intent_obj = IntentRoute.model_validate(salvaged)
 
-    dropped: List[str] = []
-    if getattr(intent_obj, "unknown_requests", None):
-        dropped.extend(intent_obj.unknown_requests)
-
-    return intent_obj, dropped
+    return intent_obj, dropped_requests
 
 
 def _require_dates(intent_obj: IntentRoute) -> Tuple[Optional[date], Optional[date]]:
@@ -367,7 +438,7 @@ def _build_request(
     check_in: date,
     check_out: date,
 ) -> SearchRequest:
-    return SearchRequest(
+    req = SearchRequest(
         city=city,
         check_in=check_in,
         check_out=check_out,
@@ -376,14 +447,21 @@ def _build_request(
         rooms=intent_obj.rooms or 1,
         currency="USD",
         budget_max=None,
-        must_have_fields=intent_obj.must_have_fields,
-        nice_to_have_fields=intent_obj.nice_to_have_fields,
+        must_have_fields=[],
+        nice_to_have_fields=[],
         forbidden_fields=[],
         min_guest_rating=None,
         filters=intent_obj.filters,
-        property_types=intent_obj.property_types,
-        occupancy_types=intent_obj.occupancy_types,
+        property_types=intent_obj.property_types or None,
+        occupancy_types=intent_obj.occupancy_types or None,
+        constraints=intent_obj.constraints,
+        unknown_requests=[],
     )
+
+    # Canonical flow:
+    # SearchRequest semantic state is carried by constraints.
+    # Legacy fields are derived here only for compatibility/debug layers.
+    return sync_legacy_state_from_constraints(req)
 
 
 def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dict[str, Any]]:
@@ -547,6 +625,35 @@ def _apply_unknown_request_scoring(ranked_items: list[dict]) -> list[dict]:
     ranked_items.sort(key=lambda x: x.get("score", 0.0), reverse=True)
     return ranked_items
 
+
+def _build_constraint_statuses(ranked_items: list[dict]) -> list[dict]:
+    """
+    Flatten unresolved-constraint fallback results into a response-friendly
+    constraint status representation.
+    """
+    statuses: list[dict] = []
+
+    for item in ranked_items:
+        listing = item.get("listing")
+        listing_id = getattr(listing, "id", None)
+        listing_title = item.get("listing_name")
+
+        for result in item.get("unknown_request_results", []) or []:
+            constraint = result.get("constraint") or {}
+            statuses.append(
+                {
+                    "listing_id": listing_id,
+                    "listing_title": listing_title,
+                    "constraint": constraint,
+                    "query_text": result.get("query_text"),
+                    "value": result.get("value"),
+                    "reason": result.get("reason"),
+                    "evidence": result.get("evidence", []),
+                }
+            )
+
+    return statuses
+
 async def orchestrate_search(
     user_text: str,
     intent: Dict[str, Any],
@@ -563,6 +670,30 @@ async def orchestrate_search(
         }
 
     intent_obj, dropped_requests = await _validate_and_repair_intent(intent, attempts=2)
+    # 🔴 BACKWARD COMPATIBILITY BRIDGE
+    # If intent came in legacy format (must_have_fields, etc.),
+    # but constraints are empty → reconstruct constraints
+    if not intent_obj.constraints:
+        legacy_req = SearchRequest(
+            city=intent_obj.city,
+            check_in=intent_obj.check_in,
+            check_out=intent_obj.check_out,
+            nights=intent_obj.nights,
+            adults=intent_obj.adults or 2,
+            children=intent_obj.children or 0,
+            rooms=intent_obj.rooms or 1,
+            must_have_fields=intent.get("must_have_fields", []),
+            nice_to_have_fields=intent.get("nice_to_have_fields", []),
+            forbidden_fields=intent.get("forbidden_fields", []),
+            unknown_requests=intent.get("unknown_requests", []),
+            filters=intent_obj.filters,
+            property_types=intent_obj.property_types or None,
+            occupancy_types=intent_obj.occupancy_types or None,
+        )
+
+        intent_obj = intent_obj.model_copy(
+            update={"constraints": build_constraints_from_legacy_state(legacy_req)}
+        )
 
     resolved = resolve_required_search_context(intent_obj)
 
@@ -633,9 +764,7 @@ async def orchestrate_search(
     # 5) Structured ranking + fallback on top-K for UNCERTAIN must-have fields
     ranked = _rank_structured(req, listings)
     await _apply_fallback_topk(req, ranked, fallback_top_k=fallback_top_k)
-    ranked = await _attach_unknown_request_results(intent, ranked)
-    ranked = _apply_unknown_request_scoring(ranked)
-    # 6) Strict must-have filter AFTER fallback too
+    ranked = await _attach_unknown_request_results(req, ranked)    # 6) Strict must-have filter AFTER fallback too
     ranked = [
         it
         for it in ranked
@@ -644,13 +773,15 @@ async def orchestrate_search(
     ]
     ranked.sort(key=lambda x: x["score"], reverse=True)
     normalized = normalize_search_response(
-    req,
-    ranked,
-    top_n=top_n,
-    dropped_requests=dropped_requests,
+        req,
+        ranked,
+        top_n=top_n,
+        dropped_requests=dropped_requests,
     )
 
-    return normalized.model_dump(mode="json", exclude_none=True)
+    payload = normalized.model_dump(mode="json", exclude_none=True)
+    payload["constraint_statuses"] = _build_constraint_statuses(ranked[: max(0, top_n)])
+    return payload
     
 def _format_match_why(field: Field, fm: Any) -> str:
     if fm is None:

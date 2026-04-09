@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, List
 
 from app.logic.result_ids import build_result_id
+from app.logic.unresolved_constraint_utils import get_unresolved_must_constraint_texts
 from app.schemas.match import Ternary
 from app.schemas.query import SearchRequest
 from app.schemas.search_response import (
@@ -39,6 +40,37 @@ def default_uncertain_reason(field_name: str | None) -> str:
 
 
 def _request_summary(req: SearchRequest, dropped_requests: List[str]) -> NormalizedRequestSummary:
+    """
+    Build the normalized request summary.
+
+    Contract:
+    - constraints remains the canonical semantic state
+    - unknown_requests is a compatibility-only derived projection from canonical constraints
+    - dropped_requests is separate debug / normalization residue and must not be mixed
+      into unknown_requests
+    """
+    constraints_present = bool(req.constraints)
+    derived_unknown_requests = get_unresolved_must_constraint_texts(req)
+
+    # Compatibility fallback for older call paths that may still pass a request with
+    # legacy unknown_requests but without lifted constraints.
+    #
+    # Important:
+    # - use fallback only when canonical constraints are absent
+    # - if constraints are present, even an empty derived projection must win,
+    #   because unknown_requests is only a lossy compatibility view
+    if not constraints_present and getattr(req, "unknown_requests", None):
+        seen: set[str] = set()
+        fallback_unknown_requests: list[str] = []
+        for text in req.unknown_requests:
+            cleaned = str(text).strip()
+            key = cleaned.casefold()
+            if not cleaned or key in seen:
+                continue
+            seen.add(key)
+            fallback_unknown_requests.append(cleaned)
+        derived_unknown_requests = fallback_unknown_requests
+
     return NormalizedRequestSummary(
         city=req.city,
         check_in=req.check_in.isoformat() if req.check_in else None,
@@ -48,9 +80,21 @@ def _request_summary(req: SearchRequest, dropped_requests: List[str]) -> Normali
         property_types=[x.value if hasattr(x, "value") else str(x) for x in (req.property_types or [])],
         occupancy_types=[x.value if hasattr(x, "value") else str(x) for x in (req.occupancy_types or [])],
         filters=req.filters.model_dump() if req.filters else {},
-        unknown_requests=dropped_requests,
+        unknown_requests=derived_unknown_requests,
+        dropped_requests=list(dropped_requests or []),
+        constraints=[
+            {
+                "raw_text": c.raw_text,
+                "normalized_text": c.normalized_text,
+                "priority": c.priority.value,
+                "category": c.category.value,
+                "mapping_status": c.mapping_status.value,
+                "mapped_fields": [f.value for f in c.mapped_fields],
+                "evidence_strategy": c.evidence_strategy.value,
+            }
+            for c in (req.constraints or [])
+        ],
     )
-
 
 def _humanize_constraint_name(name: str | None) -> str:
     if not name:
@@ -95,7 +139,9 @@ def _status_bucket(name: str, value: Any, reason: str | None) -> ConstraintStatu
     )
 
 
-def _collect_constraint_statuses(item: dict[str, Any]) -> tuple[list[ConstraintStatus], list[ConstraintStatus], list[ConstraintStatus]]:
+def _collect_constraint_statuses(
+    item: dict[str, Any],
+) -> tuple[list[ConstraintStatus], list[ConstraintStatus], list[ConstraintStatus]]:
     matched: list[ConstraintStatus] = []
     uncertain: list[ConstraintStatus] = []
     failed: list[ConstraintStatus] = []

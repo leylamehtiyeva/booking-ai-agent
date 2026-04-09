@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import uuid
 from datetime import date
 from typing import Optional
-from app.logic.date_normalization import normalize_intent_dates
 
 from google.adk.agents.run_config import RunConfig
 from google.adk.runners import Runner
@@ -13,8 +13,11 @@ from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
 
 from app.agents.intent_router_agent import IntentRoute, build_intent_router_agent
+from app.logic.constraint_state import sync_legacy_state_from_constraints
+from app.logic.date_normalization import normalize_intent_dates
 from app.logic.request_resolution import resolve_required_search_context
 from app.schemas.query import SearchRequest
+
 
 APP_NAME = "booking-ai-agent"
 USER_ID = "local-user"
@@ -41,6 +44,49 @@ def _strip_json_fence(text: str) -> str:
         if len(lines) >= 3 and lines[0].startswith("```") and lines[-1].startswith("```"):
             t = "\n".join(lines[1:-1]).strip()
     return t
+
+
+def _lift_legacy_unknown_requests_into_constraints(payload: dict) -> dict:
+    """
+    Compatibility-only lift for older router outputs.
+
+    If a payload arrives with unknown_requests but without canonical constraints,
+    convert those legacy items into unresolved MUST constraints so that downstream
+    logic still sees canonical semantic state.
+
+    This is a defensive bridge only. New router outputs should preserve meaning
+    directly in constraints and leave unknown_requests empty.
+    """
+    constraints = payload.get("constraints") or []
+    unknown_requests = payload.get("unknown_requests") or []
+
+    if constraints or not unknown_requests:
+        return payload
+
+    lifted_constraints = []
+    seen: set[str] = set()
+
+    for text in unknown_requests:
+        cleaned = str(text).strip()
+        key = cleaned.casefold()
+        if not cleaned or key in seen:
+            continue
+        seen.add(key)
+        lifted_constraints.append(
+            {
+                "raw_text": cleaned,
+                "normalized_text": cleaned,
+                "priority": "must",
+                "category": "other",
+                "mapping_status": "unresolved",
+                "mapped_fields": [],
+                "evidence_strategy": "textual",
+            }
+        )
+
+    out = dict(payload)
+    out["constraints"] = lifted_constraints
+    return out
 
 
 async def _route_intent_via_adk(user_text: str) -> IntentRoute:
@@ -74,7 +120,26 @@ async def _route_intent_via_adk(user_text: str) -> IntentRoute:
         raise ValueError("ADK returned empty response text")
 
     clean = _strip_json_fence(final_text)
-    return IntentRoute.model_validate_json(clean)
+    payload = json.loads(clean)
+
+    if payload.get("filters") is None:
+        payload["filters"] = {}
+
+    if payload.get("constraints") is None:
+        payload["constraints"] = []
+
+    if payload.get("property_types") is None:
+        payload["property_types"] = []
+
+    if payload.get("occupancy_types") is None:
+        payload["occupancy_types"] = []
+
+    if payload.get("unknown_requests") is None:
+        payload["unknown_requests"] = []
+
+    payload = _lift_legacy_unknown_requests_into_constraints(payload)
+
+    return IntentRoute.model_validate(payload)
 
 
 async def route_intent_adk_async(user_text: str) -> IntentRoute:
@@ -96,20 +161,22 @@ async def build_search_request_adk_async(user_text: str) -> SearchRequest:
     clean_filters = _clean_filters(intent.filters)
 
     req = SearchRequest(
-    city=resolved.city,
-    check_in=resolved.check_in,
-    check_out=resolved.check_out,
-    adults=intent.adults or 2,
-    children=intent.children or 0,
-    rooms=intent.rooms or 1,
-    must_have_fields=intent.must_have_fields,
-    nice_to_have_fields=intent.nice_to_have_fields,
-    forbidden_fields=[],
-    filters=clean_filters,
-    property_types=intent.property_types,
-    occupancy_types=intent.occupancy_types,
-    unknown_requests=intent.unknown_requests,
-)
+        city=resolved.city,
+        check_in=resolved.check_in,
+        check_out=resolved.check_out,
+        adults=intent.adults or 2,
+        children=intent.children or 0,
+        rooms=intent.rooms or 1,
+        must_have_fields=[],
+        nice_to_have_fields=[],
+        forbidden_fields=[],
+        filters=clean_filters,
+        property_types=intent.property_types or None,
+        occupancy_types=intent.occupancy_types or None,
+        constraints=intent.constraints,
+        unknown_requests=[],
+    )
+    req = sync_legacy_state_from_constraints(req)
 
     print("\n=== SEARCH REQUEST ===")
     print(req.model_dump(mode="json", exclude_none=True))
