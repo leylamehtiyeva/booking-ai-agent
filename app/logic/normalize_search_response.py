@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any, List
 
 from app.logic.result_ids import build_result_id
-from app.logic.unresolved_constraint_utils import get_unresolved_must_constraint_texts
 from app.schemas.match import Ternary
 from app.schemas.query import SearchRequest
 from app.schemas.search_response import (
@@ -51,7 +50,12 @@ def _request_summary(req: SearchRequest, dropped_requests: List[str]) -> Normali
       into unknown_requests
     """
     constraints_present = bool(req.constraints)
-    derived_unknown_requests = get_unresolved_must_constraint_texts(req)
+    derived_unknown_requests = [
+            c.normalized_text
+            for c in (req.constraints or [])
+            if c.priority.value == "must"
+            and c.mapping_status.value == "unresolved"
+        ]
 
     # Compatibility fallback for older call paths that may still pass a request with
     # legacy unknown_requests but without lifted constraints.

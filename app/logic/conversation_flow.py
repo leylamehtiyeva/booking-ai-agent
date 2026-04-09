@@ -11,9 +11,12 @@ from app.logic.intent_update import update_search_state_async
 from app.logic.request_resolution import resolve_required_search_context
 from app.logic.conversation_router import route_conversation_async
 from app.logic.listing_signals import collect_listing_signals
-from app.logic.unknown_field_evidence_search import search_unknown_must_have_evidence
 from app.schemas.query import SearchRequest
 from app.tools.orchestrate_search_tool import orchestrate_search
+from app.logic.constraint_evidence_resolution import (
+    ConstraintResolutionRequest,
+    resolve_constraint_via_textual_evidence,
+)
 
 
 def _build_state_payload(state: SearchRequest | None) -> dict[str, Any] | None:
@@ -65,21 +68,42 @@ async def _answer_listing_question(
         }
 
     signals = collect_listing_signals(shown_listing)
-    evidence_result = await search_unknown_must_have_evidence(
-        query_text=user_message,
-        listing_signals=signals,
+
+    request = ConstraintResolutionRequest(
+        listing_id=shown_listing.get("id"),
+        listing_title=shown_listing.get("name"),
+        constraint_id=None,
+        raw_text=user_message,
+        normalized_text=user_message,
+        priority="must",
+        category="other",
+        mapping_status="unresolved",
+        evidence_strategy="textual",
+        mapped_fields=[],
+        structured_value=None,
+        resolver_type="textual",
+        listing_evidence=[
+            {
+                "source": s.source,
+                "path": s.path,
+                "text": s.raw_text or s.text,
+            }
+            for s in signals
+        ],
     )
+
+    result = await resolve_constraint_via_textual_evidence(request)
 
     return {
         "need_clarification": False,
         "response_type": "listing_question",
-        "answer": evidence_result.reason,
-        "listing_question_result": evidence_result.model_dump(mode="json"),
+        "answer": result.reason,
+        "listing_question_result": result.model_dump(mode="json"),
         "state": previous_state_json,
         "parsed_intent": {
             "router": route_debug,
             "user_message": user_message,
-            "listing_question_result": evidence_result.model_dump(mode="json"),
+            "listing_question_result": result.model_dump(mode="json"),
         },
         "search_request": previous_state_json,
     }

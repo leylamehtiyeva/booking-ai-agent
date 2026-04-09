@@ -307,10 +307,7 @@ async def _validate_and_repair_intent(intent: Any, attempts: int = 2) -> Tuple[I
     return intent_obj, dropped_requests
 
 
-def _require_dates(intent_obj: IntentRoute) -> Tuple[Optional[date], Optional[date]]:
-    return _parse_iso_date(getattr(intent_obj, "check_in", None)), _parse_iso_date(
-        getattr(intent_obj, "check_out", None)
-    )
+
 
 
 def _build_request(
@@ -406,80 +403,7 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
 
 
 
-def _format_results(req: SearchRequest, ranked: List[Dict[str, Any]], top_n: int, dropped_requests: List[str]) -> Dict[str, Any]:
-    results_out = []
-    for r in ranked[: max(0, top_n)]:
-        lst = r.get("listing")
-        results_out.append(
-            {
-                "title": r["listing_name"],
-                "url": getattr(lst, "url", None),
-                "id": getattr(lst, "id", None),
-                "score": r["score"],
-                "must": f"{r['must_have_matched']}/{r['must_have_total']}",
-                "why": r["why"],
-            }
-        )
 
-
-    not_found_fields = set()
-    for r in ranked[: max(0, top_n)]:
-        for f in (req.must_have_fields or []):
-            fm = r["matches"].get(f)
-            if fm is not None and fm.value == Ternary.NO:
-                not_found_fields.add(f.value)
-
-    notes = []
-    if dropped_requests:
-        notes.append(f"Could not map (ignored): {sorted(set(dropped_requests))}")
-    if not_found_fields:
-        notes.append(f"Not found in top results: {sorted(not_found_fields)}")
-
-    summary = (
-        f"city={req.city}, check_in={req.check_in}, check_out={req.check_out}, "
-        f"must_have={[f.value for f in (req.must_have_fields or [])]}, "
-        f"nice_to_have={[f.value for f in (req.nice_to_have_fields or [])]}, "
-        f"property_types={[p.value for p in (req.property_types or [])]}, "
-        f"occupancy_types={[o.value for o in (req.occupancy_types or [])]}"
-    )
-    if notes:
-        summary += " | " + " | ".join(notes)
-
-    return {
-        "need_clarification": False,
-        "summary": summary,
-        "results": results_out,
-    }
-
-
-
-def _build_constraint_statuses(ranked_items: list[dict]) -> list[dict]:
-    """
-    Flatten unresolved-constraint fallback results into a response-friendly
-    constraint status representation.
-    """
-    statuses: list[dict] = []
-
-    for item in ranked_items:
-        listing = item.get("listing")
-        listing_id = getattr(listing, "id", None)
-        listing_title = item.get("listing_name")
-
-        for result in item.get("unknown_request_results", []) or []:
-            constraint = result.get("constraint") or {}
-            statuses.append(
-                {
-                    "listing_id": listing_id,
-                    "listing_title": listing_title,
-                    "constraint": constraint,
-                    "query_text": result.get("query_text"),
-                    "value": result.get("value"),
-                    "reason": result.get("reason"),
-                    "evidence": result.get("evidence", []),
-                }
-            )
-
-    return statuses
 
 async def orchestrate_search(
     user_text: str,
@@ -588,23 +512,26 @@ async def orchestrate_search(
             "questions": ["Ничего не найдено по текущим условиям. Попробуй изменить требования."],
         }
 
+    # 5) Structured ranking
     ranked = _rank_structured(req, listings)
 
+    # 6) Unified constraint fallback layer on top-K
     await _apply_constraint_fallback_layer(
         req,
         ranked,
         fallback_top_k=fallback_top_k,
     )
 
+    # 7) Apply fallback-informed scoring
     ranked = _apply_constraint_resolution_scoring(ranked)
 
+    # 8) Strict must-have / numeric filtering
     ranked = [
         it
         for it in ranked
         if not _fails_must(it["matches"], req.must_have_fields)
         and not _fails_numeric_filters(it.get("numeric_results"))
     ]
-
     ranked.sort(key=lambda x: x["score"], reverse=True)
 
     normalized = normalize_search_response(
