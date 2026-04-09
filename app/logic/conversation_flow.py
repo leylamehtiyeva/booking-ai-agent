@@ -17,6 +17,7 @@ from app.logic.constraint_evidence_resolution import (
     ConstraintResolutionRequest,
     resolve_constraint_via_textual_evidence,
 )
+from app.schemas.fallback_policy import FallbackPolicy
 
 
 def _build_state_payload(state: SearchRequest | None) -> dict[str, Any] | None:
@@ -129,7 +130,7 @@ async def handle_user_message(
     *,
     source: str = "fixtures",
     top_n: int = 5,
-    fallback_top_k: int = 5,
+    fallback_policy: FallbackPolicy | None = None,
     max_items: int = 10,
     shown_listing: dict[str, Any] | None = None,
     latest_result_context: dict[str, Any] | None = None,
@@ -227,7 +228,7 @@ async def handle_user_message(
         user_text=user_message,
         intent=state_json,
         top_n=top_n,
-        fallback_top_k=fallback_top_k,
+        fallback_policy=fallback_policy,
         max_items=max_items,
         source=source,
     )

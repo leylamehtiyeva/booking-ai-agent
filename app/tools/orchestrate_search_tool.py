@@ -30,6 +30,7 @@ from app.logic.constraint_state import (
 from app.logic.constraint_evidence_resolution import (
     resolve_listing_constraints_with_fallback,
 )
+from app.schemas.fallback_policy import FallbackPolicy
 
 
 
@@ -409,9 +410,9 @@ async def orchestrate_search(
     user_text: str,
     intent: Dict[str, Any],
     top_n: int = MAX_ITEMS_DEFAULT,
-    fallback_top_k: int = 5,
     max_items: int = MAX_ITEMS_DEFAULT,
     source: Source = "fixtures",
+    fallback_policy: FallbackPolicy | None = None,
 ) -> Dict[str, Any]:
     """High-level search orchestration tool (fixtures + apify)."""
     if max_items > MAX_ITEMS_HARD_CAP:
@@ -516,10 +517,14 @@ async def orchestrate_search(
     ranked = _rank_structured(req, listings)
 
     # 6) Unified constraint fallback layer on top-K
+    # 6) Unified constraint fallback layer on top-K
+    if fallback_policy is None:
+        fallback_policy = _build_fallback_policy(fallback_top_k=5)
+
     await _apply_constraint_fallback_layer(
         req,
         ranked,
-        fallback_top_k=fallback_top_k,
+        policy=fallback_policy,
     )
 
     # 7) Apply fallback-informed scoring
@@ -623,13 +628,34 @@ def _score_listing(
     return score, must_yes, must_total, why
 
 
+def _build_fallback_policy(
+    *,
+    fallback_top_k: int,
+) -> FallbackPolicy:
+    return FallbackPolicy(
+        enabled=True,
+        top_k=fallback_top_k,
+        must_only=True,
+        run_for_unresolved=True,
+        run_for_structured_uncertain=True,
+        max_constraints_per_listing=3,
+        model="gemini-2.0-flash",
+    )
+
 async def _apply_constraint_fallback_layer(
     req: SearchRequest,
     ranked: list[dict],
     *,
-    fallback_top_k: int,
+    policy: FallbackPolicy,
 ) -> None:
-    for item in ranked[: max(0, fallback_top_k)]:
+    if not policy.enabled:
+        for item in ranked:
+            item["constraint_resolution_results"] = []
+        return
+
+    top_k = policy.normalized_top_k()
+
+    for item in ranked[:top_k]:
         listing = item.get("listing")
         if listing is None:
             item["constraint_resolution_results"] = []
@@ -639,12 +665,15 @@ async def _apply_constraint_fallback_layer(
             listing=listing,
             constraints=req.constraints or [],
             structured_matches_by_field=item.get("matches", {}),
-            must_only=True,
+            policy=policy,
         )
 
         item["constraint_resolution_results"] = [
             r.model_dump(mode="json") for r in results
         ]
+
+    for item in ranked[top_k:]:
+        item["constraint_resolution_results"] = []
 
 
 def _apply_constraint_resolution_scoring(ranked_items: list[dict]) -> list[dict]:

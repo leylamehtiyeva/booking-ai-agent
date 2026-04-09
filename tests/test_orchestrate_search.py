@@ -4,6 +4,7 @@ from datetime import date
 from app.agents.intent_router_agent import IntentRoute
 from app.logic.request_resolution import resolve_required_search_context
 from app.tools.orchestrate_search_tool import orchestrate_search
+from app.schemas.fallback_policy import FallbackPolicy
 
 
 @pytest.mark.asyncio
@@ -367,7 +368,7 @@ async def test_orchestrate_search_returns_normalized_response(monkeypatch):
         intent,
         source="fixtures",
         max_items=10,
-        fallback_top_k=0,
+        fallback_policy=FallbackPolicy(enabled=True, top_k=0),
     )
 
     assert out["need_clarification"] is False
@@ -416,6 +417,8 @@ async def test_constraint_resolution_results_are_attached_and_can_influence_rank
         intent,
         source="fixtures",
         max_items=5,
+        fallback_policy=FallbackPolicy(enabled=True),
+
     )
 
     assert out["need_clarification"] is False
@@ -468,6 +471,8 @@ async def test_unknown_request_found_improves_listing_priority():
         intent,
         source="fixtures",
         max_items=5,
+        fallback_policy=FallbackPolicy(enabled=True),
+
     )
 
     assert out["need_clarification"] is False
@@ -605,6 +610,8 @@ async def test_occupancy_filter_is_applied():
         intent,
         source="fixtures",
         max_items=10,
+        fallback_policy=FallbackPolicy(enabled=True),
+
     )
 
     assert out["need_clarification"] is False

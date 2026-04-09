@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app.schemas.fallback_policy import FallbackPolicy
 
 from app.logic import constraint_evidence_resolution as cer
 from app.schemas.constraints import (
@@ -24,10 +25,12 @@ def test_unresolved_must_textual_constraint_is_fallback_eligible():
         evidence_strategy=EvidenceStrategy.TEXTUAL,
     )
 
+    policy = FallbackPolicy(enabled=True, must_only=True)
+
     assert cer.is_constraint_fallback_eligible(
         constraint,
         structured_value=None,
-        must_only=True,
+        policy=policy,
     ) is True
 
 
@@ -42,10 +45,12 @@ def test_known_constraint_with_uncertain_structured_match_is_fallback_eligible()
         evidence_strategy=EvidenceStrategy.STRUCTURED,
     )
 
+    policy = FallbackPolicy(enabled=True, must_only=True)
+
     assert cer.is_constraint_fallback_eligible(
         constraint,
         structured_value=Ternary.UNCERTAIN,
-        must_only=True,
+        policy=policy,
     ) is True
 
 
@@ -60,10 +65,11 @@ def test_known_constraint_with_positive_structured_match_is_not_fallback_eligibl
         evidence_strategy=EvidenceStrategy.STRUCTURED,
     )
 
+    policy=FallbackPolicy(enabled=True, must_only=True)
     assert cer.is_constraint_fallback_eligible(
         constraint,
         structured_value=Ternary.YES,
-        must_only=True,
+        policy=policy,
     ) is False
 
 
@@ -195,11 +201,13 @@ async def test_resolve_listing_constraints_with_fallback_returns_unified_results
         )
     }
 
+    policy = FallbackPolicy(enabled=True)
+
     results = await cer.resolve_listing_constraints_with_fallback(
         listing=listing,
         constraints=[unresolved_constraint, kitchen_constraint],
         structured_matches_by_field=structured_matches,
-        must_only=True,
+        policy=policy,
     )
 
     assert len(results) == 2
@@ -213,3 +221,137 @@ async def test_resolve_listing_constraints_with_fallback_returns_unified_results
     assert by_name["kitchen"].resolution_status == "matched"
     assert by_name["kitchen"].structured_value_before == "UNCERTAIN"
     assert by_name["kitchen"].evidence[0].snippet == "Private kitchen"
+    
+    
+def test_fallback_policy_disables_eligibility():
+    constraint = UserConstraint(
+        raw_text="satellite TV",
+        normalized_text="satellite TV",
+        priority=ConstraintPriority.MUST,
+        category=ConstraintCategory.OTHER,
+        mapping_status=ConstraintMappingStatus.UNRESOLVED,
+        mapped_fields=[],
+        evidence_strategy=EvidenceStrategy.TEXTUAL,
+    )
+
+    policy = FallbackPolicy(enabled=False)
+
+    assert cer.is_constraint_fallback_eligible(
+        constraint,
+        structured_value=None,
+        policy=policy,
+    ) is False
+
+
+def test_fallback_policy_can_disable_unresolved_path():
+    constraint = UserConstraint(
+        raw_text="satellite TV",
+        normalized_text="satellite TV",
+        priority=ConstraintPriority.MUST,
+        category=ConstraintCategory.OTHER,
+        mapping_status=ConstraintMappingStatus.UNRESOLVED,
+        mapped_fields=[],
+        evidence_strategy=EvidenceStrategy.TEXTUAL,
+    )
+
+    policy = FallbackPolicy(
+        enabled=True,
+        run_for_unresolved=False,
+        run_for_structured_uncertain=True,
+    )
+
+    assert cer.is_constraint_fallback_eligible(
+        constraint,
+        structured_value=None,
+        policy=policy,
+    ) is False
+
+
+def test_fallback_policy_can_disable_structured_uncertain_path():
+    constraint = UserConstraint(
+        raw_text="place for cooking",
+        normalized_text="kitchen",
+        priority=ConstraintPriority.MUST,
+        category=ConstraintCategory.AMENITY,
+        mapping_status=ConstraintMappingStatus.KNOWN,
+        mapped_fields=[Field.KITCHEN],
+        evidence_strategy=EvidenceStrategy.STRUCTURED,
+    )
+
+    policy = FallbackPolicy(
+        enabled=True,
+        run_for_unresolved=True,
+        run_for_structured_uncertain=False,
+    )
+
+    assert cer.is_constraint_fallback_eligible(
+        constraint,
+        structured_value=Ternary.UNCERTAIN,
+        policy=policy,
+    ) is False
+
+
+async def test_fallback_policy_limits_constraints_per_listing(monkeypatch):
+    listing = ListingRaw(
+        id="listing-123",
+        name="Apartment STEL",
+        description="This apartment includes a fully equipped kitchen and balcony.",
+        facilities=["Kitchen", "Washing machine"],
+        rooms=[
+            Room(
+                name="Studio",
+                facilities=["Private kitchen", "Balcony"],
+                options=[],
+            )
+        ],
+    )
+
+    constraints = [
+        UserConstraint(
+            raw_text=f"constraint-{i}",
+            normalized_text=f"constraint-{i}",
+            priority=ConstraintPriority.MUST,
+            category=ConstraintCategory.OTHER,
+            mapping_status=ConstraintMappingStatus.UNRESOLVED,
+            mapped_fields=[],
+            evidence_strategy=EvidenceStrategy.TEXTUAL,
+        )
+        for i in range(5)
+    ]
+
+    calls: list[str] = []
+
+    async def _fake_resolve(req, *, model="gemini-2.0-flash"):
+        calls.append(req.normalized_text)
+        return cer.ConstraintResolutionResult(
+            listing_id=req.listing_id,
+            listing_title=req.listing_title,
+            constraint_id=req.constraint_id,
+            raw_text=req.raw_text,
+            normalized_text=req.normalized_text,
+            resolver_type="textual",
+            decision="UNCERTAIN",
+            resolution_status="uncertain",
+            confidence=0.3,
+            reason="Not explicitly confirmed.",
+            evidence=[],
+            structured_value_before=req.structured_value,
+            explicit_negative=False,
+        )
+
+    monkeypatch.setattr(cer, "resolve_constraint_via_textual_evidence", _fake_resolve)
+
+    policy = FallbackPolicy(
+        enabled=True,
+        max_constraints_per_listing=2,
+    )
+
+    results = await cer.resolve_listing_constraints_with_fallback(
+        listing=listing,
+        constraints=constraints,
+        structured_matches_by_field={},
+        policy=policy,
+    )
+
+    assert len(results) == 2
+    assert calls == ["constraint-0", "constraint-1"]

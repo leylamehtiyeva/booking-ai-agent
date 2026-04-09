@@ -6,6 +6,7 @@ import os
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+from app.schemas.fallback_policy import FallbackPolicy
 
 from app.logic.listing_signals import collect_listing_signals
 from app.schemas.constraints import (
@@ -263,22 +264,30 @@ def is_constraint_fallback_eligible(
     constraint: UserConstraint,
     *,
     structured_value: Ternary | None,
-    must_only: bool = True,
+    policy: FallbackPolicy,
 ) -> bool:
-    if must_only and constraint.priority != ConstraintPriority.MUST:
+    if not policy.enabled:
+        return False
+
+    if policy.must_only and constraint.priority != ConstraintPriority.MUST:
         return False
 
     if constraint.evidence_strategy not in {EvidenceStrategy.TEXTUAL, EvidenceStrategy.STRUCTURED}:
         return False
 
-    if constraint.mapping_status == ConstraintMappingStatus.UNRESOLVED:
+    if (
+        policy.run_for_unresolved
+        and constraint.mapping_status == ConstraintMappingStatus.UNRESOLVED
+    ):
         return True
 
-    if structured_value == Ternary.UNCERTAIN:
+    if (
+        policy.run_for_structured_uncertain
+        and structured_value == Ternary.UNCERTAIN
+    ):
         return True
 
     return False
-
 
 def build_resolution_request(
     *,
@@ -354,12 +363,18 @@ async def resolve_listing_constraints_with_fallback(
     listing: ListingRaw,
     constraints: list[UserConstraint],
     structured_matches_by_field: dict[CanonicalField, Any],
-    must_only: bool = True,
-    model: str = "gemini-2.0-flash",
+    policy: FallbackPolicy,
 ) -> list[ConstraintResolutionResult]:
+    if not policy.enabled:
+        return []
+
     results: list[ConstraintResolutionResult] = []
+    max_constraints = policy.normalized_max_constraints_per_listing()
 
     for constraint in constraints or []:
+        if len(results) >= max_constraints:
+            break
+
         structured_value: Ternary | None = None
 
         if constraint.mapping_status == ConstraintMappingStatus.KNOWN and constraint.mapped_fields:
@@ -370,7 +385,7 @@ async def resolve_listing_constraints_with_fallback(
         if not is_constraint_fallback_eligible(
             constraint,
             structured_value=structured_value,
-            must_only=must_only,
+            policy=policy,
         ):
             continue
 
@@ -379,7 +394,10 @@ async def resolve_listing_constraints_with_fallback(
             constraint=constraint,
             structured_value=structured_value,
         )
-        result = await resolve_constraint_via_textual_evidence(req, model=model)
+        result = await resolve_constraint_via_textual_evidence(
+            req,
+            model=policy.model,
+        )
         results.append(result)
 
     return results
