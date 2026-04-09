@@ -78,7 +78,7 @@ def test_salvage_preserves_filters():
         "unknown_requests": [],
     }
 
-    out = _salvage_only_enum_keys(raw)
+    out, dropped_requests = _salvage_only_enum_keys(raw)
 
     assert out["filters"] == {
         "bedrooms_min": 2,
@@ -87,7 +87,6 @@ def test_salvage_preserves_filters():
         "area_sqm_max": None,
         "bathrooms_min": 2,
         "bathrooms_max": None,
-        
         "price": {
             "min_amount": None,
             "max_amount": 50,
@@ -97,7 +96,13 @@ def test_salvage_preserves_filters():
     }
     assert out["property_types"] == ["apartment"]
     assert out["occupancy_types"] == ["entire_place"]
-    assert "NOT_A_REAL_FIELD" in out["unknown_requests"]
+
+    # A3 contract:
+    # invalid legacy residue is reported separately, not pushed into unknown_requests.
+    assert out["unknown_requests"] == []
+    assert "NOT_A_REAL_FIELD" in dropped_requests
+    assert "NOT_REAL_TYPE" in dropped_requests
+    assert "NOT_REAL_OCCUPANCY" in dropped_requests
     
     
 from app.schemas.listing import ListingRaw, Room

@@ -137,6 +137,7 @@ def test_apply_patch_adds_unknown_requests():
 
     new_state = apply_intent_patch(state, patch)
 
+    assert any(c.normalized_text == "2 beds" for c in new_state.constraints)
     assert new_state.unknown_requests == ["2 beds"]
 
 
@@ -152,4 +153,5 @@ def test_apply_patch_removes_unknown_requests():
 
     new_state = apply_intent_patch(state, patch)
 
+    assert all(c.normalized_text != "2 beds" for c in new_state.constraints)
     assert new_state.unknown_requests == ["satellite TV"]

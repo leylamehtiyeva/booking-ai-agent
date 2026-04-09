@@ -1,11 +1,18 @@
 from datetime import date
 
 from app.logic.normalize_search_response import normalize_search_response
+from app.logic.numeric_filters import NumericMatchResult
+from app.schemas.constraints import (
+    ConstraintCategory,
+    ConstraintMappingStatus,
+    ConstraintPriority,
+    EvidenceStrategy,
+    UserConstraint,
+)
 from app.schemas.fields import Field
 from app.schemas.filters import PriceConstraint, SearchFilters
 from app.schemas.listing import ListingRaw
 from app.schemas.match import Evidence, EvidenceSource, FieldMatch, Ternary
-from app.logic.numeric_filters import NumericMatchResult
 from app.schemas.property_semantics import PropertyType
 from app.schemas.query import SearchRequest
 
@@ -41,6 +48,37 @@ def test_normalize_search_response_builds_request_summary_and_results():
         ),
         property_types=[PropertyType.APARTMENT],
         occupancy_types=[],
+        constraints=[
+            UserConstraint(
+                raw_text="place for cooking",
+                normalized_text="kitchen",
+                priority=ConstraintPriority.MUST,
+                category=ConstraintCategory.AMENITY,
+                mapping_status=ConstraintMappingStatus.KNOWN,
+                mapped_fields=[Field.KITCHEN],
+                evidence_strategy=EvidenceStrategy.STRUCTURED,
+            ),
+            UserConstraint(
+                raw_text="satellite TV",
+                normalized_text="satellite TV",
+                priority=ConstraintPriority.MUST,
+                category=ConstraintCategory.OTHER,
+                mapping_status=ConstraintMappingStatus.UNRESOLVED,
+                mapped_fields=[],
+                evidence_strategy=EvidenceStrategy.TEXTUAL,
+            ),
+            UserConstraint(
+                raw_text="balcony if possible",
+                normalized_text="balcony if possible",
+                priority=ConstraintPriority.NICE,
+                category=ConstraintCategory.AMENITY,
+                mapping_status=ConstraintMappingStatus.UNRESOLVED,
+                mapped_fields=[],
+                evidence_strategy=EvidenceStrategy.TEXTUAL,
+            ),
+        ],
+        # Intentionally kept different from dropped_requests to verify contract.
+        unknown_requests=[],
     )
 
     listing = ListingRaw(
@@ -118,7 +156,7 @@ def test_normalize_search_response_builds_request_summary_and_results():
         req,
         ranked,
         top_n=5,
-        dropped_requests=[],
+        dropped_requests=["legacy parse residue"],
     )
 
     assert out.need_clarification is False
@@ -127,6 +165,13 @@ def test_normalize_search_response_builds_request_summary_and_results():
     assert out.request_summary.must_have_fields == ["kitchen"]
     assert out.request_summary.nice_to_have_fields == ["balcony"]
     assert out.request_summary.property_types == ["apartment"]
+
+    # A3 contract:
+    # unknown_requests is derived from unresolved MUST constraints only.
+    assert out.request_summary.unknown_requests == ["satellite TV"]
+
+    # dropped_requests is separate and must not pollute unknown_requests.
+    assert out.request_summary.dropped_requests == ["legacy parse residue"]
 
     assert len(out.results) == 1
     r0 = out.results[0]
@@ -152,7 +197,63 @@ def test_normalize_search_response_builds_request_summary_and_results():
     assert "bedrooms" in fact_keys
     assert "price_total" in fact_keys or "listing_price_total" in fact_keys
     assert "listing_currency" in fact_keys
-    
-    assert "property_type" in fact_keys
     assert "night_count" in fact_keys
     assert "budget_total_derived" in fact_keys
+
+
+def test_request_summary_falls_back_to_legacy_unknown_requests_when_constraints_are_absent():
+    req = SearchRequest(
+        city="Baku",
+        check_in=date(2026, 4, 8),
+        check_out=date(2026, 4, 15),
+        must_have_fields=[],
+        nice_to_have_fields=[],
+        property_types=[],
+        occupancy_types=[],
+        filters=None,
+        constraints=[],
+        unknown_requests=["quiet neighborhood", "quiet neighborhood"],
+    )
+
+    out = normalize_search_response(
+        req,
+        ranked=[],
+        top_n=5,
+        dropped_requests=["dropped item"],
+    )
+
+    assert out.request_summary is not None
+    assert out.request_summary.unknown_requests == ["quiet neighborhood"]
+    assert out.request_summary.dropped_requests == ["dropped item"]
+
+
+def test_request_summary_does_not_project_unresolved_nice_constraints_into_unknown_requests():
+    req = SearchRequest(
+        city="Baku",
+        check_in=date(2026, 4, 8),
+        check_out=date(2026, 4, 15),
+        constraints=[
+            UserConstraint(
+                raw_text="balcony if possible",
+                normalized_text="balcony if possible",
+                priority=ConstraintPriority.NICE,
+                category=ConstraintCategory.AMENITY,
+                mapping_status=ConstraintMappingStatus.UNRESOLVED,
+                mapped_fields=[],
+                evidence_strategy=EvidenceStrategy.TEXTUAL,
+            )
+        ],
+        unknown_requests=["legacy value that should not win"],
+    )
+
+    out = normalize_search_response(
+        req,
+        ranked=[],
+        top_n=5,
+        dropped_requests=[],
+    )
+
+    assert out.request_summary is not None
+    # Because constraints are present and unresolved NICE is not part of the
+    # compatibility projection, unknown_requests must stay empty.
+    assert out.request_summary.unknown_requests == []

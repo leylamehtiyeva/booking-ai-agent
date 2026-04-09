@@ -124,6 +124,13 @@ def _dedupe_strings(values: list[str]) -> list[str]:
 
 
 def build_constraints_from_legacy_state(request: SearchRequest) -> list[UserConstraint]:
+    """
+    Lift legacy field-centric state into canonical constraint-centric state.
+
+    This function exists so older payloads and tests can still enter the system,
+    but downstream logic should treat the returned constraints as the semantic
+    source of truth.
+    """
     constraints: list[UserConstraint] = []
 
     for field in request.must_have_fields:
@@ -151,6 +158,17 @@ def sync_constraints_from_legacy_state(request: SearchRequest) -> SearchRequest:
 def build_legacy_state_from_constraints(
     constraints: list[UserConstraint],
 ) -> dict[str, list[Field] | list[str]]:
+    """
+    Build the legacy field-centric projection from canonical constraints.
+
+    IMPORTANT:
+    - constraints is the only source of truth.
+    - This projection is intentionally lossy and exists only for backward
+      compatibility, debug output, and legacy UI/integration layers.
+    - unknown_requests is NOT a full representation of unresolved constraints;
+      it currently includes only unresolved MUST constraints.
+    - New logic must never rely on this projection when constraints are available.
+    """
     must_have_fields: list[Field] = []
     nice_to_have_fields: list[Field] = []
     forbidden_fields: list[Field] = []
@@ -166,8 +184,10 @@ def build_legacy_state_from_constraints(
                 forbidden_fields.extend(constraint.mapped_fields)
             continue
 
-        # Temporary compatibility rule:
-        # current downstream unknown_requests behaves like unresolved MUST constraints only.
+        # Compatibility-only projection:
+        # legacy unknown_requests historically behaved like unresolved MUST items.
+        # We keep that behavior for backward compatibility, but this must never be
+        # interpreted as the full unresolved constraint state.
         if (
             constraint.mapping_status == ConstraintMappingStatus.UNRESOLVED
             and constraint.priority == ConstraintPriority.MUST
@@ -194,6 +214,12 @@ def build_legacy_state_from_constraints(
 
 
 def sync_legacy_state_from_constraints(request: SearchRequest) -> SearchRequest:
+    """
+    Refresh the legacy compatibility layer from canonical constraints.
+
+    After this call, must_have_fields / nice_to_have_fields / forbidden_fields /
+    unknown_requests are derived views only.
+    """
     updated = request.model_copy(deep=True)
     legacy = build_legacy_state_from_constraints(updated.constraints)
 

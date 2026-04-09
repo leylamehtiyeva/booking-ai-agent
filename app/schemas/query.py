@@ -30,7 +30,16 @@ class SearchRequest(BaseModel):
 
     property_types: list[PropertyType] | None = None
     occupancy_types: list[OccupancyType] | None = None
+
+    # Canonical semantic state.
+    # All new logic must read user intent from constraints, not from legacy fields.
     constraints: list[UserConstraint] = PydanticField(default_factory=list)
+
+    # Legacy compatibility projection only.
+    # This field is derived from a subset of constraints (currently unresolved MUST constraints)
+    # and exists only for backward compatibility / debug / UI. It must not be treated as
+    # source-of-truth user meaning and must not drive ranking, fallback, or clarification logic
+    # when constraints are available.
     unknown_requests: list[str] = PydanticField(default_factory=list)
 
     @model_validator(mode="after")

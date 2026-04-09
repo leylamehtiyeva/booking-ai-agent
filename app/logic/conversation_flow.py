@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
+
 from app.logic.constraint_state import (
     sync_constraints_from_legacy_state,
     sync_legacy_state_from_constraints,
 )
-
 from app.logic.intent_router import build_search_request_adk_async
 from app.logic.intent_update import update_search_state_async
 from app.logic.request_resolution import resolve_required_search_context
@@ -14,7 +14,32 @@ from app.logic.listing_signals import collect_listing_signals
 from app.logic.unknown_field_evidence_search import search_unknown_must_have_evidence
 from app.schemas.query import SearchRequest
 from app.tools.orchestrate_search_tool import orchestrate_search
-from app.logic.constraint_state import sync_legacy_state_from_constraints
+
+
+def _build_state_payload(state: SearchRequest | None) -> dict[str, Any] | None:
+    """
+    Build a fully synchronized state payload for conversation/debug/output layers.
+
+    Contract:
+    - constraints is the semantic source of truth
+    - legacy fields are compatibility-only derived views
+    - if a legacy-only state still arrives, lift it into constraints first
+    - always serialize the synchronized representation
+    """
+    if state is None:
+        return None
+
+    synced = state
+    if not synced.constraints and (
+        synced.must_have_fields
+        or synced.nice_to_have_fields
+        or synced.forbidden_fields
+        or synced.unknown_requests
+    ):
+        synced = sync_constraints_from_legacy_state(synced)
+
+    synced = sync_legacy_state_from_constraints(synced)
+    return synced.model_dump(mode="json", exclude_none=True)
 
 
 async def _answer_listing_question(
@@ -24,11 +49,7 @@ async def _answer_listing_question(
     previous_state: SearchRequest | None,
     route_debug: dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
-    previous_state_json = (
-        previous_state.model_dump(mode="json", exclude_none=True)
-        if previous_state
-        else None
-    )
+    previous_state_json = _build_state_payload(previous_state)
 
     if shown_listing is None:
         return {
@@ -73,18 +94,10 @@ def _build_orchestrate_intent_payload(state: SearchRequest) -> dict[str, Any]:
     unknown_requests and empty constraints, first lift it into constraints,
     then derive legacy fields back from constraints.
     """
-    synced = state
+    payload = _build_state_payload(state)
+    assert payload is not None
+    return payload
 
-    if not synced.constraints and (
-        synced.must_have_fields
-        or synced.nice_to_have_fields
-        or synced.forbidden_fields
-        or synced.unknown_requests
-    ):
-        synced = sync_constraints_from_legacy_state(synced)
-
-    synced = sync_legacy_state_from_constraints(synced)
-    return synced.model_dump(mode="json", exclude_none=True)
 
 async def handle_user_message(
     user_message: str,
@@ -98,11 +111,7 @@ async def handle_user_message(
     latest_result_context: dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     route_debug: dict[str, Any] | None = None
-    previous_state_json: dict[str, Any] | None = (
-        previous_state.model_dump(mode="json", exclude_none=True)
-        if previous_state is not None
-        else None
-    )
+    previous_state_json: dict[str, Any] | None = _build_state_payload(previous_state)
 
     if previous_state is None:
         state = await build_search_request_adk_async(user_message)

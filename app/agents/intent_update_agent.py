@@ -26,7 +26,8 @@ IMPORTANT:
 - Do NOT reconstruct the full request from memory or from earlier wording
 - Do NOT revert existing fields unless the user explicitly changes or removes them
 - If the user asks for something that cannot be represented as structured filters/property/occupancy slots, preserve it as an unresolved constraint when it is a meaningful search requirement
-- Return an empty patch only when the message truly does not change the search state- The user may write in any language
+- Return an empty patch only when the message truly does not change the search state
+- The user may write in any language
 - Use empty arrays where nothing should be added/removed
 
 SEMANTICS:
@@ -50,8 +51,8 @@ DATES:
 - Do not invent dates
 
 CONSTRAINTS:
-- add_constraints is now the preferred way to express meaningful new user constraints
-- remove_constraint_texts is the preferred way to remove previously expressed constraints
+- add_constraints is the canonical way to express meaningful new user constraints
+- remove_constraint_texts is the canonical way to remove previously expressed constraints
 - Each added constraint should preserve the user meaning
 - Use canonical mapped_fields only when the mapping is clearly correct
 - Do NOT force uncertain meaning into the wrong field
@@ -73,9 +74,12 @@ WHEN TO USE add_constraints:
   - mapped_fields=[]
   - evidence_strategy="textual" or "geo"
 
-TEMPORARY COMPATIBILITY:
-- Old fields like add_must_have_fields / add_unknown_requests still exist
-- But prefer add_constraints whenever possible
+LEGACY COMPATIBILITY:
+- Old fields like add_must_have_fields / add_unknown_requests still exist in the schema for backward compatibility
+- But they are NOT the preferred semantic interface
+- Prefer add_constraints whenever possible
+- Prefer remove_constraint_texts whenever possible
+- In normal cases, leave legacy unknown patch fields empty
 
 FILTERS:
 - For filters, return only the changed filter fields
@@ -126,13 +130,14 @@ Previous state has city=Baku.
 User: "actually Tbilisi"
 Return:
 {{"set_city":"Tbilisi"}}
+
 User: "also I want a kettle"
 Return:
-{"add_constraints":[{"raw_text":"kettle","normalized_text":"kettle","priority":"must","category":"amenity","mapping_status":"known","mapped_fields":["kettle"],"evidence_strategy":"structured"}]}
+{{"add_constraints":[{{"raw_text":"kettle","normalized_text":"kettle","priority":"must","category":"amenity","mapping_status":"known","mapped_fields":["kettle"],"evidence_strategy":"structured"}}]}}
 
 User: "kitchen is no longer required"
 Return:
-{"remove_constraint_texts":["kitchen"]}
+{{"remove_constraint_texts":["kitchen"]}}
 
 User: "now at least 3 bedrooms"
 Return:
@@ -140,11 +145,11 @@ Return:
 
 User: "хочу чтобы были 2 кровати"
 Return:
-{"add_constraints":[{"raw_text":"2 кровати","normalized_text":"2 beds","priority":"must","category":"layout","mapping_status":"unresolved","mapped_fields":[],"evidence_strategy":"textual"}]}
+{{"add_constraints":[{{"raw_text":"2 кровати","normalized_text":"2 beds","priority":"must","category":"layout","mapping_status":"unresolved","mapped_fields":[],"evidence_strategy":"textual"}}]}}
 
 User: "I need satellite TV"
 Return:
-{"add_constraints":[{"raw_text":"satellite TV","normalized_text":"satellite TV","priority":"must","category":"amenity","mapping_status":"unresolved","mapped_fields":[],"evidence_strategy":"textual"}]}
+{{"add_constraints":[{{"raw_text":"satellite TV","normalized_text":"satellite TV","priority":"must","category":"amenity","mapping_status":"unresolved","mapped_fields":[],"evidence_strategy":"textual"}}]}}
 
 User: "for 3 people"
 Return:
@@ -163,7 +168,7 @@ Return:
 Previous state has city=Baku, check_in=2026-04-19, check_out=2026-04-23, adults=2.
 User: "хочу чтобы были 2 кровати"
 Return:
-{"add_constraints":[{"raw_text":"2 кровати","normalized_text":"2 beds","priority":"must","category":"layout","mapping_status":"unresolved","mapped_fields":[],"evidence_strategy":"textual"}]}
+{{"add_constraints":[{{"raw_text":"2 кровати","normalized_text":"2 beds","priority":"must","category":"layout","mapping_status":"unresolved","mapped_fields":[],"evidence_strategy":"textual"}}]}}
 
 Previous state has city=Baku, check_in=2026-04-19, check_out=2026-04-23, adults=2.
 User: "actually city does not matter"

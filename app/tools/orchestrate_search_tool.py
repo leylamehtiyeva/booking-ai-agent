@@ -226,9 +226,13 @@ async def _repair_intent_with_llm(
     errors: list[dict],
     model: str = "gemini-2.0-flash",
 ) -> Dict[str, Any]:
-    """Ask LLM to repair intent to match IntentRoute exactly.
+    """Ask LLM to repair intent so it matches IntentRoute exactly.
 
-    No synonym dictionary is used here. The model must map meaning to Field.value.
+    Contract:
+    - constraints is the canonical semantic state
+    - unknown_requests is NOT the semantic fallback target
+    - invalid legacy enum-like items may be dropped from enum slots; they can be
+      reported separately as dropped_requests later by the salvage layer
     """
     allowed_values = [f.value for f in Field]
 
@@ -236,9 +240,11 @@ async def _repair_intent_with_llm(
         "You are a JSON repair assistant.\n"
         "Return ONLY a valid JSON object. No markdown. No code fences.\n"
         "Fix the JSON to match the target schema EXACTLY.\n"
-        "must_have_fields and nice_to_have_fields MUST contain ONLY canonical keys from allowed_fields.\n"
-        "If you cannot map an item to a canonical key, move it to unknown_requests.\n"
-        "Do not invent new keys.\n"
+        "constraints is the source of truth for user constraints.\n"
+        "Do NOT invent new keys.\n"
+        "Do NOT use unknown_requests as a semantic fallback bucket.\n"
+        "If a legacy enum-like item cannot be mapped safely, remove it from that enum list.\n"
+        "Preserve meaningful user meaning inside constraints whenever possible.\n"
     )
 
     payload = {
@@ -250,13 +256,19 @@ async def _repair_intent_with_llm(
             "check_in": "YYYY-MM-DD|null",
             "check_out": "YYYY-MM-DD|null",
             "nights": "int|null",
-            "must_have_fields": "list[canonical_key]",
-            "nice_to_have_fields": "list[canonical_key]",
-            "property_types": [
-                "apartment|hotel|hostel|house|aparthotel|guesthouse"
-            ],
-            "occupancy_types": [
-                "entire_place|private_room|shared_room|hotel_room"
+            "adults": "int|null",
+            "children": "int|null",
+            "rooms": "int|null",
+            "constraints": [
+                {
+                    "raw_text": "string",
+                    "normalized_text": "string",
+                    "priority": "must|nice|forbidden",
+                    "category": "amenity|policy|location|layout|numeric|property_type|occupancy|other",
+                    "mapping_status": "known|unresolved",
+                    "mapped_fields": "list[canonical_key]",
+                    "evidence_strategy": "structured|textual|geo|none",
+                }
             ],
             "filters": {
                 "bedrooms_min": "int|null",
@@ -272,7 +284,12 @@ async def _repair_intent_with_llm(
                     "scope": "per_night|total_stay|null",
                 },
             },
-            "unknown_requests": "list[str]",
+            "property_types": [
+                "apartment|hotel|hostel|house|aparthotel|guesthouse"
+            ],
+            "occupancy_types": [
+                "entire_place|private_room|shared_room|hotel_room"
+            ],
         },
     }
 
@@ -294,21 +311,35 @@ async def _repair_intent_with_llm(
     return await asyncio.to_thread(_call_sync)
 
 
-def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
+def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
+    """
+    Keep only safely parseable enum-based values and collect dropped legacy residue separately.
+
+    Contract:
+    - returned intent dict is safe to validate as IntentRoute
+    - unknown_requests is not used as a salvage bucket
+    - dropped_requests contains invalid legacy enum-like items that could not be preserved
+    """
+    dropped_requests: list[str] = []
+
     out: Dict[str, Any] = {
         "city": intent_dict.get("city"),
         "check_in": intent_dict.get("check_in"),
         "check_out": intent_dict.get("check_out"),
         "nights": intent_dict.get("nights"),
+        "adults": intent_dict.get("adults"),
+        "children": intent_dict.get("children"),
+        "rooms": intent_dict.get("rooms"),
+        "constraints": intent_dict.get("constraints") or [],
         "must_have_fields": [],
         "nice_to_have_fields": [],
         "filters": intent_dict.get("filters") or {},
         "property_types": [],
         "occupancy_types": [],
-        "unknown_requests": list(intent_dict.get("unknown_requests") or []),
+        "unknown_requests": [],
     }
 
-    def parse_enum_list(xs, enum_cls, *, push_unknown: bool = True):
+    def parse_enum_list(xs, enum_cls):
         ok = []
         for x in xs or []:
             if isinstance(x, enum_cls):
@@ -336,11 +367,10 @@ def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
                 except Exception:
                     pass
 
-                if push_unknown:
-                    out["unknown_requests"].append(x)
+                if s:
+                    dropped_requests.append(s)
             else:
-                if push_unknown:
-                    out["unknown_requests"].append(str(x))
+                dropped_requests.append(str(x))
         return ok
 
     out["must_have_fields"] = parse_enum_list(intent_dict.get("must_have_fields"), Field)
@@ -348,15 +378,30 @@ def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Dict[str, Any]:
     out["property_types"] = parse_enum_list(intent_dict.get("property_types"), PropertyType)
     out["occupancy_types"] = parse_enum_list(intent_dict.get("occupancy_types"), OccupancyType)
 
-    return out
+    seen: set[str] = set()
+    deduped_dropped: list[str] = []
+    for item in dropped_requests:
+        cleaned = item.strip()
+        key = cleaned.casefold()
+        if not cleaned or key in seen:
+            continue
+        seen.add(key)
+        deduped_dropped.append(cleaned)
+
+    return out, deduped_dropped
 
 async def _validate_and_repair_intent(intent: Any, attempts: int = 2) -> Tuple[IntentRoute, List[str]]:
     """Validate intent as IntentRoute with up to N LLM repair attempts.
 
     Returns (intent_obj, dropped_requests).
-    dropped_requests are items we could not map (ignored but later reported).
+
+    dropped_requests:
+    - invalid legacy enum-like residue we could not preserve cleanly
+    - NOT compatibility unknown_requests
+    - NOT canonical unresolved constraints
     """
     intent_work: Dict[str, Any] = intent if isinstance(intent, dict) else {}
+    dropped_requests: list[str] = []
 
     intent_obj: Optional[IntentRoute] = None
     for _ in range(max(0, attempts)):
@@ -373,14 +418,11 @@ async def _validate_and_repair_intent(intent: Any, attempts: int = 2) -> Tuple[I
         try:
             intent_obj = IntentRoute.model_validate(intent_work)
         except ValidationError:
-            salvaged = _salvage_only_enum_keys(intent_work)
+            salvaged, salvage_dropped = _salvage_only_enum_keys(intent_work)
+            dropped_requests.extend(salvage_dropped)
             intent_obj = IntentRoute.model_validate(salvaged)
 
-    dropped: List[str] = []
-    if getattr(intent_obj, "unknown_requests", None):
-        dropped.extend(intent_obj.unknown_requests)
-
-    return intent_obj, dropped
+    return intent_obj, dropped_requests
 
 
 def _require_dates(intent_obj: IntentRoute) -> Tuple[Optional[date], Optional[date]]:
@@ -416,19 +458,9 @@ def _build_request(
         unknown_requests=[],
     )
 
-    # Backward-compatibility bridge:
-    # some callers/tests still pass legacy intent payloads with must_have_fields /
-    # nice_to_have_fields / unknown_requests. IntentRoute no longer stores them,
-    # so if constraints are empty we reconstruct them from the already-parsed
-    # SearchRequest compatibility fields that may exist on the raw payload layer.
-    if not req.constraints and (
-        req.must_have_fields
-        or req.nice_to_have_fields
-        or req.forbidden_fields
-        or req.unknown_requests
-    ):
-        req.constraints = build_constraints_from_legacy_state(req)
-
+    # Canonical flow:
+    # SearchRequest semantic state is carried by constraints.
+    # Legacy fields are derived here only for compatibility/debug layers.
     return sync_legacy_state_from_constraints(req)
 
 

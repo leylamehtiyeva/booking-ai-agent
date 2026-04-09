@@ -12,11 +12,18 @@ from google.genai.types import Content, Part
 
 from app.agents.intent_update_agent import build_intent_update_agent
 from app.logic.apply_intent_patch import apply_intent_patch
+from app.logic.constraint_state import sync_constraints_from_legacy_state
 from app.logic.date_normalization import normalize_patch_dates
 from app.logic.request_resolution import parse_iso_date
+from app.schemas.constraints import (
+    ConstraintCategory,
+    ConstraintMappingStatus,
+    ConstraintPriority,
+    EvidenceStrategy,
+    UserConstraint,
+)
 from app.schemas.intent_patch import SearchIntentPatch
 from app.schemas.query import SearchRequest
-from app.logic.constraint_state import sync_constraints_from_legacy_state
 
 APP_NAME = "booking-ai-agent"
 USER_ID = "local-user"
@@ -49,6 +56,53 @@ def _ensure_constraint_state(previous_state: SearchRequest) -> SearchRequest:
         return sync_constraints_from_legacy_state(previous_state)
 
     return previous_state
+
+
+def _legacy_unknown_to_constraint(text: str) -> UserConstraint:
+    cleaned = text.strip()
+    return UserConstraint(
+        raw_text=cleaned,
+        normalized_text=cleaned,
+        priority=ConstraintPriority.MUST,
+        category=ConstraintCategory.OTHER,
+        mapping_status=ConstraintMappingStatus.UNRESOLVED,
+        mapped_fields=[],
+        evidence_strategy=EvidenceStrategy.TEXTUAL,
+    )
+
+
+def _canonicalize_patch(patch: SearchIntentPatch) -> SearchIntentPatch:
+    """
+    Convert legacy patch fields into canonical constraint-centric patch semantics.
+
+    Contract:
+    - add_constraints / remove_constraint_texts are the canonical patch interface
+    - legacy add_unknown_requests / remove_unknown_requests remain accepted only as
+      backward-compatible input
+    - after canonicalization, downstream logic should not need legacy unknown patch
+      fields to preserve user meaning
+    """
+    updates: dict = {}
+    add_constraints = list(patch.add_constraints or [])
+    remove_constraint_texts = list(patch.remove_constraint_texts or [])
+
+    for text in patch.add_unknown_requests:
+        if text and text.strip():
+            add_constraints.append(_legacy_unknown_to_constraint(text))
+
+    for text in patch.remove_unknown_requests:
+        if text and text.strip():
+            remove_constraint_texts.append(text.strip())
+
+    updates["add_constraints"] = add_constraints
+    updates["remove_constraint_texts"] = remove_constraint_texts
+
+    # Clear legacy unknown patch fields after lifting them into canonical semantics.
+    updates["add_unknown_requests"] = []
+    updates["remove_unknown_requests"] = []
+
+    return patch.model_copy(update=updates)
+
 
 def _build_update_prompt(previous_state: SearchRequest, user_message: str) -> str:
     previous_state = _ensure_constraint_state(previous_state)
@@ -83,6 +137,11 @@ CONSTRAINT-CENTRIC RULES:
 - Do NOT silently drop meaningful constraints
 - If a requirement cannot be represented as a structured filter/property/occupancy slot, preserve it as an unresolved constraint
 - Return an empty patch only when the user message truly does not change the search state
+
+LEGACY COMPATIBILITY:
+- Legacy patch fields may still exist in the schema for backward compatibility
+- But they are not the preferred semantic interface
+- Preserve user meaning through canonical constraints whenever possible
 
 DATES:
 - If user gives one date only, set_check_in to that date and set_nights = 1
@@ -144,7 +203,8 @@ async def route_intent_update_patch_async(
         raise ValueError("Intent update agent returned empty response")
 
     clean = _strip_json_fence(final_text)
-    return SearchIntentPatch.model_validate_json(clean)
+    patch = SearchIntentPatch.model_validate_json(clean)
+    return _canonicalize_patch(patch)
 
 
 def _inherit_month_from_previous_state(
@@ -200,7 +260,7 @@ async def update_search_state_async(
 ) -> SearchRequest:
     previous_state = _ensure_constraint_state(previous_state)
     patch = await route_intent_update_patch_async(previous_state, user_message)
-    
+
     print("\n=== INTENT UPDATE PATCH ===")
     print(patch.model_dump(exclude_none=True))
 
@@ -227,5 +287,6 @@ async def update_search_state_async(
             "set_check_out": normalized_check_out,
         }
     )
+    patch = _canonicalize_patch(patch)
 
     return apply_intent_patch(previous_state, patch)
