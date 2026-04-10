@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-
+from app.schemas.fallback_policy import FallbackPolicy
 from app.logic.answer_generation import build_user_answer
 from app.logic.answer_generation_llm import generate_user_answer_with_llm
 from app.logic.build_answer_payload import build_answer_payload
@@ -32,7 +32,7 @@ async def main():
         intent=intent_dict,
         source="fixtures",
         max_items=10,
-        fallback_top_k=0,
+        fallback_policy=FallbackPolicy(enabled=True, top_k=0),
     )
 
     print("\n=== NORMALIZED SEARCH RESPONSE ===")

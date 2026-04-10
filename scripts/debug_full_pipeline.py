@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import streamlit as st
+from app.schemas.fallback_policy import FallbackPolicy
 
 # --- Make project root importable ---
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -294,7 +295,7 @@ def process_user_message(user_message: str) -> None:
                 previous_state=previous_state,
                 source="fixtures",
                 top_n=5,
-                fallback_top_k=5,
+                fallback_policy=FallbackPolicy(enabled=True, top_k=5),
                 max_items=10,
             )
         )

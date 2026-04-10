@@ -76,6 +76,7 @@ class NormalizedSearchResult(BaseModel):
     facts: list[ResultFact] = Field(default_factory=list)
 
     why: list[str] = Field(default_factory=list)
+    constraint_resolution_results: list[ConstraintResolutionItem] = Field(default_factory=list)
 
 
 class NormalizedSearchResponse(BaseModel):
@@ -86,3 +87,30 @@ class NormalizedSearchResponse(BaseModel):
     results: list[NormalizedSearchResult] = Field(default_factory=list)
 
     debug_notes: list[str] = Field(default_factory=list)
+    
+    
+class ConstraintResolutionEvidence(BaseModel):
+    snippet: str
+    source: str
+    path: str | None = None
+
+
+class ConstraintResolutionItem(BaseModel):
+    listing_id: str | None = None
+    listing_title: str | None = None
+    constraint_id: str | None = None
+
+    raw_text: str
+    normalized_text: str
+
+    resolver_type: str
+    decision: str
+    resolution_status: str
+    confidence: float | None = None
+    reason: str
+
+    evidence: list[ConstraintResolutionEvidence] = Field(default_factory=list)
+
+    source_stage: str = "fallback"
+    structured_value_before: str | None = None
+    explicit_negative: bool = False

@@ -257,3 +257,140 @@ def test_request_summary_does_not_project_unresolved_nice_constraints_into_unkno
     # Because constraints are present and unresolved NICE is not part of the
     # compatibility projection, unknown_requests must stay empty.
     assert out.request_summary.unknown_requests == []
+    
+    
+def test_normalize_search_response_merges_constraint_resolution_results():
+    req = SearchRequest(
+        city="Baku",
+        check_in=date(2026, 4, 8),
+        check_out=date(2026, 4, 10),
+        adults=2,
+        children=0,
+        rooms=1,
+        currency="USD",
+        budget_max=None,
+        must_have_fields=[Field.KITCHEN],
+        nice_to_have_fields=[],
+        forbidden_fields=[],
+        min_guest_rating=None,
+        filters=None,
+        property_types=[],
+        occupancy_types=[],
+        constraints=[
+            UserConstraint(
+                raw_text="place for cooking",
+                normalized_text="kitchen",
+                priority=ConstraintPriority.MUST,
+                category=ConstraintCategory.AMENITY,
+                mapping_status=ConstraintMappingStatus.KNOWN,
+                mapped_fields=[Field.KITCHEN],
+                evidence_strategy=EvidenceStrategy.STRUCTURED,
+            ),
+            UserConstraint(
+                raw_text="satellite TV",
+                normalized_text="satellite TV",
+                priority=ConstraintPriority.MUST,
+                category=ConstraintCategory.OTHER,
+                mapping_status=ConstraintMappingStatus.UNRESOLVED,
+                mapped_fields=[],
+                evidence_strategy=EvidenceStrategy.TEXTUAL,
+            ),
+        ],
+        unknown_requests=[],
+    )
+
+    listing = ListingRaw(
+        id="listing-1",
+        name="Apartment STEL",
+        url="https://example.com/stel",
+        price=300.0,
+        currency="USD",
+        rooms=[],
+    )
+
+    matches = {
+        Field.KITCHEN: FieldMatch(
+            value=Ternary.UNCERTAIN,
+            confidence=0.4,
+            evidence=[],
+        ),
+    }
+
+    ranked = [
+        {
+            "listing_name": "Apartment STEL",
+            "listing": listing,
+            "matches": matches,
+            "numeric_results": [],
+            "property_result": None,
+            "occupancy_result": None,
+            "score": 17.0,
+            "must_have_matched": 0,
+            "must_have_total": 1,
+            "why": [],
+            "constraint_resolution_results": [
+                {
+                    "listing_id": "listing-1",
+                    "listing_title": "Apartment STEL",
+                    "constraint_id": "c-kitchen",
+                    "raw_text": "place for cooking",
+                    "normalized_text": "kitchen",
+                    "resolver_type": "textual",
+                    "decision": "YES",
+                    "resolution_status": "matched",
+                    "confidence": 0.91,
+                    "reason": "Kitchen is explicitly supported by listing text.",
+                    "evidence": [
+                        {
+                            "snippet": "Private kitchen",
+                            "source": "room_facilities",
+                            "path": "rooms[0].facilities",
+                        }
+                    ],
+                    "source_stage": "fallback",
+                    "structured_value_before": "UNCERTAIN",
+                    "explicit_negative": False,
+                },
+                {
+                    "listing_id": "listing-1",
+                    "listing_title": "Apartment STEL",
+                    "constraint_id": "c-sat-tv",
+                    "raw_text": "satellite TV",
+                    "normalized_text": "satellite TV",
+                    "resolver_type": "textual",
+                    "decision": "UNCERTAIN",
+                    "resolution_status": "uncertain",
+                    "confidence": 0.3,
+                    "reason": "Satellite TV is not explicitly confirmed in the listing.",
+                    "evidence": [],
+                    "source_stage": "fallback",
+                    "structured_value_before": None,
+                    "explicit_negative": False,
+                },
+            ],
+        }
+    ]
+
+    out = normalize_search_response(
+        req,
+        ranked,
+        top_n=5,
+        dropped_requests=[],
+    )
+
+    assert len(out.results) == 1
+    r0 = out.results[0]
+
+    matched_names = [x.name for x in r0.matched_constraints]
+    uncertain_names = [x.name for x in r0.uncertain_constraints]
+
+    assert "kitchen" in matched_names
+    assert "satellite TV" in uncertain_names
+
+    # structured uncertain kitchen должен быть заменён fallback matched результатом,
+    # а не остаться одновременно и в uncertain, и в matched
+    assert "kitchen" not in uncertain_names
+
+    assert len(r0.constraint_resolution_results) == 2
+    assert r0.constraint_resolution_results[0].normalized_text == "kitchen"
+    assert r0.constraint_resolution_results[1].normalized_text == "satellite TV"

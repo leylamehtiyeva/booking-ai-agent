@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from app.tools.orchestrate_search_tool import orchestrate_search
+from app.schemas.fallback_policy import FallbackPolicy
 
 async def main():
     intent = {
@@ -17,7 +18,7 @@ async def main():
         user_text="Apartment in Baku city center with 2 bedrooms, 80 sqm, April 8-15",
         intent=intent,
         top_n=3,
-        fallback_top_k=5,
+        fallback_policy=FallbackPolicy(enabled=True, top_k=5),
         max_items=5,
         source="apify",
     )

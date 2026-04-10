@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from app.logic.intent_router import route_intent_adk_async
 from app.tools.orchestrate_search_tool import orchestrate_search
+from app.schemas.fallback_policy import FallbackPolicy
 
 USER_TEXT = (
     "Нужен рекан в Мацуяма с 9 по 10 февраля 2026 года максимум 300 долларов с горячим источником"
@@ -22,7 +23,7 @@ async def main():
         source="apify",
         max_items=7,        # ✅ экономия: 5 кандидатов
         top_n=2,            # ✅ показываем 2
-        fallback_top_k=2,   # ✅ fallback только для top-2
+        fallback_policy=FallbackPolicy(enabled=True, top_k=2),
     )
 
     print("INTENT:", intent)

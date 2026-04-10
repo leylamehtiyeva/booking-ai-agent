@@ -5,6 +5,7 @@ import json
 
 from app.logic.conversation_flow import handle_user_message
 from app.schemas.query import SearchRequest
+from app.schemas.fallback_policy import FallbackPolicy
 
 
 def _print_block(title: str, payload):
@@ -44,7 +45,7 @@ async def main():
                 previous_state=state,
                 source="fixtures",
                 top_n=5,
-                fallback_top_k=5,
+                fallback_policy=FallbackPolicy(enabled=True, top_k=5),
                 max_items=10,
             )
         except Exception as e:
