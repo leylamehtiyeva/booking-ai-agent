@@ -196,19 +196,32 @@ def apply_intent_patch(state: SearchRequest, patch: SearchIntentPatch) -> Search
     if patch.set_city:
         data.city = patch.set_city
 
-    if patch.set_check_in:
-        parsed = parse_iso_date(patch.set_check_in)
-        if parsed is not None:
-            data.check_in = parsed
+    incoming_check_in = parse_iso_date(patch.set_check_in) if patch.set_check_in else None
+    incoming_check_out = parse_iso_date(patch.set_check_out) if patch.set_check_out else None
 
-    if patch.set_check_out:
-        parsed = parse_iso_date(patch.set_check_out)
-        if parsed is not None:
-            data.check_out = parsed
+    if incoming_check_in is not None and incoming_check_out is not None:
+        data.check_in = incoming_check_in
+        data.check_out = incoming_check_out
 
-    if patch.set_nights is not None and data.check_in is not None:
+    elif incoming_check_in is not None:
+        data.check_in = incoming_check_in
+
+        if patch.set_nights is not None:
+            if patch.set_nights > 0:
+                data.check_out = data.check_in + timedelta(days=patch.set_nights)
+            else:
+                data.check_out = None
+        else:
+            data.check_out = data.check_in + timedelta(days=1)
+
+    elif incoming_check_out is not None:
+        data.check_out = incoming_check_out
+
+    elif patch.set_nights is not None and data.check_in is not None:
         if patch.set_nights > 0:
             data.check_out = data.check_in + timedelta(days=patch.set_nights)
+        else:
+            data.check_out = None
 
     # ---- NEW SOURCE-OF-TRUTH PATCHING OVER CONSTRAINTS ----
     constraints = list(data.constraints or [])

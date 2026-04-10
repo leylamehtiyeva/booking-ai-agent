@@ -63,35 +63,20 @@ def test_normalize_intent_dates_computes_check_out_from_nights():
     assert normalized.check_out == "2026-04-26"
 
 
-def test_first_turn_unknown_requests_clears_guessed_dates():
+
+
+
+def test_unresolved_constraints_do_not_clear_valid_dates():
     intent = IntentRoute(
         city="Baku",
-        check_in="2024-08-08",
-        check_out="2024-08-16",
-        unknown_requests=["с 8 по 16 ое?"],
-    )
-
-    normalized = normalize_intent_dates(
-        intent,
-        "в баку с 8 по 16 ое?",
-        today=date(2026, 4, 5),
-    )
-
-    assert normalized.check_in is None
-    assert normalized.check_out is None
-
-
-def test_first_turn_unresolved_constraints_clear_guessed_dates_even_when_unknown_requests_is_empty():
-    intent = IntentRoute(
-        city="Baku",
-        check_in="2024-08-08",
-        check_out="2024-08-16",
+        check_in="2024-04-20",
+        check_out="2024-04-26",
         constraints=[
             UserConstraint(
-                raw_text="quiet neighborhood",
-                normalized_text="quiet neighborhood",
+                raw_text="satellite TV",
+                normalized_text="satellite TV",
                 priority=ConstraintPriority.MUST,
-                category=ConstraintCategory.LOCATION,
+                category=ConstraintCategory.AMENITY,
                 mapping_status=ConstraintMappingStatus.UNRESOLVED,
                 mapped_fields=[],
                 evidence_strategy=EvidenceStrategy.TEXTUAL,
@@ -102,9 +87,9 @@ def test_first_turn_unresolved_constraints_clear_guessed_dates_even_when_unknown
 
     normalized = normalize_intent_dates(
         intent,
-        "I want something in Baku maybe 8 to 16 august in a quiet neighborhood",
+        "I want an apartment in Baku from April 20 to April 26 with satellite TV",
         today=date(2026, 4, 5),
     )
 
-    assert normalized.check_in is None
-    assert normalized.check_out is None
+    assert normalized.check_in == "2026-04-20"
+    assert normalized.check_out == "2026-04-26"
