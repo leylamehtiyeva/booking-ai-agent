@@ -400,6 +400,10 @@ def build_answer_payload(
                 "budget_summary": budget_summary,
                 "budget_status": budget_status,
                 "why": list(r.why or []),
+                "eligibility_status": r.eligibility_status,
+                "match_tier": r.match_tier,
+                "selection_reasons": list(r.selection_reasons or []),
+                "blocking_reasons": list(r.blocking_reasons or []),
             }
         )
 
