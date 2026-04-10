@@ -155,3 +155,31 @@ def test_apply_patch_removes_unknown_requests():
 
     assert all(c.normalized_text != "2 beds" for c in new_state.constraints)
     assert new_state.unknown_requests == ["satellite TV"]
+    
+    
+def test_set_check_in_only_recomputes_checkout_to_one_night():
+    state = SearchRequest(
+        city="Baku",
+        check_in=date(2026, 4, 20),
+        check_out=date(2026, 4, 26),
+    )
+
+    patch = SearchIntentPatch(set_check_in="2026-04-08")
+    new_state = apply_intent_patch(state, patch)
+
+    assert new_state.check_in == date(2026, 4, 8)
+    assert new_state.check_out == date(2026, 4, 9)
+    
+    
+def test_set_check_in_with_nights_recomputes_checkout():
+    state = SearchRequest(
+        city="Baku",
+        check_in=date(2026, 4, 20),
+        check_out=date(2026, 4, 26),
+    )
+
+    patch = SearchIntentPatch(set_check_in="2026-04-08", set_nights=4)
+    new_state = apply_intent_patch(state, patch)
+
+    assert new_state.check_in == date(2026, 4, 8)
+    assert new_state.check_out == date(2026, 4, 12)

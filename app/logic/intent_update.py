@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+
+
 import json
 import os
 import uuid
@@ -213,46 +215,19 @@ def _inherit_month_from_previous_state(
     patch: SearchIntentPatch,
     normalized_check_in: str | None,
     normalized_check_out: str | None,
+    user_text: str,
 ) -> tuple[str | None, str | None]:
     """
-    If the follow-up patch contains new dates but the model likely guessed
-    the wrong month, inherit month/year from previous_state.check_in.
+    Temporary no-op.
 
-    Example:
-    previous_state.check_in = 2026-04-20
-    patch.set_check_in = 2024-08-08
-    patch.set_check_out = 2024-08-16
+    Month inheritance is intentionally disabled until we introduce
+    a language-agnostic way to distinguish:
+    - partial date updates ("change dates to 8-12")
+    - explicit month changes ("change dates to 8-12 August")
 
-    Result:
-    2026-04-08 / 2026-04-16
+    For now, preserve normalized dates exactly as resolved upstream.
     """
-    prev_check_in = parse_iso_date(previous_state.check_in)
-    if prev_check_in is None:
-        return normalized_check_in, normalized_check_out
-
-    raw_check_in = parse_iso_date(patch.set_check_in)
-    raw_check_out = parse_iso_date(patch.set_check_out)
-
-    if raw_check_in is None and raw_check_out is None:
-        return normalized_check_in, normalized_check_out
-
-    if raw_check_in is not None:
-        raw_check_in = raw_check_in.replace(
-            year=prev_check_in.year,
-            month=prev_check_in.month,
-        )
-
-    if raw_check_out is not None:
-        raw_check_out = raw_check_out.replace(
-            year=prev_check_in.year,
-            month=prev_check_in.month,
-        )
-
-    return (
-        raw_check_in.isoformat() if raw_check_in else None,
-        raw_check_out.isoformat() if raw_check_out else None,
-    )
-
+    return normalized_check_in, normalized_check_out
 
 async def update_search_state_async(
     previous_state: SearchRequest,
@@ -279,6 +254,7 @@ async def update_search_state_async(
             patch=patch,
             normalized_check_in=normalized_check_in,
             normalized_check_out=normalized_check_out,
+            user_text=user_message,
         )
 
     patch = patch.model_copy(
