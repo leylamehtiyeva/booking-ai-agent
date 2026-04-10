@@ -4,7 +4,7 @@ import asyncio
 import sys
 from pathlib import Path
 from typing import Any
-
+from app.schemas.fallback_policy import FallbackPolicy
 import streamlit as st
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -37,7 +37,7 @@ def process_user_message(user_message: str) -> None:
                 previous_state=previous_state,
                 source="fixtures",
                 top_n=5,
-                fallback_top_k=5,
+                fallback_policy=FallbackPolicy(enabled=True, top_k=5),
                 max_items=10,
             )
         )

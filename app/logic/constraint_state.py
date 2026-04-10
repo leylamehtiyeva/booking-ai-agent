@@ -52,6 +52,7 @@ _FIELD_CATEGORY_MAP: dict[Field, ConstraintCategory] = {
 }
 
 
+
 def _field_category(field: Field) -> ConstraintCategory:
     return _FIELD_CATEGORY_MAP.get(field, ConstraintCategory.OTHER)
 
@@ -80,6 +81,22 @@ def _unknown_constraint(text: str) -> UserConstraint:
         evidence_strategy=EvidenceStrategy.TEXTUAL,
     )
 
+def _canonicalize_constraints(constraints: list[UserConstraint]) -> list[UserConstraint]:
+    out: list[UserConstraint] = []
+
+    for constraint in constraints:
+        if (
+            constraint.mapping_status == ConstraintMappingStatus.KNOWN
+            and constraint.mapped_fields
+        ):
+            canonical = constraint.mapped_fields[0].value
+            constraint = constraint.model_copy(
+                update={"normalized_text": canonical}
+            )
+
+        out.append(constraint)
+
+    return out
 
 def _dedupe_constraints(constraints: list[UserConstraint]) -> list[UserConstraint]:
     seen: set[tuple] = set()
@@ -146,6 +163,7 @@ def build_constraints_from_legacy_state(request: SearchRequest) -> list[UserCons
         if text and text.strip():
             constraints.append(_unknown_constraint(text))
 
+    constraints = _canonicalize_constraints(constraints)
     return _dedupe_constraints(constraints)
 
 
@@ -221,6 +239,10 @@ def sync_legacy_state_from_constraints(request: SearchRequest) -> SearchRequest:
     unknown_requests are derived views only.
     """
     updated = request.model_copy(deep=True)
+    updated.constraints = _dedupe_constraints(
+        _canonicalize_constraints(updated.constraints or [])
+    )
+
     legacy = build_legacy_state_from_constraints(updated.constraints)
 
     updated.must_have_fields = legacy["must_have_fields"]

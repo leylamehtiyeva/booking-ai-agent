@@ -10,6 +10,8 @@ from app.schemas.constraints import (
     EvidenceStrategy,
     UserConstraint,
 )
+from app.logic.constraint_state import sync_legacy_state_from_constraints
+
 from app.schemas.fields import Field
 from app.schemas.query import SearchRequest
 
@@ -123,3 +125,50 @@ def test_build_legacy_state_from_constraints_projects_only_unresolved_must():
     assert legacy["nice_to_have_fields"] == []
     assert legacy["forbidden_fields"] == []
     assert legacy["unknown_requests"] == ["quiet neighborhood"]
+    
+    
+def test_sync_legacy_state_from_constraints_canonicalizes_known_constraints_and_dedupes():
+    request = SearchRequest(
+        city="Baku",
+        check_in=None,
+        check_out=None,
+        adults=2,
+        children=0,
+        rooms=1,
+        currency="USD",
+        budget_max=None,
+        must_have_fields=[],
+        nice_to_have_fields=[],
+        forbidden_fields=[],
+        min_guest_rating=None,
+        filters=None,
+        property_types=[],
+        occupancy_types=[],
+        unknown_requests=[],
+        constraints=[
+            UserConstraint(
+                raw_text="with wifi",
+                normalized_text="with wifi",
+                priority=ConstraintPriority.MUST,
+                category=ConstraintCategory.AMENITY,
+                mapping_status=ConstraintMappingStatus.KNOWN,
+                mapped_fields=[Field.WIFI],
+                evidence_strategy=EvidenceStrategy.STRUCTURED,
+            ),
+            UserConstraint(
+                raw_text="wifi",
+                normalized_text="wifi",
+                priority=ConstraintPriority.MUST,
+                category=ConstraintCategory.AMENITY,
+                mapping_status=ConstraintMappingStatus.KNOWN,
+                mapped_fields=[Field.WIFI],
+                evidence_strategy=EvidenceStrategy.STRUCTURED,
+            ),
+        ],
+    )
+
+    updated = sync_legacy_state_from_constraints(request)
+
+    assert len(updated.constraints) == 1
+    assert updated.constraints[0].normalized_text == "wifi"
+    assert updated.must_have_fields == [Field.WIFI]
