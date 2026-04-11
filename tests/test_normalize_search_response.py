@@ -394,3 +394,60 @@ def test_normalize_search_response_merges_constraint_resolution_results():
     assert len(r0.constraint_resolution_results) == 2
     assert r0.constraint_resolution_results[0].normalized_text == "kitchen"
     assert r0.constraint_resolution_results[1].normalized_text == "satellite TV"
+    
+    
+def test_normalize_search_response_includes_selection_metadata():
+    req = SearchRequest(
+        city="Baku",
+        check_in=date(2026, 4, 8),
+        check_out=date(2026, 4, 15),
+        must_have_fields=[],
+        nice_to_have_fields=[],
+        property_types=[],
+        occupancy_types=[],
+        filters=None,
+        constraints=[],
+        unknown_requests=[],
+    )
+
+    listing = ListingRaw(
+        id="listing-1",
+        name="Apartment STEL",
+        url="https://example.com/stel",
+        price=700.0,
+        currency="US$",
+        rooms=[],
+    )
+
+    ranked = [
+        {
+            "listing_name": "Apartment STEL",
+            "listing": listing,
+            "matches": {},
+            "numeric_results": [],
+            "property_result": None,
+            "occupancy_result": None,
+            "score": 23.0,
+            "must_have_matched": 1,
+            "must_have_total": 1,
+            "eligibility_status": "eligible",
+            "match_tier": "strong",
+            "selection_reasons": ["all required constraints are confirmed"],
+            "blocking_reasons": [],
+            "why": ["Good fit"],
+        }
+    ]
+
+    out = normalize_search_response(
+        req,
+        ranked,
+        top_n=5,
+        dropped_requests=[],
+    )
+
+    assert len(out.results) == 1
+    r0 = out.results[0]
+    assert r0.eligibility_status == "eligible"
+    assert r0.match_tier == "strong"
+    assert r0.selection_reasons == ["all required constraints are confirmed"]
+    assert r0.blocking_reasons == []

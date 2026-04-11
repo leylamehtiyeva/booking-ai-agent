@@ -35,10 +35,11 @@ def render_messages() -> None:
 
             debug_data = message.get("debug_data")
             if debug_data:
-                with st.expander("Debug: parsed intent / search request", expanded=False):
+                with st.expander("Debug: parsed intent / search / selection", expanded=False):
                     parsed_intent = debug_data.get("parsed_intent")
                     search_request = debug_data.get("search_request")
                     state_after = debug_data.get("state_after")
+                    answer_payload = debug_data.get("answer_payload")
 
                     if parsed_intent is not None:
                         st.markdown("**Parsed intent**")
@@ -60,5 +61,38 @@ def render_messages() -> None:
                             json.dumps(state_after, ensure_ascii=False, indent=2, default=str),
                             language="json",
                         )
+                        
+                    if answer_payload is not None:
+                        st.markdown("**Answer payload**")
+                        st.code(
+                            json.dumps(answer_payload, ensure_ascii=False, indent=2, default=str),
+                            language="json",
+                        )
+
+                        top_results = answer_payload.get("top_results") or []
+                        if top_results:
+                            st.markdown("**Selection summary by result**")
+                            for idx, result in enumerate(top_results, start=1):
+                                debug_selection = result.get("debug_selection") or {}
+                                title = result.get("title") or f"Result {idx}"
+
+                                with st.container():
+                                    st.markdown(f"**{idx}. {title}**")
+                                    st.markdown(
+                                        f"""
+- score: `{debug_selection.get('score')}`
+- eligibility_status: `{debug_selection.get('eligibility_status')}`
+- match_tier: `{debug_selection.get('match_tier')}`
+- matched_must: `{debug_selection.get('matched_must_count')}/{debug_selection.get('matched_must_total')}`
+- selection_reasons: `{debug_selection.get('selection_reasons')}`
+- blocking_reasons: `{debug_selection.get('blocking_reasons')}`
+"""
+                                    )
+
+                                    with st.expander(f"Raw debug_selection: {title}", expanded=False):
+                                        st.code(
+                                            json.dumps(debug_selection, ensure_ascii=False, indent=2, default=str),
+                                            language="json",
+                                        )
 
     st.markdown("</div>", unsafe_allow_html=True)

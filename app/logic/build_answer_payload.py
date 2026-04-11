@@ -400,6 +400,27 @@ def build_answer_payload(
                 "budget_summary": budget_summary,
                 "budget_status": budget_status,
                 "why": list(r.why or []),
+                "eligibility_status": r.eligibility_status,
+                "match_tier": r.match_tier,
+                "selection_reasons": list(r.selection_reasons or []),
+                "blocking_reasons": list(r.blocking_reasons or []),
+                "debug_selection": {
+    "score": r.score,
+    "eligibility_status": r.eligibility_status,
+    "match_tier": r.match_tier,
+    "matched_must_count": r.matched_must_count,
+    "matched_must_total": r.matched_must_total,
+    "selection_reasons": list(r.selection_reasons or []),
+    "blocking_reasons": list(r.blocking_reasons or []),
+    "matched_constraints": [c.model_dump(mode="json") for c in (r.matched_constraints or [])],
+    "uncertain_constraints": [c.model_dump(mode="json") for c in (r.uncertain_constraints or [])],
+    "failed_constraints": [c.model_dump(mode="json") for c in (r.failed_constraints or [])],
+    "constraint_resolution_results": [
+        c.model_dump(mode="json") if hasattr(c, "model_dump") else c
+        for c in (r.constraint_resolution_results or [])
+    ],
+    "why": list(r.why or []),
+},
             }
         )
 

@@ -42,12 +42,12 @@ def process_user_message(user_message: str) -> None:
             )
         )
 
-    assistant_answer = build_display_answer(result)
-
+    assistant_answer, answer_payload = build_display_answer(result)
     debug_data = {
         "parsed_intent": result.get("parsed_intent"),
         "search_request": result.get("search_request"),
         "state_after": result.get("state"),
+        "answer_payload": answer_payload,
     }
 
     append_message("assistant", assistant_answer, debug_data=debug_data)

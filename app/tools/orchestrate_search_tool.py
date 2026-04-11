@@ -5,6 +5,7 @@ import json
 import os
 from datetime import date
 from typing import Any, Dict, List, Optional, Tuple
+from app.logic.result_selection import select_ranked_items
 from google.genai import Client
 from google.genai import types as genai_types
 from pydantic import ValidationError
@@ -539,15 +540,17 @@ async def orchestrate_search(
     ]
     ranked.sort(key=lambda x: x["score"], reverse=True)
 
+    selected = select_ranked_items(ranked, top_n=top_n)
+
     normalized = normalize_search_response(
         req,
-        ranked,
+        selected,
         top_n=top_n,
         dropped_requests=dropped_requests,
     )
 
     payload = normalized.model_dump(mode="json", exclude_none=True)
-    payload["constraint_statuses"] = _build_constraint_statuses(ranked[: max(0, top_n)])
+    payload["constraint_statuses"] = _build_constraint_statuses(selected[: max(0, top_n)])
     return payload
     
 def _format_match_why(field: Field, fm: Any) -> str:
