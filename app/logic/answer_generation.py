@@ -10,43 +10,71 @@ def _format_bullets(items: list[str] | None, prefix: str = "- ") -> list[str]:
             out.append(f"{prefix}{item}")
     return out
 
+def _format_constraint_rows(items: list[dict[str, Any]] | None) -> list[str]:
+    out: list[str] = []
+
+    for item in items or []:
+        label = item.get("label") or "Requested detail"
+        reason = item.get("reason")
+
+        if reason and reason != label:
+            out.append(f"- {label} — {reason}")
+        else:
+            out.append(f"- {label}")
+
+    return out
+
 
 def _format_top_result(result: dict[str, Any], rank: int) -> str:
     title = result.get("title") or "Unknown option"
     url = result.get("url")
+    price_summary = result.get("price_summary")
+    budget_summary = result.get("budget_summary")
+    key_facts_summary = result.get("key_facts_summary")
+
+    explanation = result.get("answer_explanation") or {}
+    status_text = explanation.get("status_text")
+    decision_summary = explanation.get("decision_summary")
+    confirmed = explanation.get("confirmed") or []
+    needs_confirmation = explanation.get("needs_confirmation") or []
+    not_satisfied = explanation.get("not_satisfied") or []
+    tradeoff_summary = explanation.get("tradeoff_summary")
+    strengths_summary = explanation.get("strengths_summary")
 
     lines = [f"{rank}. {title}"]
 
-    fit_summary = result.get("fit_summary")
-    if fit_summary:
-        lines.append(f"Overall fit: {fit_summary}")
+    if status_text:
+        lines.append(f"Status: {status_text}")
 
-    price_summary = result.get("price_summary")
+    if decision_summary:
+        lines.append(f"Summary: {decision_summary}")
+
+    if confirmed:
+        lines.append("Confirmed:")
+        lines.extend(_format_constraint_rows(confirmed))
+
+    if needs_confirmation:
+        lines.append("Needs confirmation:")
+        lines.extend(_format_constraint_rows(needs_confirmation))
+        
+    if strengths_summary:
+        lines.append(strengths_summary)
+
+    if not_satisfied:
+        lines.append("Not satisfied:")
+        lines.extend(_format_constraint_rows(not_satisfied))
+
+    if tradeoff_summary:
+        lines.append(tradeoff_summary)
+
     if price_summary:
         lines.append(f"Price: {price_summary}")
 
-    budget_summary = result.get("budget_summary")
     if budget_summary:
         lines.append(f"Budget: {budget_summary}")
 
-    key_facts_summary = result.get("key_facts_summary")
     if key_facts_summary:
         lines.append(f"Key facts: {key_facts_summary}")
-
-    why_match = result.get("why_match") or []
-    if why_match:
-        lines.append("Why it matches:")
-        lines.extend(_format_bullets(why_match))
-
-    tradeoffs = result.get("tradeoffs") or []
-    if tradeoffs:
-        lines.append("Trade-offs:")
-        lines.extend(_format_bullets(tradeoffs))
-
-    uncertain_points = result.get("uncertain_points") or []
-    if uncertain_points:
-        lines.append("Uncertain points:")
-        lines.extend(_format_bullets(uncertain_points))
 
     unresolved_constraint_points = (
         result.get("unresolved_constraint_points")
@@ -56,6 +84,7 @@ def _format_top_result(result: dict[str, Any], rank: int) -> str:
     if unresolved_constraint_points:
         lines.append("Other requested details:")
         lines.extend(_format_bullets(unresolved_constraint_points))
+
     if url:
         lines.append(f"Link: {url}")
 

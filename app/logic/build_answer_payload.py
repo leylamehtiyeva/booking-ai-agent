@@ -84,6 +84,28 @@ def _constraint_details(items: list[Any]) -> list[dict[str, Any]]:
         )
     return out
 
+def _humanize_constraint_name(name: str | None) -> str:
+    if not name:
+        return "Requested detail"
+
+    mapping = {
+        "property_type": "Property type",
+        "occupancy_type": "Occupancy type",
+        "price_total": "Budget",
+        "price_per_night": "Budget",
+        "listing_price_total": "Price",
+        "listing_price_per_night_derived": "Price per night",
+        "bedrooms": "Bedrooms",
+        "bathrooms": "Bathrooms",
+        "area_sqm": "Area",
+        "pet_friendly": "Pet policy",
+    }
+
+    if name in mapping:
+        return mapping[name]
+
+    return name.replace("_", " ").strip().capitalize()
+
 def _requested_constraint_details(active_intent: dict[str, Any] | None) -> list[dict[str, Any]]:
     constraints = (active_intent or {}).get("constraints") or []
     out: list[dict[str, Any]] = []
@@ -116,6 +138,46 @@ def _pick_reason_lines(items: list[dict[str, Any]], limit: int = 4) -> list[str]
         if len(out) >= limit:
             break
     return out
+
+def _normalize_answer_constraint_items(
+    items: list[dict[str, Any]],
+) -> list[dict[str, str]]:
+    out: list[dict[str, str]] = []
+
+    for item in items or []:
+        name = item.get("name")
+        reason = item.get("reason")
+        label = _humanize_constraint_name(name)
+
+        cleaned_reason: str
+        if name == "property_type":
+            cleaned_reason = "Matches the requested apartment type"
+        elif name == "occupancy_type":
+            cleaned_reason = "Matches the requested occupancy type"
+        else:
+            cleaned_reason = str(reason).strip() if reason else label
+
+        out.append(
+            {
+                "name": name or "",
+                "label": label,
+                "reason": cleaned_reason,
+            }
+        )
+
+    return out
+
+
+def _build_answer_constraint_sections(
+    matched_details: list[dict[str, Any]],
+    uncertain_details: list[dict[str, Any]],
+    failed_details: list[dict[str, Any]],
+) -> dict[str, list[dict[str, str]]]:
+    return {
+        "confirmed": _normalize_answer_constraint_items(matched_details),
+        "needs_confirmation": _normalize_answer_constraint_items(uncertain_details),
+        "not_satisfied": _normalize_answer_constraint_items(failed_details),
+    }
 
 
 def _build_price_summary(facts: dict[str, Any]) -> str | None:
@@ -189,28 +251,85 @@ def _build_fit_summary(
     return ". ".join(parts) + ("." if parts else "")
 
 
+def _build_result_verdict(
+    *,
+    eligibility_status: str | None,
+    match_tier: str | None,
+    confirmed: list[dict[str, str]],
+    needs_confirmation: list[dict[str, str]],
+    not_satisfied: list[dict[str, str]],
+) -> dict[str, str]:
+    if (
+        eligibility_status == "eligible"
+        and match_tier == "strong"
+        and not needs_confirmation
+        and not not_satisfied
+    ):
+        return {
+            "status_label": "fully_confirmed_match",
+            "status_text": "Fully confirmed match",
+            "decision_summary": "This option fully matches your request.",
+        }
+
+    if eligibility_status == "eligible" and match_tier == "partial":
+        if len(needs_confirmation) >= 2:
+            return {
+                "status_label": "partially_confirmed_match",
+                "status_text": "Partially confirmed match",
+                "decision_summary": "This option matches your main request, but some requested details still need confirmation.",
+            }
+
+        if len(needs_confirmation) == 1:
+            return {
+                "status_label": "partially_confirmed_match",
+                "status_text": "Partially confirmed match",
+                "decision_summary": "This option matches your main request, but one requested detail still needs confirmation.",
+            }
+
+        if not_satisfied:
+            return {
+                "status_label": "partially_confirmed_match",
+                "status_text": "Partially confirmed match",
+                "decision_summary": "This option matches part of your request, but some requested constraints are not satisfied.",
+            }
+
+        return {
+            "status_label": "partially_confirmed_match",
+            "status_text": "Partially confirmed match",
+            "decision_summary": "This option matches your main request based on the available listing information.",
+        }
+
+    if eligibility_status == "eligible" and match_tier == "strong":
+        return {
+            "status_label": "strong_match_with_caveats",
+            "status_text": "Strong match",
+            "decision_summary": "This option is a strong match overall, with a few details worth checking.",
+        }
+
+    return {
+        "status_label": "relevant_option",
+        "status_text": "Relevant option",
+        "decision_summary": "This option looks relevant based on the available listing information.",
+    }
+
 def _build_key_facts_summary(facts: dict[str, Any]) -> str | None:
     parts: list[str] = []
 
-    if facts.get("property_type"):
-        parts.append(f"type: {facts['property_type']}")
-    if facts.get("occupancy_type"):
-        parts.append(f"occupancy: {facts['occupancy_type']}")
-    if facts.get("bedrooms") is not None:
-        parts.append(f"{facts['bedrooms']} bedroom(s)")
-    if facts.get("bathrooms") is not None:
-        parts.append(f"{facts['bathrooms']} bathroom(s)")
-    if facts.get("area_sqm") is not None:
-        parts.append(f"{facts['area_sqm']} sqm")
+    property_type = facts.get("property_type")
+    bedrooms = facts.get("bedrooms")
+    bathrooms = facts.get("bathrooms")
+    area_sqm = facts.get("area_sqm")
 
-    price_summary = _build_price_summary(facts)
-    if price_summary:
-        parts.append(price_summary)
+    if property_type:
+        parts.append(f"type: {property_type}")
+    if bedrooms is not None:
+        parts.append(f"{bedrooms} bedroom(s)")
+    if bathrooms is not None:
+        parts.append(f"{bathrooms} bathroom(s)")
+    if area_sqm is not None:
+        parts.append(f"{area_sqm} sqm")
 
-    if not parts:
-        return None
-    return ", ".join(parts)
-
+    return ", ".join(parts) if parts else None
 def _build_ranking_reasons(result: dict[str, Any]) -> list[str]:
     reasons: list[str] = []
 
@@ -277,6 +396,73 @@ def _build_standout_reason(
     return None
 
 
+def _build_tradeoff_summary(
+    *,
+    confirmed: list[dict[str, str]],
+    needs_confirmation: list[dict[str, str]],
+    not_satisfied: list[dict[str, str]],
+) -> str | None:
+    best_confirmed = confirmed[0]["label"] if confirmed else None
+    main_uncertain = needs_confirmation[0]["label"] if needs_confirmation else None
+    main_failed = not_satisfied[0]["label"] if not_satisfied else None
+
+    if best_confirmed and main_uncertain and main_failed:
+        return (
+            f"Trade-off: {best_confirmed} is confirmed, but {main_uncertain} still needs confirmation "
+            f"and {main_failed} is not satisfied."
+        )
+
+    if best_confirmed and main_uncertain:
+        return f"Trade-off: {best_confirmed} is confirmed, but {main_uncertain} still needs confirmation."
+
+    if best_confirmed and main_failed:
+        return f"Trade-off: {best_confirmed} is confirmed, but {main_failed} is not satisfied."
+
+    if len(needs_confirmation) >= 2:
+        return "Trade-off: the option matches part of the request, but several requested details still need confirmation."
+
+    if not_satisfied:
+        return "Trade-off: some requested constraints are not satisfied."
+
+    return None
+
+
+def _build_confirmed_strengths_summary(
+    *,
+    confirmed: list[dict[str, str]],
+    match_tier: str | None,
+    rank: int | None = None,
+) -> str | None:
+    if not confirmed:
+        return None
+
+    labels = [
+        item["label"]
+        for item in confirmed
+        if item.get("label") and item.get("label") != "Property type"
+    ]
+
+    if not labels:
+        labels = [item["label"] for item in confirmed if item.get("label")]
+
+    if not labels:
+        return None
+
+    if len(labels) == 1:
+        item_text = labels[0]
+    elif len(labels) == 2:
+        item_text = f"{labels[0]} and {labels[1]}"
+    else:
+        item_text = ", ".join(labels[:-1]) + f", and {labels[-1]}"
+
+    if rank == 1 and len(labels) >= 2:
+        return f"Best match because it confirms both: {item_text}."
+    if rank == 1:
+        return f"Best match because it confirms: {item_text}."
+    if match_tier == "strong":
+        return f"Strong match because it confirms: {item_text}."
+    return f"Confirmed strengths: {item_text}."
+
 def build_answer_payload(
     response: NormalizedSearchResponse,
     *,
@@ -330,6 +516,32 @@ def build_answer_payload(
             budget_summary,
         )
         key_facts_summary = _build_key_facts_summary(facts_dict)
+        
+        answer_sections = _build_answer_constraint_sections(
+            matched_details=matched_details,
+            uncertain_details=uncertain_details,
+            failed_details=failed_details,
+        )
+
+        answer_verdict = _build_result_verdict(
+            eligibility_status=r.eligibility_status,
+            match_tier=r.match_tier,
+            confirmed=answer_sections["confirmed"],
+            needs_confirmation=answer_sections["needs_confirmation"],
+            not_satisfied=answer_sections["not_satisfied"],
+        )
+        
+        strengths_summary = _build_confirmed_strengths_summary(
+            confirmed=answer_sections["confirmed"],
+            match_tier=r.match_tier,
+            rank=len(top_results) + 1,
+        )
+
+        tradeoff_summary = _build_tradeoff_summary(
+            confirmed=answer_sections["confirmed"],
+            needs_confirmation=answer_sections["needs_confirmation"],
+            not_satisfied=answer_sections["not_satisfied"],
+        )
 
         # Normalize unknown request results into plain dicts for payload/JSON use
         raw_unknown_request_results = list(getattr(r, "unknown_request_results", []) or [])
@@ -402,6 +614,16 @@ def build_answer_payload(
                 "why": list(r.why or []),
                 "eligibility_status": r.eligibility_status,
                 "match_tier": r.match_tier,
+                "answer_explanation": {
+                    "status_label": answer_verdict["status_label"],
+                    "status_text": answer_verdict["status_text"],
+                    "decision_summary": answer_verdict["decision_summary"],
+                    "confirmed": answer_sections["confirmed"],
+                    "needs_confirmation": answer_sections["needs_confirmation"],
+                    "not_satisfied": answer_sections["not_satisfied"],
+                    "tradeoff_summary": tradeoff_summary,
+                    "strengths_summary": strengths_summary,
+                },
                 "selection_reasons": list(r.selection_reasons or []),
                 "blocking_reasons": list(r.blocking_reasons or []),
                 "debug_selection": {
