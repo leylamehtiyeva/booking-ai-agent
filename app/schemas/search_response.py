@@ -74,6 +74,11 @@ class NormalizedSearchResult(BaseModel):
     uncertain_constraints: list[ConstraintStatus] = Field(default_factory=list)
     failed_constraints: list[ConstraintStatus] = Field(default_factory=list)
     facts: list[ResultFact] = Field(default_factory=list)
+    
+    eligibility_status: str | None = None
+    match_tier: str | None = None
+    selection_reasons: list[str] = Field(default_factory=list)
+    blocking_reasons: list[str] = Field(default_factory=list)
 
     why: list[str] = Field(default_factory=list)
     constraint_resolution_results: list[ConstraintResolutionItem] = Field(default_factory=list)
