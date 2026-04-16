@@ -80,12 +80,9 @@ def _request_summary(req: SearchRequest, dropped_requests: List[str]) -> Normali
         city=req.city,
         check_in=req.check_in.isoformat() if req.check_in else None,
         check_out=req.check_out.isoformat() if req.check_out else None,
-        must_have_fields=[f.value for f in (req.must_have_fields or [])],
-        nice_to_have_fields=[f.value for f in (req.nice_to_have_fields or [])],
         property_types=[x.value if hasattr(x, "value") else str(x) for x in (req.property_types or [])],
         occupancy_types=[x.value if hasattr(x, "value") else str(x) for x in (req.occupancy_types or [])],
         filters=req.filters.model_dump() if req.filters else {},
-        unknown_requests=derived_unknown_requests,
         dropped_requests=list(dropped_requests or []),
         constraints=[
             {

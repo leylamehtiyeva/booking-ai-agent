@@ -356,25 +356,20 @@ def _build_request(
     check_out: date,
 ) -> SearchRequest:
     req = SearchRequest(
-        city=city,
-        check_in=check_in,
-        check_out=check_out,
-        adults=intent_obj.adults or 2,
-        children=intent_obj.children or 0,
-        rooms=intent_obj.rooms or 1,
-        currency="USD",
-        budget_max=None,
-        must_have_fields=[],
-        nice_to_have_fields=[],
-        forbidden_fields=[],
-        min_guest_rating=None,
-        filters=intent_obj.filters,
-        property_types=intent_obj.property_types or None,
-        occupancy_types=intent_obj.occupancy_types or None,
-        constraints=intent_obj.constraints,
-        unknown_requests=[],
-    )
-
+    city=city,
+    check_in=check_in,
+    check_out=check_out,
+    adults=intent_obj.adults or 2,
+    children=intent_obj.children or 0,
+    rooms=intent_obj.rooms or 1,
+    currency="USD",
+    budget_max=None,
+    min_guest_rating=None,
+    filters=intent_obj.filters,
+    property_types=intent_obj.property_types or None,
+    occupancy_types=intent_obj.occupancy_types or None,
+    constraints=intent_obj.constraints,
+)
     # Canonical flow:
     # SearchRequest semantic state is carried by constraints.
     # Legacy fields are derived here only for compatibility/debug layers.

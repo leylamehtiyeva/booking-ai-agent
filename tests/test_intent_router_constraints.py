@@ -85,7 +85,6 @@ def test_build_search_request_uses_constraints_as_source_of_truth(monkeypatch):
     # nice constraint
     assert req.constraints[2].normalized_text == "balcony"
     assert req.constraints[2].priority == ConstraintPriority.NICE
-    assert req.forbidden_fields == []
     assert req.property_types == [PropertyType.APARTMENT]
 
 
