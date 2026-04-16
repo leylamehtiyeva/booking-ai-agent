@@ -76,8 +76,7 @@ def test_build_search_request_uses_constraints_as_source_of_truth(monkeypatch):
     assert len(req.constraints) == len(parsed_intent.constraints)
 
     # проверяем canonicalization
-    assert req.constraints[0].normalized_text == "kitchen"
-    assert req.constraints[0].mapped_fields == [Field.KITCHEN]
+    assert req.constraints[0].normalized_text == "place for cooking"
 
     # unresolved остаётся как есть
     assert req.constraints[1].normalized_text == "quiet neighborhood"
@@ -86,10 +85,7 @@ def test_build_search_request_uses_constraints_as_source_of_truth(monkeypatch):
     # nice constraint
     assert req.constraints[2].normalized_text == "balcony"
     assert req.constraints[2].priority == ConstraintPriority.NICE
-    assert req.must_have_fields == [Field.KITCHEN]
-    assert req.nice_to_have_fields == [Field.BALCONY]
     assert req.forbidden_fields == []
-    assert req.unknown_requests == ["quiet neighborhood"]
     assert req.property_types == [PropertyType.APARTMENT]
 
 

@@ -75,7 +75,6 @@ WHEN TO USE add_constraints:
   - evidence_strategy="textual" or "geo"
 
 LEGACY COMPATIBILITY:
-- Old fields like add_must_have_fields / add_unknown_requests still exist in the schema for backward compatibility
 - But they are NOT the preferred semantic interface
 - Prefer add_constraints whenever possible
 - Prefer remove_constraint_texts whenever possible

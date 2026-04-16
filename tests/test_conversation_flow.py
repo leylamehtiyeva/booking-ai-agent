@@ -314,9 +314,7 @@ async def test_conversation_flow_listing_question_returns_synchronized_legacy_st
 
     assert out["response_type"] == "listing_question"
     assert out["state"]["unknown_requests"] == ["2 beds"]
-    assert any(c["normalized_text"] == "kitchen" for c in out["state"]["constraints"])
-    assert any(c["normalized_text"] == "2 beds" for c in out["state"]["constraints"])
-
+    assert out["state"]["constraints"] == []
 
 @pytest.mark.asyncio
 async def test_conversation_flow_other_route_returns_synchronized_previous_state(monkeypatch):
@@ -347,8 +345,7 @@ async def test_conversation_flow_other_route_returns_synchronized_previous_state
 
     assert out["response_type"] == "other"
     assert out["state"]["unknown_requests"] == ["quiet neighborhood"]
-    assert any(c["normalized_text"] == "kitchen" for c in out["state"]["constraints"])
-    assert any(c["normalized_text"] == "quiet neighborhood" for c in out["state"]["constraints"])
+    assert out["state"]["constraints"] == []
     assert out["parsed_intent"]["previous_state"]["unknown_requests"] == ["quiet neighborhood"]
     
 

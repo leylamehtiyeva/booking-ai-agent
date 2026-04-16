@@ -272,9 +272,6 @@ def is_constraint_fallback_eligible(
     if policy.must_only and constraint.priority != ConstraintPriority.MUST:
         return False
 
-    if constraint.evidence_strategy not in {EvidenceStrategy.TEXTUAL, EvidenceStrategy.STRUCTURED}:
-        return False
-
     if (
         policy.run_for_unresolved
         and constraint.mapping_status == ConstraintMappingStatus.UNRESOLVED

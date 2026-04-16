@@ -13,7 +13,6 @@ from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
 
 from app.agents.intent_router_agent import IntentRoute, build_intent_router_agent
-from app.logic.constraint_state import sync_legacy_state_from_constraints
 from app.logic.date_normalization import normalize_intent_dates
 from app.logic.request_resolution import resolve_required_search_context
 from app.schemas.query import SearchRequest
@@ -176,7 +175,6 @@ async def build_search_request_adk_async(user_text: str) -> SearchRequest:
         constraints=intent.constraints,
         unknown_requests=[],
     )
-    req = sync_legacy_state_from_constraints(req)
 
     print("\n=== SEARCH REQUEST ===")
     print(req.model_dump(mode="json", exclude_none=True))
