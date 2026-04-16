@@ -63,9 +63,6 @@ def test_normalize_intent_dates_computes_check_out_from_nights():
     assert normalized.check_out == "2026-04-26"
 
 
-
-
-
 def test_unresolved_constraints_do_not_clear_valid_dates():
     intent = IntentRoute(
         city="Baku",
@@ -82,7 +79,6 @@ def test_unresolved_constraints_do_not_clear_valid_dates():
                 evidence_strategy=EvidenceStrategy.TEXTUAL,
             )
         ],
-        unknown_requests=[],
     )
 
     normalized = normalize_intent_dates(

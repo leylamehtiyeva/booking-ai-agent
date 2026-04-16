@@ -41,40 +41,13 @@ def default_uncertain_reason(field_name: str | None) -> str:
 
 def _request_summary(req: SearchRequest, dropped_requests: List[str]) -> NormalizedRequestSummary:
     """
-    Build the normalized request summary.
+    Build the normalized request summary from the canonical constraint-centric request.
 
     Contract:
-    - constraints remains the canonical semantic state
-    - unknown_requests is a compatibility-only derived projection from canonical constraints
-    - dropped_requests is separate debug / normalization residue and must not be mixed
-      into unknown_requests
+    - constraints is the only semantic source of truth
+    - dropped_requests is debug / normalization residue
+    - no legacy field-centric projections are included
     """
-    constraints_present = bool(req.constraints)
-    derived_unknown_requests = [
-            c.normalized_text
-            for c in (req.constraints or [])
-            if c.priority.value == "must"
-            and c.mapping_status.value == "unresolved"
-        ]
-
-    # Compatibility fallback for older call paths that may still pass a request with
-    # legacy unknown_requests but without lifted constraints.
-    #
-    # Important:
-    # - use fallback only when canonical constraints are absent
-    # - if constraints are present, even an empty derived projection must win,
-    #   because unknown_requests is only a lossy compatibility view
-    if not constraints_present and getattr(req, "unknown_requests", None):
-        seen: set[str] = set()
-        fallback_unknown_requests: list[str] = []
-        for text in req.unknown_requests:
-            cleaned = str(text).strip()
-            key = cleaned.casefold()
-            if not cleaned or key in seen:
-                continue
-            seen.add(key)
-            fallback_unknown_requests.append(cleaned)
-        derived_unknown_requests = fallback_unknown_requests
 
     return NormalizedRequestSummary(
         city=req.city,
@@ -385,13 +358,10 @@ def normalize_search_response(
                 title=item.get("listing_name") or getattr(listing, "name", "Unknown"),
                 url=getattr(listing, "url", None),
                 score=float(item.get("score", 0.0)),
-                matched_must_count=int(item.get("must_have_matched", 0)),
-                matched_must_total=int(item.get("must_have_total", 0)),
                 eligibility_status=item.get("eligibility_status"),
                 match_tier=item.get("match_tier"),
                 selection_reasons=item.get("selection_reasons") or [],
                 blocking_reasons=item.get("blocking_reasons") or [],
-                unknown_request_results=item.get("unknown_request_results", []),
                 constraint_resolution_results=item.get("constraint_resolution_results", []),
                 matched_constraints=matched,
                 uncertain_constraints=uncertain,

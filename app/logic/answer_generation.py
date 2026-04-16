@@ -11,6 +11,57 @@ def _format_bullets(items: list[str] | None, prefix: str = "- ") -> list[str]:
     return out
 
 
+def _format_constraint_resolution_points(
+    result: dict[str, Any],
+) -> list[str]:
+    """
+    Convert canonical constraint_resolution_results into short, user-facing lines.
+
+    Priority:
+    1. explicit YES matches from constraint_resolution_results
+    2. fallback to unresolved_constraint_points if already provided upstream
+
+    This keeps answer_generation aligned with canonical payloads and avoids
+    depending on legacy unknown_request_points-style fields.
+    """
+    points: list[str] = []
+
+    for item in result.get("constraint_resolution_results") or []:
+        if not isinstance(item, dict):
+            continue
+
+        decision = item.get("decision")
+        label = item.get("normalized_text")
+        if not label:
+            continue
+        reason = item.get("reason")
+
+        if label:
+            if isinstance(reason, str) and reason:
+                points.append(f"{label} — {reason}")
+            else:
+                points.append(str(label))
+
+    if points:
+        # dedupe while preserving order
+        seen: set[str] = set()
+        unique: list[str] = []
+        for p in points:
+            if p not in seen:
+                seen.add(p)
+                unique.append(p)
+        return unique[:4]
+
+    fallback_points = result.get("unresolved_constraint_points") or []
+    out: list[str] = []
+    for item in fallback_points:
+        if item:
+            text = str(item)
+            if text not in out:
+                out.append(text)
+    return out[:4]
+
+
 def _format_top_result(result: dict[str, Any], rank: int) -> str:
     title = result.get("title") or "Unknown option"
     url = result.get("url")
@@ -20,6 +71,10 @@ def _format_top_result(result: dict[str, Any], rank: int) -> str:
     fit_summary = result.get("fit_summary")
     if fit_summary:
         lines.append(f"Overall fit: {fit_summary}")
+
+    standout_reason = result.get("standout_reason")
+    if standout_reason:
+        lines.append(f"Standout: {standout_reason}")
 
     price_summary = result.get("price_summary")
     if price_summary:
@@ -48,14 +103,16 @@ def _format_top_result(result: dict[str, Any], rank: int) -> str:
         lines.append("Uncertain points:")
         lines.extend(_format_bullets(uncertain_points))
 
-    unresolved_constraint_points = (
-        result.get("unresolved_constraint_points")
-        or result.get("unknown_request_points")
-        or []
-    )
-    if unresolved_constraint_points:
+    resolved_requested_details = _format_constraint_resolution_points(result)
+    if resolved_requested_details:
         lines.append("Other requested details:")
-        lines.extend(_format_bullets(unresolved_constraint_points))
+        lines.extend(_format_bullets(resolved_requested_details))
+
+    ranking_reasons = result.get("ranking_reasons") or []
+    if ranking_reasons:
+        lines.append("Ranking signals:")
+        lines.extend(_format_bullets([str(x) for x in ranking_reasons[:3]]))
+
     if url:
         lines.append(f"Link: {url}")
 
@@ -91,15 +148,12 @@ def _build_intro(payload: dict[str, Any]) -> str:
 def _build_refinement_hint(payload: dict[str, Any]) -> str:
     active_intent = payload.get("active_intent") or {}
     filters = active_intent.get("filters") or {}
-    must_have_fields = active_intent.get("must_have_fields") or []
     constraints = active_intent.get("constraints") or []
 
     suggestions: list[str] = []
 
     if constraints:
         suggestions.append("focus on listings with more fully confirmed requested constraints")
-    elif must_have_fields:
-        suggestions.append("keep only listings with fully confirmed amenities")
     if filters.get("price"):
         suggestions.append("tighten or relax the budget")
     suggestions.append("narrow by location")
