@@ -434,6 +434,14 @@ def build_answer_payload(
         matched_details = _constraint_details(r.matched_constraints)
         uncertain_details = _constraint_details(r.uncertain_constraints)
         failed_details = _constraint_details(r.failed_constraints)
+        matched_requested_details = _constraint_details(r.matched_requested_constraints)
+        uncertain_requested_details = _constraint_details(r.uncertain_requested_constraints)
+        failed_requested_details = _constraint_details(r.failed_requested_constraints)
+
+        matched_derived_details = _constraint_details(r.matched_derived_matches)
+        uncertain_derived_details = _constraint_details(r.uncertain_derived_matches)
+        failed_derived_details = _constraint_details(r.failed_derived_matches)
+        
 
         price_summary = _build_price_summary(facts_dict)
         budget_summary, budget_status = _build_budget_summary(facts_dict)
@@ -490,6 +498,12 @@ def build_answer_payload(
                 "matched_constraints": matched_details,
                 "uncertain_constraints": uncertain_details,
                 "failed_constraints": failed_details,
+                "matched_requested_constraints": matched_requested_details,
+                "uncertain_requested_constraints": uncertain_requested_details,
+                "failed_requested_constraints": failed_requested_details,
+                "matched_derived_matches": matched_derived_details,
+                "uncertain_derived_matches": uncertain_derived_details,
+                "failed_derived_matches": failed_derived_details,
                 "matched_constraint_names": _constraint_names(r.matched_constraints),
                 "uncertain_constraint_names": _constraint_names(r.uncertain_constraints),
                 "failed_constraint_names": _constraint_names(r.failed_constraints),

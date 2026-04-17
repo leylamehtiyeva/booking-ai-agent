@@ -305,6 +305,20 @@ def _merge_constraint_resolution_statuses(
 
     return final_matched, final_uncertain, final_failed
 
+def _split_requested_vs_derived(
+    statuses: list[ConstraintStatus],
+) -> tuple[list[ConstraintStatus], list[ConstraintStatus]]:
+    requested: list[ConstraintStatus] = []
+    derived: list[ConstraintStatus] = []
+
+    for status in statuses:
+        if status.constraint:
+            requested.append(status)
+        else:
+            derived.append(status)
+
+    return requested, derived
+
 
 def _collect_constraint_statuses(
     item: dict[str, Any],
@@ -539,6 +553,10 @@ def normalize_search_response(
         matched, uncertain, failed = _collect_constraint_statuses(item, req)
         facts = _collect_facts(item, req)
 
+        matched_requested_constraints, matched_derived_matches = _split_requested_vs_derived(matched)
+        uncertain_requested_constraints, uncertain_derived_matches = _split_requested_vs_derived(uncertain)
+        failed_requested_constraints, failed_derived_matches = _split_requested_vs_derived(failed)
+
         results.append(
             NormalizedSearchResult(
                 result_id=build_result_id(listing),
@@ -553,6 +571,12 @@ def normalize_search_response(
                 matched_constraints=matched,
                 uncertain_constraints=uncertain,
                 failed_constraints=failed,
+                matched_requested_constraints=matched_requested_constraints,
+                uncertain_requested_constraints=uncertain_requested_constraints,
+                failed_requested_constraints=failed_requested_constraints,
+                matched_derived_matches=matched_derived_matches,
+                uncertain_derived_matches=uncertain_derived_matches,
+                failed_derived_matches=failed_derived_matches,
                 facts=facts,
                 why=item.get("why") or [],
             )

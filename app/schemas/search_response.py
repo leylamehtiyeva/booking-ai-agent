@@ -72,6 +72,15 @@ class NormalizedSearchResult(BaseModel):
     matched_constraints: list[ConstraintStatus] = Field(default_factory=list)
     uncertain_constraints: list[ConstraintStatus] = Field(default_factory=list)
     failed_constraints: list[ConstraintStatus] = Field(default_factory=list)
+    
+    matched_requested_constraints: list[ConstraintStatus] = Field(default_factory=list)
+    uncertain_requested_constraints: list[ConstraintStatus] = Field(default_factory=list)
+    failed_requested_constraints: list[ConstraintStatus] = Field(default_factory=list)
+
+    matched_derived_matches: list[ConstraintStatus] = Field(default_factory=list)
+    uncertain_derived_matches: list[ConstraintStatus] = Field(default_factory=list)
+    failed_derived_matches: list[ConstraintStatus] = Field(default_factory=list)
+    
     facts: list[ResultFact] = Field(default_factory=list)
 
     eligibility_status: str | None = None
