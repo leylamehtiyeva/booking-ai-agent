@@ -97,6 +97,11 @@ def _decision_to_status(decision: DecisionType) -> ResolutionStatus:
         "NO": "failed",
         "UNCERTAIN": "uncertain",
     }[decision]
+    
+def _normalize_evidence_strategy_for_resolution(strategy: str | None) -> str:
+    if strategy == "geo":
+        return "textual"
+    return strategy or "textual"
 
 
 def _extract_json(text: str) -> str:
@@ -292,6 +297,10 @@ def build_resolution_request(
     constraint: UserConstraint,
     structured_value: Ternary | None,
 ) -> ConstraintResolutionRequest:
+    normalized_strategy = _normalize_evidence_strategy_for_resolution(
+        constraint.evidence_strategy.value
+    )
+
     return ConstraintResolutionRequest(
         listing_id=getattr(listing, "id", None),
         listing_title=getattr(listing, "name", None),
@@ -301,7 +310,7 @@ def build_resolution_request(
         priority=constraint.priority.value,
         category=constraint.category.value,
         mapping_status=constraint.mapping_status.value,
-        evidence_strategy=constraint.evidence_strategy.value,
+        evidence_strategy=normalized_strategy,
         mapped_fields=[f.value if hasattr(f, "value") else str(f) for f in (constraint.mapped_fields or [])],
         structured_value=structured_value.value if structured_value is not None else None,
         resolver_type="textual",

@@ -187,7 +187,7 @@ async def _repair_intent_with_llm(
                     "category": "amenity|policy|location|layout|numeric|property_type|occupancy|other",
                     "mapping_status": "known|unresolved",
                     "mapped_fields": "list[canonical_key]",
-                    "evidence_strategy": "structured|textual|geo|none",
+                    "evidence_strategy": "structured|textual|none",
                 }
             ],
             "filters": {

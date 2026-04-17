@@ -78,6 +78,90 @@ def _requested_constraint_details(active_intent: dict[str, Any] | None) -> list[
     return out
 
 
+def _normalize_constraint_key(value: str | None) -> str:
+    if not value:
+        return ""
+
+    return (
+        str(value)
+        .strip()
+        .casefold()
+        .replace("-", "_")
+        .replace(" ", "_")
+    )
+
+
+def _build_requested_constraint_lookup(
+    active_intent: dict[str, Any] | None,
+) -> dict[str, dict[str, Any]]:
+    constraints = (active_intent or {}).get("constraints") or []
+    lookup: dict[str, dict[str, Any]] = {}
+
+    for c in constraints:
+        if not isinstance(c, dict):
+            continue
+
+        payload = {
+            "raw_text": c.get("raw_text"),
+            "normalized_text": c.get("normalized_text"),
+            "priority": c.get("priority"),
+            "category": c.get("category"),
+            "mapping_status": c.get("mapping_status"),
+            "mapped_fields": list(c.get("mapped_fields") or []),
+            "evidence_strategy": c.get("evidence_strategy"),
+        }
+
+        aliases = {
+            _normalize_constraint_key(c.get("normalized_text")),
+            _normalize_constraint_key(c.get("raw_text")),
+        }
+
+        for field_name in (c.get("mapped_fields") or []):
+            aliases.add(_normalize_constraint_key(str(field_name)))
+
+        for alias in aliases:
+            if alias:
+                lookup[alias] = payload
+
+    return lookup
+
+
+def _lookup_requested_constraint(
+    name: str | None,
+    requested_lookup: dict[str, dict[str, Any]],
+) -> dict[str, Any] | None:
+    key = _normalize_constraint_key(name)
+    if not key:
+        return None
+    return requested_lookup.get(key)
+
+
+def _is_uncertain_reason(text: str | None) -> bool:
+    if not text:
+        return False
+
+    lowered = str(text).strip().casefold()
+
+    markers = [
+        "not explicitly confirmed",
+        "needs confirmation",
+        "no mention",
+        "not mentioned",
+        "uncertain",
+        "maybe",
+        "needs check",
+    ]
+    return any(marker in lowered for marker in markers)
+
+
+def _candidate(score: int, text: str | None) -> tuple[int, str] | None:
+    if not text:
+        return None
+    value = str(text).strip()
+    if not value:
+        return None
+    return (score, value)
+
 def _pick_reason_lines(items: list[dict[str, Any]], limit: int = 4) -> list[str]:
     out: list[str] = []
     for item in items or []:
@@ -197,38 +281,114 @@ def _build_ranking_reasons(result: dict[str, Any]) -> list[str]:
 
 def _build_standout_reason(
     *,
+    matched_details: list[dict[str, Any]],
+    uncertain_details: list[dict[str, Any]],
     constraint_resolution_results: list[Any],
     why_match: list[str],
     tradeoffs: list[str],
     uncertain_points: list[str],
+    ranking_reasons: list[str],
+    budget_summary: str | None,
+    budget_status: str | None,
+    active_intent: dict[str, Any] | None,
 ) -> str | None:
+    requested_lookup = _build_requested_constraint_lookup(active_intent)
+    candidates: list[tuple[int, str]] = []
+
+    # 1) Explicit matched MUST constraints from final normalized matched buckets.
+    for item in matched_details or []:
+        name = item.get("name")
+        reason = item.get("reason")
+        requested = _lookup_requested_constraint(name, requested_lookup)
+
+        if requested and requested.get("priority") == "must":
+            category = requested.get("category")
+            score = 100
+
+            if category == "location":
+                score = 110
+            elif category == "layout":
+                score = 105
+            elif category == "policy":
+                score = 100
+
+            if reason and not _is_uncertain_reason(reason):
+                candidate = _candidate(score, reason)
+                if candidate:
+                    candidates.append(candidate)
+            elif name:
+                candidate = _candidate(score - 5, f"The listing confirms: {name}")
+                if candidate:
+                    candidates.append(candidate)
+
+    # 2) Strong structured positives: budget / ranking reasons.
+    if budget_status == "within_budget" and budget_summary:
+        candidate = _candidate(95, budget_summary)
+        if candidate:
+            candidates.append(candidate)
+
+    for line in ranking_reasons or []:
+        if not line or _is_uncertain_reason(line):
+            continue
+
+        text = str(line)
+
+        if text.startswith("BEDROOMS:"):
+            candidate = _candidate(92, text)
+        elif text.startswith("PRICE:"):
+            candidate = _candidate(91, text)
+        elif text.startswith("PROPERTY_TYPE:"):
+            candidate = _candidate(90, text)
+        elif text.startswith("OCCUPANCY_TYPE:"):
+            candidate = _candidate(88, text)
+        elif text.startswith("AREA:"):
+            candidate = _candidate(87, text)
+        else:
+            candidate = _candidate(80, text)
+
+        if candidate:
+            candidates.append(candidate)
+
+    # 3) Positive fallback confirmations only.
     for item in constraint_resolution_results or []:
         if isinstance(item, dict):
             decision = item.get("decision")
             label = item.get("normalized_text")
-
-            if decision == "YES" and label:
-                return f"The listing explicitly confirms: {label}"
-
             reason = item.get("reason")
-            if isinstance(reason, str) and reason:
-                return reason
-
         else:
             decision = getattr(item, "decision", None)
             label = getattr(item, "normalized_text", None)
             reason = getattr(item, "reason", None)
 
-            if decision == "YES" and label:
-                return f"The listing explicitly confirms: {label}"
+        if decision == "YES":
+            if reason and not _is_uncertain_reason(reason):
+                candidate = _candidate(85, reason)
+                if candidate:
+                    candidates.append(candidate)
+            elif label:
+                candidate = _candidate(83, f"The listing explicitly confirms: {label}")
+                if candidate:
+                    candidates.append(candidate)
 
-            if reason:
-                return reason
+    # 4) Generic positive matched reasons.
+    for line in why_match or []:
+        if not line or _is_uncertain_reason(line):
+            continue
+        candidate = _candidate(70, line)
+        if candidate:
+            candidates.append(candidate)
 
-    if why_match:
-        return why_match[0]
+    if candidates:
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        return candidates[0][1]
 
-    if not tradeoffs and not uncertain_points:
+    # 5) Only if nothing better exists, allow uncertain reason.
+    for line in uncertain_points or []:
+        candidate = _candidate(10, line)
+        if candidate:
+            return candidate[1]
+
+    if not tradeoffs and not uncertain_details:
         return "Strong overall match"
 
     return None
@@ -306,12 +466,20 @@ def build_answer_payload(
 
         unresolved_constraint_points = _pick_reason_lines(uncertain_details, limit=4)
 
-        standout_reason = _build_standout_reason(
-            constraint_resolution_results=constraint_resolution_results,
-            why_match=why_match,
-            tradeoffs=tradeoffs,
-            uncertain_points=uncertain_points,
-        )
+        # For future user answer 
+        # standout_reason = _build_standout_reason(
+        #     matched_details=matched_details,
+        #     uncertain_details=uncertain_details,
+        #     constraint_resolution_results=constraint_resolution_results,
+        #     why_match=why_match,
+        #     tradeoffs=tradeoffs,
+        #     uncertain_points=uncertain_points,
+        #     ranking_reasons=ranking_reasons,
+        #     budget_summary=budget_summary,
+        #     budget_status=budget_status,
+        #     active_intent=request_summary,
+        # )
+        standout_reason = None
 
         top_results.append(
             {

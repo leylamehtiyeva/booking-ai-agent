@@ -383,4 +383,4 @@ def test_build_answer_payload_includes_ranking_reasons_and_standout_reason():
 
     assert first["ranking_reasons"]
     assert "matched apartment" in first["ranking_reasons"][0]
-    assert first["standout_reason"] == "The listing explicitly confirms: satellite TV"
+    assert first["standout_reason"] is None

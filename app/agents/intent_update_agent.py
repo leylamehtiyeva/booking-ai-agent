@@ -72,7 +72,7 @@ WHEN TO USE add_constraints:
 - unresolved constraints should use:
   - mapping_status="unresolved"
   - mapped_fields=[]
-  - evidence_strategy="textual" or "geo"
+  - evidence_strategy="textual"
 
 LEGACY COMPATIBILITY:
 - But they are NOT the preferred semantic interface
