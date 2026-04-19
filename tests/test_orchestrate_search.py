@@ -3,8 +3,10 @@ from datetime import date
 
 from app.agents.intent_router_agent import IntentRoute
 from app.logic.request_resolution import resolve_required_search_context
-from app.tools.orchestrate_search_tool import orchestrate_search
+from app.tools.orchestrate_search_tool import orchestrate_search, _salvage_only_enum_keys
 from app.schemas.fallback_policy import FallbackPolicy
+from app.schemas.listing import ListingRaw, Room
+from app.tools import orchestrate_search_tool
 
 
 @pytest.mark.asyncio
@@ -13,9 +15,7 @@ async def test_no_dates_requires_clarification():
         "city": "Baku",
         "check_in": None,
         "check_out": None,
-        "must_have_fields": [],
-        "nice_to_have_fields": [],
-        "unknown_requests": [],
+        "constraints": [],
     }
     out = await orchestrate_search("Baku", intent, source="fixtures", max_items=10)
     assert out["need_clarification"] is True
@@ -27,9 +27,17 @@ async def test_baku_kitchen_returns_apartment():
         "city": "Baku",
         "check_in": "2026-04-08",
         "check_out": "2026-04-15",
-        "must_have_fields": ["kitchen"],
-        "nice_to_have_fields": [],
-        "unknown_requests": [],
+        "constraints": [
+            {
+                "raw_text": "kitchen",
+                "normalized_text": "kitchen",
+                "priority": "must",
+                "category": "amenity",
+                "mapping_status": "known",
+                "mapped_fields": ["kitchen"],
+                "evidence_strategy": "structured",
+            }
+        ],
     }
     out = await orchestrate_search("Baku", intent, source="fixtures", max_items=10)
     assert out["need_clarification"] is False
@@ -42,15 +50,10 @@ async def test_tokyo_returns_no_results_on_fixtures():
         "city": "Tokyo",
         "check_in": "2026-02-12",
         "check_out": "2026-02-14",
-        "must_have_fields": [],
-        "nice_to_have_fields": [],
-        "unknown_requests": [],
+        "constraints": [],
     }
     out = await orchestrate_search("Tokyo", intent, source="fixtures", max_items=10)
     assert out["need_clarification"] is True
-
-
-from app.tools.orchestrate_search_tool import _salvage_only_enum_keys
 
 
 def test_salvage_preserves_filters():
@@ -58,8 +61,26 @@ def test_salvage_preserves_filters():
         "city": "Baku",
         "check_in": "2026-04-08",
         "check_out": "2026-04-15",
-        "must_have_fields": ["kitchen", "NOT_A_REAL_FIELD"],
-        "nice_to_have_fields": ["private_bathroom"],
+        "constraints": [
+            {
+                "raw_text": "kitchen",
+                "normalized_text": "kitchen",
+                "priority": "must",
+                "category": "amenity",
+                "mapping_status": "known",
+                "mapped_fields": ["kitchen"],
+                "evidence_strategy": "structured",
+            },
+            {
+                "raw_text": "private bathroom",
+                "normalized_text": "private bathroom",
+                "priority": "nice",
+                "category": "amenity",
+                "mapping_status": "known",
+                "mapped_fields": ["private_bathroom"],
+                "evidence_strategy": "structured",
+            },
+        ],
         "property_types": ["apartment", "NOT_REAL_TYPE"],
         "occupancy_types": ["entire_place", "NOT_REAL_OCCUPANCY"],
         "filters": {
@@ -76,7 +97,6 @@ def test_salvage_preserves_filters():
                 "scope": "per_night",
             },
         },
-        "unknown_requests": [],
     }
 
     out, dropped_requests = _salvage_only_enum_keys(raw)
@@ -97,17 +117,12 @@ def test_salvage_preserves_filters():
     }
     assert out["property_types"] == ["apartment"]
     assert out["occupancy_types"] == ["entire_place"]
-
-    # A3 contract:
-    # invalid legacy residue is reported separately, not pushed into unknown_requests.
-    assert out["unknown_requests"] == []
-    assert "NOT_A_REAL_FIELD" in dropped_requests
+    assert "constraints" in out
+    assert len(out["constraints"]) == 2
+    assert out["constraints"][0]["normalized_text"] == "kitchen"
+    assert out["constraints"][1]["normalized_text"] == "private bathroom"
     assert "NOT_REAL_TYPE" in dropped_requests
     assert "NOT_REAL_OCCUPANCY" in dropped_requests
-    
-    
-from app.schemas.listing import ListingRaw, Room
-from app.tools import orchestrate_search_tool
 
 
 @pytest.mark.asyncio
@@ -150,15 +165,30 @@ async def test_numeric_filters_are_applied_in_orchestrate(monkeypatch):
         "city": "Baku",
         "check_in": "2026-02-12",
         "check_out": "2026-02-14",
-        "must_have_fields": ["kitchen", "private_bathroom"],
-        "nice_to_have_fields": [],
+        "constraints": [
+            {
+                "raw_text": "kitchen",
+                "normalized_text": "kitchen",
+                "priority": "must",
+                "category": "amenity",
+                "mapping_status": "known",
+                "mapped_fields": ["kitchen"],
+                "evidence_strategy": "structured",
+            },
+            {
+                "raw_text": "private bathroom",
+                "normalized_text": "private bathroom",
+                "priority": "must",
+                "category": "amenity",
+                "mapping_status": "known",
+                "mapped_fields": ["private_bathroom"],
+                "evidence_strategy": "structured",
+            },
+        ],
         "filters": {
             "bedrooms_min": 2,
-            "bedrooms_max": None,
             "area_sqm_min": 80,
-            "area_sqm_max": None,
         },
-        "unknown_requests": [],
     }
 
     out = await orchestrate_search_tool.orchestrate_search(
@@ -173,9 +203,8 @@ async def test_numeric_filters_are_applied_in_orchestrate(monkeypatch):
     assert out["results"][0]["result_id"] == "big-1"
     assert any("BEDROOMS:" in x for x in out["results"][0]["why"])
     assert any("AREA:" in x for x in out["results"][0]["why"])
-    
-    
-    
+
+
 @pytest.mark.asyncio
 async def test_price_filter_per_night_is_applied(monkeypatch):
     async def fake_get_candidates(req, max_items, source):
@@ -208,8 +237,6 @@ async def test_price_filter_per_night_is_applied(monkeypatch):
         "city": "Baku",
         "check_in": "2026-04-08",
         "check_out": "2026-04-15",
-        "must_have_fields": [],
-        "nice_to_have_fields": [],
         "filters": {
             "price": {
                 "max_amount": 50,
@@ -217,7 +244,7 @@ async def test_price_filter_per_night_is_applied(monkeypatch):
                 "scope": "per_night",
             }
         },
-        "unknown_requests": [],
+        "constraints": [],
     }
 
     out = await orchestrate_search_tool.orchestrate_search(
@@ -231,8 +258,8 @@ async def test_price_filter_per_night_is_applied(monkeypatch):
     assert len(out["results"]) == 1
     assert out["results"][0]["result_id"] == "good-price"
     assert any("PRICE:" in x for x in out["results"][0]["why"])
-    
-    
+
+
 @pytest.mark.asyncio
 async def test_bathroom_filter_is_applied(monkeypatch):
     async def fake_get_candidates(req, max_items, source):
@@ -259,12 +286,10 @@ async def test_bathroom_filter_is_applied(monkeypatch):
         "city": "Baku",
         "check_in": "2026-04-08",
         "check_out": "2026-04-15",
-        "must_have_fields": [],
-        "nice_to_have_fields": [],
         "filters": {
             "bathrooms_min": 2,
         },
-        "unknown_requests": [],
+        "constraints": [],
     }
 
     out = await orchestrate_search_tool.orchestrate_search(
@@ -276,10 +301,10 @@ async def test_bathroom_filter_is_applied(monkeypatch):
 
     assert out["need_clarification"] is False
     assert len(out["results"]) == 1
-    assert out["results"][0]["result_id"]== "two-bathrooms"
+    assert out["results"][0]["result_id"] == "two-bathrooms"
     assert any("BATHROOMS:" in x for x in out["results"][0]["why"])
-    
-    
+
+
 @pytest.mark.asyncio
 async def test_property_type_filter_is_applied(monkeypatch):
     async def fake_get_candidates(req, max_items, source):
@@ -306,12 +331,10 @@ async def test_property_type_filter_is_applied(monkeypatch):
         "city": "Baku",
         "check_in": "2026-04-08",
         "check_out": "2026-04-15",
-        "must_have_fields": [],
-        "nice_to_have_fields": [],
         "filters": {},
         "property_types": ["apartment"],
         "occupancy_types": [],
-        "unknown_requests": [],
+        "constraints": [],
     }
 
     out = await orchestrate_search_tool.orchestrate_search(
@@ -325,12 +348,6 @@ async def test_property_type_filter_is_applied(monkeypatch):
     assert len(out["results"]) == 1
     assert out["results"][0]["result_id"] == "apartment-one"
     assert any("PROPERTY_TYPE:" in x for x in out["results"][0]["why"])
-    
-    
-import pytest
-
-from app.tools import orchestrate_search_tool
-from app.schemas.listing import ListingRaw
 
 
 @pytest.mark.asyncio
@@ -355,12 +372,20 @@ async def test_orchestrate_search_returns_normalized_response(monkeypatch):
         "city": "Baku",
         "check_in": "2026-04-08",
         "check_out": "2026-04-15",
-        "must_have_fields": ["kitchen"],
-        "nice_to_have_fields": [],
+        "constraints": [
+            {
+                "raw_text": "kitchen",
+                "normalized_text": "kitchen",
+                "priority": "must",
+                "category": "amenity",
+                "mapping_status": "known",
+                "mapped_fields": ["kitchen"],
+                "evidence_strategy": "structured",
+            }
+        ],
         "filters": {},
         "property_types": ["apartment"],
         "occupancy_types": [],
-        "unknown_requests": [],
     }
 
     out = await orchestrate_search_tool.orchestrate_search(
@@ -376,7 +401,8 @@ async def test_orchestrate_search_returns_normalized_response(monkeypatch):
     assert "results" in out
 
     assert out["request_summary"]["city"] == "Baku"
-    assert out["request_summary"]["must_have_fields"] == ["kitchen"]
+    assert len(out["request_summary"]["constraints"]) == 1
+    assert out["request_summary"]["constraints"][0]["normalized_text"] == "kitchen"
     assert out["request_summary"]["property_types"] == ["apartment"]
 
     assert len(out["results"]) == 1
@@ -391,12 +417,7 @@ async def test_orchestrate_search_returns_normalized_response(monkeypatch):
     assert "constraints" in out["request_summary"]
     assert out["request_summary"]["constraints"]
     assert out["request_summary"]["constraints"][0]["normalized_text"] == "kitchen"
-    
-    import pytest
 
-
-
-    
 
 @pytest.mark.asyncio
 async def test_constraint_resolution_results_are_attached_and_can_influence_ranking():
@@ -404,9 +425,26 @@ async def test_constraint_resolution_results_are_attached_and_can_influence_rank
         "city": "Baku",
         "check_in": "2026-04-08",
         "check_out": "2026-04-15",
-        "must_have_fields": ["iron"],
-        "nice_to_have_fields": [],
-        "unknown_requests": ["satellite TV"],
+        "constraints": [
+            {
+                "raw_text": "ironing facilities",
+                "normalized_text": "iron",
+                "priority": "must",
+                "category": "amenity",
+                "mapping_status": "known",
+                "mapped_fields": ["iron"],
+                "evidence_strategy": "structured",
+            },
+            {
+                "raw_text": "satellite TV",
+                "normalized_text": "satellite TV",
+                "priority": "must",
+                "category": "amenity",
+                "mapping_status": "unresolved",
+                "mapped_fields": [],
+                "evidence_strategy": "textual",
+            },
+        ],
         "property_types": ["apartment"],
         "occupancy_types": [],
         "filters": {},
@@ -418,7 +456,6 @@ async def test_constraint_resolution_results_are_attached_and_can_influence_rank
         source="fixtures",
         max_items=5,
         fallback_policy=FallbackPolicy(enabled=True),
-
     )
 
     assert out["need_clarification"] is False
@@ -445,22 +482,35 @@ async def test_constraint_resolution_results_are_attached_and_can_influence_rank
     assert satellite["resolution_status"] in {"matched", "failed", "uncertain"}
     assert "reason" in satellite
 
-    # ranking/explainability signal from fallback should be visible in why
-    assert any(
-        "satellite tv" in reason.lower()
-        for reason in compact.get("why", [])
-    )
-    
-    
+    assert any("satellite tv" in reason.lower() for reason in compact.get("why", []))
+
+
 @pytest.mark.asyncio
-async def test_unknown_request_found_improves_listing_priority():
+async def test_constraint_resolution_match_improves_listing_priority():
     intent = {
         "city": "Baku",
         "check_in": "2026-04-08",
         "check_out": "2026-04-15",
-        "must_have_fields": ["iron"],
-        "nice_to_have_fields": [],
-        "unknown_requests": ["satellite TV"],
+        "constraints": [
+            {
+                "raw_text": "ironing facilities",
+                "normalized_text": "iron",
+                "priority": "must",
+                "category": "amenity",
+                "mapping_status": "known",
+                "mapped_fields": ["iron"],
+                "evidence_strategy": "structured",
+            },
+            {
+                "raw_text": "satellite TV",
+                "normalized_text": "satellite TV",
+                "priority": "must",
+                "category": "amenity",
+                "mapping_status": "unresolved",
+                "mapped_fields": [],
+                "evidence_strategy": "textual",
+            },
+        ],
         "property_types": ["apartment"],
         "occupancy_types": [],
         "filters": {},
@@ -472,26 +522,25 @@ async def test_unknown_request_found_improves_listing_priority():
         source="fixtures",
         max_items=5,
         fallback_policy=FallbackPolicy(enabled=True),
-
     )
 
     assert out["need_clarification"] is False
     assert out["results"]
 
-    # Soft check: found listing should be near the top
     top_titles = [r["title"] for r in out["results"][:2]]
     assert "Compact Apartment" in top_titles
-    
-    
+
+
 def test_resolve_required_search_context_missing_city_and_dates():
     intent = IntentRoute(
         city=None,
         check_in=None,
         check_out=None,
         nights=None,
-        must_have_fields=[],
-        nice_to_have_fields=[],
-        unknown_requests=[],
+        constraints=[],
+        filters={},
+        property_types=[],
+        occupancy_types=[],
     )
 
     resolved = resolve_required_search_context(intent)
@@ -499,17 +548,18 @@ def test_resolve_required_search_context_missing_city_and_dates():
     assert resolved.need_clarification is True
     assert any("city" in q.lower() for q in resolved.questions)
     assert any("date" in q.lower() or "travel dates" in q.lower() for q in resolved.questions)
-    
-    
+
+
 def test_resolve_required_search_context_single_date_defaults_to_one_night():
     intent = IntentRoute(
         city="Baku",
         check_in="2026-04-20",
         check_out=None,
         nights=1,
-        must_have_fields=[],
-        nice_to_have_fields=[],
-        unknown_requests=[],
+        constraints=[],
+        filters={},
+        property_types=[],
+        occupancy_types=[],
     )
 
     resolved = resolve_required_search_context(intent)
@@ -517,17 +567,18 @@ def test_resolve_required_search_context_single_date_defaults_to_one_night():
     assert resolved.need_clarification is False
     assert resolved.check_in == date(2026, 4, 20)
     assert resolved.check_out == date(2026, 4, 21)
-    
-    
+
+
 def test_resolve_required_search_context_from_date_for_n_nights():
     intent = IntentRoute(
         city="Baku",
         check_in="2026-04-20",
         check_out=None,
         nights=6,
-        must_have_fields=[],
-        nice_to_have_fields=[],
-        unknown_requests=[],
+        constraints=[],
+        filters={},
+        property_types=[],
+        occupancy_types=[],
     )
 
     resolved = resolve_required_search_context(intent)
@@ -535,26 +586,28 @@ def test_resolve_required_search_context_from_date_for_n_nights():
     assert resolved.need_clarification is False
     assert resolved.check_in == date(2026, 4, 20)
     assert resolved.check_out == date(2026, 4, 26)
-    
-    
+
+
 @pytest.mark.asyncio
 async def test_missing_city_requires_clarification():
     intent = {
         "city": None,
         "check_in": "2026-04-08",
         "check_out": "2026-04-15",
-        "must_have_fields": [],
-        "nice_to_have_fields": [],
-        "unknown_requests": [],
+        "constraints": [],
     }
 
-    out = await orchestrate_search("Need a place from 2026-04-08 to 2026-04-15", intent, source="fixtures", max_items=10)
+    out = await orchestrate_search(
+        "Need a place from 2026-04-08 to 2026-04-15",
+        intent,
+        source="fixtures",
+        max_items=10,
+    )
 
     assert out["need_clarification"] is True
     assert any("city" in q.lower() for q in out["questions"])
-    
-    
-    
+
+
 @pytest.mark.asyncio
 async def test_single_date_without_checkout_searches_one_night():
     intent = {
@@ -562,17 +615,30 @@ async def test_single_date_without_checkout_searches_one_night():
         "check_in": "2026-04-08",
         "check_out": None,
         "nights": 1,
-        "must_have_fields": ["kitchen"],
-        "nice_to_have_fields": [],
-        "unknown_requests": [],
+        "constraints": [
+            {
+                "raw_text": "kitchen",
+                "normalized_text": "kitchen",
+                "priority": "must",
+                "category": "amenity",
+                "mapping_status": "known",
+                "mapped_fields": ["kitchen"],
+                "evidence_strategy": "structured",
+            }
+        ],
     }
 
-    out = await orchestrate_search("Baku on 2026-04-08 with kitchen", intent, source="fixtures", max_items=10)
+    out = await orchestrate_search(
+        "Baku on 2026-04-08 with kitchen",
+        intent,
+        source="fixtures",
+        max_items=10,
+    )
 
     assert out["need_clarification"] is False
     assert out["results"][0]["title"] == "Large Family Apartment"
-    
-    
+
+
 @pytest.mark.asyncio
 async def test_from_date_for_n_nights_is_resolved_before_search():
     intent = {
@@ -580,17 +646,30 @@ async def test_from_date_for_n_nights_is_resolved_before_search():
         "check_in": "2026-04-08",
         "check_out": None,
         "nights": 7,
-        "must_have_fields": ["kitchen"],
-        "nice_to_have_fields": [],
-        "unknown_requests": [],
+        "constraints": [
+            {
+                "raw_text": "kitchen",
+                "normalized_text": "kitchen",
+                "priority": "must",
+                "category": "amenity",
+                "mapping_status": "known",
+                "mapped_fields": ["kitchen"],
+                "evidence_strategy": "structured",
+            }
+        ],
     }
 
-    out = await orchestrate_search("Baku from 2026-04-08 for 7 nights with kitchen", intent, source="fixtures", max_items=10)
+    out = await orchestrate_search(
+        "Baku from 2026-04-08 for 7 nights with kitchen",
+        intent,
+        source="fixtures",
+        max_items=10,
+    )
 
     assert out["need_clarification"] is False
     assert out["results"][0]["title"] == "Large Family Apartment"
-    
-    
+
+
 @pytest.mark.asyncio
 async def test_occupancy_filter_is_applied():
     intent = {
@@ -600,9 +679,17 @@ async def test_occupancy_filter_is_applied():
         "adults": 7,
         "children": 0,
         "rooms": 1,
-        "must_have_fields": ["kitchen"],
-        "nice_to_have_fields": [],
-        "unknown_requests": [],
+        "constraints": [
+            {
+                "raw_text": "kitchen",
+                "normalized_text": "kitchen",
+                "priority": "must",
+                "category": "amenity",
+                "mapping_status": "known",
+                "mapped_fields": ["kitchen"],
+                "evidence_strategy": "structured",
+            }
+        ],
     }
 
     out = await orchestrate_search(
@@ -611,7 +698,6 @@ async def test_occupancy_filter_is_applied():
         source="fixtures",
         max_items=10,
         fallback_policy=FallbackPolicy(enabled=True),
-
     )
 
     assert out["need_clarification"] is False

@@ -3,7 +3,13 @@ from app.schemas.fields import Field
 from app.schemas.listing import ListingRaw
 from app.schemas.match import Ternary
 from app.schemas.query import SearchRequest
-
+from app.schemas.constraints import (
+    UserConstraint,
+    ConstraintPriority,
+    ConstraintCategory,
+    ConstraintMappingStatus,
+    EvidenceStrategy,
+)
 
 def test_pet_friendly_negative_rule_returns_no():
     listing = ListingRaw(
@@ -22,8 +28,17 @@ def test_pet_friendly_negative_rule_returns_no():
         children=0,
         rooms=1,
         currency="USD",
-        must_have_fields=[Field.PET_FRIENDLY],
-        nice_to_have_fields=[],
+        constraints=[
+    UserConstraint(
+        raw_text="pet friendly",
+        normalized_text="pet friendly",
+        priority=ConstraintPriority.MUST,
+        category=ConstraintCategory.POLICY,
+        mapping_status=ConstraintMappingStatus.KNOWN,
+        mapped_fields=[Field.PET_FRIENDLY],
+        evidence_strategy=EvidenceStrategy.STRUCTURED,
+    )
+]
     )
 
     report = match_listing_structured(listing, req)
@@ -43,16 +58,25 @@ def test_free_cancellation_negative_rule_returns_no():
     )
 
     req = SearchRequest(
-        city="Baku",
-        check_in="2026-04-08",
-        check_out="2026-04-15",
-        adults=2,
-        children=0,
-        rooms=1,
-        currency="USD",
-        must_have_fields=[Field.FREE_CANCELLATION],
-        nice_to_have_fields=[],
-    )
+    city="Baku",
+    check_in="2026-04-08",
+    check_out="2026-04-15",
+    adults=2,
+    children=0,
+    rooms=1,
+    currency="USD",
+    constraints=[
+        UserConstraint(
+            raw_text="free cancellation",
+            normalized_text="free cancellation",
+            priority=ConstraintPriority.MUST,
+            category=ConstraintCategory.POLICY,
+            mapping_status=ConstraintMappingStatus.KNOWN,
+            mapped_fields=[Field.FREE_CANCELLATION],
+            evidence_strategy=EvidenceStrategy.STRUCTURED,
+        )
+    ],
+)
 
     report = match_listing_structured(listing, req)
 
@@ -69,16 +93,25 @@ def test_private_bathroom_negative_rule_shared_bathroom_returns_no():
     )
 
     req = SearchRequest(
-        city="Baku",
-        check_in="2026-04-08",
-        check_out="2026-04-15",
-        adults=2,
-        children=0,
-        rooms=1,
-        currency="USD",
-        must_have_fields=[Field.PRIVATE_BATHROOM],
-        nice_to_have_fields=[],
-    )
+    city="Baku",
+    check_in="2026-04-08",
+    check_out="2026-04-15",
+    adults=2,
+    children=0,
+    rooms=1,
+    currency="USD",
+    constraints=[
+        UserConstraint(
+            raw_text="private bathroom",
+            normalized_text="private bathroom",
+            priority=ConstraintPriority.MUST,
+            category=ConstraintCategory.AMENITY,
+            mapping_status=ConstraintMappingStatus.KNOWN,
+            mapped_fields=[Field.PRIVATE_BATHROOM],
+            evidence_strategy=EvidenceStrategy.STRUCTURED,
+        )
+    ],
+)
 
     report = match_listing_structured(listing, req)
 

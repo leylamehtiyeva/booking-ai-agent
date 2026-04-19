@@ -23,33 +23,7 @@ IMPORTANT_FACT_KEYS = {
 }
 
 
-def _build_unresolved_constraint_points(items: list[Any] | None) -> list[str]:
-    out: list[str] = []
 
-    for item in items or []:
-        # 🟢 dict-style (новая архитектура)
-        if isinstance(item, dict):
-            constraint = item.get("constraint") or {}
-            label = constraint.get("normalized_text") or item.get("query_text")
-            value = item.get("value")
-            reason = item.get("reason")
-
-            if reason:
-                out.append(str(reason))
-                continue
-
-            if label and value == "FOUND":
-                out.append(f"{label} is explicitly supported in the listing.")
-            elif label and value == "NOT_FOUND":
-                out.append(f"{label} appears to be unavailable in the listing.")
-            elif label:
-                out.append(f"{label} is not explicitly confirmed in the listing.")
-
-        # 🟡 legacy string-style
-        elif isinstance(item, str):
-            out.append(item)
-
-    return out
 
 def _fact_list_to_dict(facts: list[Any]) -> dict[str, Any]:
     out: dict[str, Any] = {}
@@ -104,6 +78,90 @@ def _requested_constraint_details(active_intent: dict[str, Any] | None) -> list[
     return out
 
 
+def _normalize_constraint_key(value: str | None) -> str:
+    if not value:
+        return ""
+
+    return (
+        str(value)
+        .strip()
+        .casefold()
+        .replace("-", "_")
+        .replace(" ", "_")
+    )
+
+
+def _build_requested_constraint_lookup(
+    active_intent: dict[str, Any] | None,
+) -> dict[str, dict[str, Any]]:
+    constraints = (active_intent or {}).get("constraints") or []
+    lookup: dict[str, dict[str, Any]] = {}
+
+    for c in constraints:
+        if not isinstance(c, dict):
+            continue
+
+        payload = {
+            "raw_text": c.get("raw_text"),
+            "normalized_text": c.get("normalized_text"),
+            "priority": c.get("priority"),
+            "category": c.get("category"),
+            "mapping_status": c.get("mapping_status"),
+            "mapped_fields": list(c.get("mapped_fields") or []),
+            "evidence_strategy": c.get("evidence_strategy"),
+        }
+
+        aliases = {
+            _normalize_constraint_key(c.get("normalized_text")),
+            _normalize_constraint_key(c.get("raw_text")),
+        }
+
+        for field_name in (c.get("mapped_fields") or []):
+            aliases.add(_normalize_constraint_key(str(field_name)))
+
+        for alias in aliases:
+            if alias:
+                lookup[alias] = payload
+
+    return lookup
+
+
+def _lookup_requested_constraint(
+    name: str | None,
+    requested_lookup: dict[str, dict[str, Any]],
+) -> dict[str, Any] | None:
+    key = _normalize_constraint_key(name)
+    if not key:
+        return None
+    return requested_lookup.get(key)
+
+
+def _is_uncertain_reason(text: str | None) -> bool:
+    if not text:
+        return False
+
+    lowered = str(text).strip().casefold()
+
+    markers = [
+        "not explicitly confirmed",
+        "needs confirmation",
+        "no mention",
+        "not mentioned",
+        "uncertain",
+        "maybe",
+        "needs check",
+    ]
+    return any(marker in lowered for marker in markers)
+
+
+def _candidate(score: int, text: str | None) -> tuple[int, str] | None:
+    if not text:
+        return None
+    value = str(text).strip()
+    if not value:
+        return None
+    return (score, value)
+
 def _pick_reason_lines(items: list[dict[str, Any]], limit: int = 4) -> list[str]:
     out: list[str] = []
     for item in items or []:
@@ -154,7 +212,6 @@ def _build_budget_summary(facts: dict[str, Any]) -> tuple[str | None, str | None
 
 
 def _build_fit_summary(
-    matched_must: str,
     matched_details: list[dict[str, Any]],
     failed_details: list[dict[str, Any]],
     uncertain_details: list[dict[str, Any]],
@@ -162,29 +219,15 @@ def _build_fit_summary(
 ) -> str:
     parts: list[str] = []
 
-    if matched_must and "/" in matched_must:
-        left, right = matched_must.split("/", 1)
-        try:
-            left_i = int(left)
-            right_i = int(right)
-            if right_i > 0:
-                if left_i == right_i:
-                    parts.append("Matches all required criteria")
-                else:
-                    parts.append(f"Matches {left_i} of {right_i} required criteria")
-        except ValueError:
-            pass
-
     if failed_details:
         parts.append("Some requested constraints are not satisfied")
     elif uncertain_details:
         parts.append("Some requested details are still uncertain")
+    elif matched_details:
+        parts.append("Looks like a relevant match")
 
     if budget_summary:
         parts.append(budget_summary)
-
-    if not parts and matched_details:
-        parts.append("Looks like a relevant match")
 
     return ". ".join(parts) + ("." if parts else "")
 
@@ -238,44 +281,117 @@ def _build_ranking_reasons(result: dict[str, Any]) -> list[str]:
 
 def _build_standout_reason(
     *,
-    unresolved_constraint_results: list[Any],
+    matched_details: list[dict[str, Any]],
+    uncertain_details: list[dict[str, Any]],
+    constraint_resolution_results: list[Any],
     why_match: list[str],
     tradeoffs: list[str],
     uncertain_points: list[str],
+    ranking_reasons: list[str],
+    budget_summary: str | None,
+    budget_status: str | None,
+    active_intent: dict[str, Any] | None,
 ) -> str | None:
-    for item in unresolved_constraint_results or []:
-        # New dict-style unresolved constraint result
-        if isinstance(item, dict):
-            value = item.get("value")
-            constraint = item.get("constraint") or {}
-            label = constraint.get("normalized_text") or item.get("query_text")
+    requested_lookup = _build_requested_constraint_lookup(active_intent)
+    candidates: list[tuple[int, str]] = []
 
-            if value == "FOUND" and label:
-                return f"The only option that explicitly matches your requested detail: {label}"
+    # 1) Explicit matched MUST constraints from final normalized matched buckets.
+    for item in matched_details or []:
+        name = item.get("name")
+        reason = item.get("reason")
+        requested = _lookup_requested_constraint(name, requested_lookup)
 
-            if isinstance(item.get("reason"), str) and item.get("reason"):
-                return item["reason"]
+        if requested and requested.get("priority") == "must":
+            category = requested.get("category")
+            score = 100
 
-        # Legacy pydantic object / object-style result
+            if category == "location":
+                score = 110
+            elif category == "layout":
+                score = 105
+            elif category == "policy":
+                score = 100
+
+            if reason and not _is_uncertain_reason(reason):
+                candidate = _candidate(score, reason)
+                if candidate:
+                    candidates.append(candidate)
+            elif name:
+                candidate = _candidate(score - 5, f"The listing confirms: {name}")
+                if candidate:
+                    candidates.append(candidate)
+
+    # 2) Strong structured positives: budget / ranking reasons.
+    if budget_status == "within_budget" and budget_summary:
+        candidate = _candidate(95, budget_summary)
+        if candidate:
+            candidates.append(candidate)
+
+    for line in ranking_reasons or []:
+        if not line or _is_uncertain_reason(line):
+            continue
+
+        text = str(line)
+
+        if text.startswith("BEDROOMS:"):
+            candidate = _candidate(92, text)
+        elif text.startswith("PRICE:"):
+            candidate = _candidate(91, text)
+        elif text.startswith("PROPERTY_TYPE:"):
+            candidate = _candidate(90, text)
+        elif text.startswith("OCCUPANCY_TYPE:"):
+            candidate = _candidate(88, text)
+        elif text.startswith("AREA:"):
+            candidate = _candidate(87, text)
         else:
-            value = getattr(item, "value", None)
-            query_text = getattr(item, "query_text", None)
+            candidate = _candidate(80, text)
+
+        if candidate:
+            candidates.append(candidate)
+
+    # 3) Positive fallback confirmations only.
+    for item in constraint_resolution_results or []:
+        if isinstance(item, dict):
+            decision = item.get("decision")
+            label = item.get("normalized_text")
+            reason = item.get("reason")
+        else:
+            decision = getattr(item, "decision", None)
+            label = getattr(item, "normalized_text", None)
             reason = getattr(item, "reason", None)
 
-            if value == "FOUND" and query_text:
-                return f"The only option that explicitly matches your requested detail: {query_text}"
+        if decision == "YES":
+            if reason and not _is_uncertain_reason(reason):
+                candidate = _candidate(85, reason)
+                if candidate:
+                    candidates.append(candidate)
+            elif label:
+                candidate = _candidate(83, f"The listing explicitly confirms: {label}")
+                if candidate:
+                    candidates.append(candidate)
 
-            if reason:
-                return reason
+    # 4) Generic positive matched reasons.
+    for line in why_match or []:
+        if not line or _is_uncertain_reason(line):
+            continue
+        candidate = _candidate(70, line)
+        if candidate:
+            candidates.append(candidate)
 
-    if why_match:
-        return why_match[0]
+    if candidates:
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        return candidates[0][1]
 
-    if not tradeoffs and not uncertain_points:
+    # 5) Only if nothing better exists, allow uncertain reason.
+    for line in uncertain_points or []:
+        candidate = _candidate(10, line)
+        if candidate:
+            return candidate[1]
+
+    if not tradeoffs and not uncertain_details:
         return "Strong overall match"
 
     return None
-
 
 def build_answer_payload(
     response: NormalizedSearchResponse,
@@ -318,12 +434,19 @@ def build_answer_payload(
         matched_details = _constraint_details(r.matched_constraints)
         uncertain_details = _constraint_details(r.uncertain_constraints)
         failed_details = _constraint_details(r.failed_constraints)
+        matched_requested_details = _constraint_details(r.matched_requested_constraints)
+        uncertain_requested_details = _constraint_details(r.uncertain_requested_constraints)
+        failed_requested_details = _constraint_details(r.failed_requested_constraints)
+
+        matched_derived_details = _constraint_details(r.matched_derived_matches)
+        uncertain_derived_details = _constraint_details(r.uncertain_derived_matches)
+        failed_derived_details = _constraint_details(r.failed_derived_matches)
+        
 
         price_summary = _build_price_summary(facts_dict)
         budget_summary, budget_status = _build_budget_summary(facts_dict)
 
         fit_summary = _build_fit_summary(
-            f"{r.matched_must_count}/{r.matched_must_total}",
             matched_details,
             failed_details,
             uncertain_details,
@@ -331,26 +454,6 @@ def build_answer_payload(
         )
         key_facts_summary = _build_key_facts_summary(facts_dict)
 
-        # Normalize unknown request results into plain dicts for payload/JSON use
-        raw_unknown_request_results = list(getattr(r, "unknown_request_results", []) or [])
-        unknown_request_results: list[dict[str, Any]] = []
-
-        for item in raw_unknown_request_results:
-            if isinstance(item, dict):
-                unknown_request_results.append(item)
-            elif hasattr(item, "model_dump"):
-                unknown_request_results.append(item.model_dump(mode="json"))
-            else:
-                unknown_request_results.append(
-                    {
-                        "query_text": getattr(item, "query_text", None),
-                        "value": getattr(item, "value", None),
-                        "reason": getattr(item, "reason", None),
-                        "evidence": getattr(item, "evidence", []),
-                    }
-                )
-
-        unresolved_constraint_points = _build_unresolved_constraint_points(unknown_request_results)
         why_match = _pick_reason_lines(matched_details, limit=4)
         tradeoffs = _pick_reason_lines(failed_details, limit=4)
         uncertain_points = _pick_reason_lines(uncertain_details, limit=4)
@@ -364,12 +467,27 @@ def build_answer_payload(
             }
         )
 
-        standout_reason = _build_standout_reason(
-            unresolved_constraint_results=unknown_request_results,
-            why_match=why_match,
-            tradeoffs=tradeoffs,
-            uncertain_points=uncertain_points,
-        )
+        constraint_resolution_results = [
+            c.model_dump(mode="json") if hasattr(c, "model_dump") else c
+            for c in (r.constraint_resolution_results or [])
+        ]
+
+        unresolved_constraint_points = _pick_reason_lines(uncertain_details, limit=4)
+
+        # For future user answer 
+        # standout_reason = _build_standout_reason(
+        #     matched_details=matched_details,
+        #     uncertain_details=uncertain_details,
+        #     constraint_resolution_results=constraint_resolution_results,
+        #     why_match=why_match,
+        #     tradeoffs=tradeoffs,
+        #     uncertain_points=uncertain_points,
+        #     ranking_reasons=ranking_reasons,
+        #     budget_summary=budget_summary,
+        #     budget_status=budget_status,
+        #     active_intent=request_summary,
+        # )
+        standout_reason = None
 
         top_results.append(
             {
@@ -377,16 +495,19 @@ def build_answer_payload(
                 "title": r.title,
                 "url": r.url,
                 "score": r.score,
-                "matched_must": f"{r.matched_must_count}/{r.matched_must_total}",
                 "matched_constraints": matched_details,
                 "uncertain_constraints": uncertain_details,
                 "failed_constraints": failed_details,
+                "matched_requested_constraints": matched_requested_details,
+                "uncertain_requested_constraints": uncertain_requested_details,
+                "failed_requested_constraints": failed_requested_details,
+                "matched_derived_matches": matched_derived_details,
+                "uncertain_derived_matches": uncertain_derived_details,
+                "failed_derived_matches": failed_derived_details,
                 "matched_constraint_names": _constraint_names(r.matched_constraints),
                 "uncertain_constraint_names": _constraint_names(r.uncertain_constraints),
                 "failed_constraint_names": _constraint_names(r.failed_constraints),
                 "key_facts": facts_dict,
-                "unknown_request_results": unknown_request_results,
-                "unknown_request_points": unresolved_constraint_points,
                 "unresolved_constraint_points": unresolved_constraint_points,
                 "requested_constraints": _requested_constraint_details(request_summary),
                 "ranking_reasons": ranking_reasons,
@@ -404,26 +525,21 @@ def build_answer_payload(
                 "match_tier": r.match_tier,
                 "selection_reasons": list(r.selection_reasons or []),
                 "blocking_reasons": list(r.blocking_reasons or []),
+                "constraint_resolution_results": constraint_resolution_results,
                 "debug_selection": {
-    "score": r.score,
-    "eligibility_status": r.eligibility_status,
-    "match_tier": r.match_tier,
-    "matched_must_count": r.matched_must_count,
-    "matched_must_total": r.matched_must_total,
-    "selection_reasons": list(r.selection_reasons or []),
-    "blocking_reasons": list(r.blocking_reasons or []),
-    "matched_constraints": [c.model_dump(mode="json") for c in (r.matched_constraints or [])],
-    "uncertain_constraints": [c.model_dump(mode="json") for c in (r.uncertain_constraints or [])],
-    "failed_constraints": [c.model_dump(mode="json") for c in (r.failed_constraints or [])],
-    "constraint_resolution_results": [
-        c.model_dump(mode="json") if hasattr(c, "model_dump") else c
-        for c in (r.constraint_resolution_results or [])
-    ],
-    "why": list(r.why or []),
-},
+                    "score": r.score,
+                    "eligibility_status": r.eligibility_status,
+                    "match_tier": r.match_tier,
+                    "selection_reasons": list(r.selection_reasons or []),
+                    "blocking_reasons": list(r.blocking_reasons or []),
+                    "matched_constraints": [c.model_dump(mode="json") for c in (r.matched_constraints or [])],
+                    "uncertain_constraints": [c.model_dump(mode="json") for c in (r.uncertain_constraints or [])],
+                    "failed_constraints": [c.model_dump(mode="json") for c in (r.failed_constraints or [])],
+                    "constraint_resolution_results": constraint_resolution_results,
+                    "why": list(r.why or []),
+                },
             }
         )
-
     return {
         "need_clarification": False,
         "questions": [],

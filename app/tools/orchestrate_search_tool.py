@@ -23,10 +23,7 @@ from app.schemas.match import Ternary
 from app.logic.normalize_search_response import normalize_search_response
 from app.logic.request_resolution import resolve_required_search_context
 from app.logic.occupancy import evaluate_occupancy
-from app.logic.constraint_state import (
-    build_constraints_from_legacy_state,
-    sync_legacy_state_from_constraints,
-)
+
 
 from app.logic.constraint_evidence_resolution import (
     resolve_listing_constraints_with_fallback,
@@ -57,7 +54,46 @@ def _fails_numeric_filters(numeric_results: List[Any] | None) -> bool:
     return False
 
 
+def _priority_value(priority: Any) -> str:
+    return getattr(priority, "value", priority)
 
+
+def _mapping_status_value(mapping_status: Any) -> str:
+    return getattr(mapping_status, "value", mapping_status)
+
+
+def _constraints_by_priority(req: SearchRequest) -> tuple[list[Any], list[Any], list[Any]]:
+    constraints = list(req.constraints or [])
+
+    must_constraints = [
+        c for c in constraints
+        if _priority_value(getattr(c, "priority", None)) == "must"
+    ]
+    nice_constraints = [
+        c for c in constraints
+        if _priority_value(getattr(c, "priority", None)) == "nice"
+    ]
+    forbidden_constraints = [
+        c for c in constraints
+        if _priority_value(getattr(c, "priority", None)) == "forbidden"
+    ]
+    return must_constraints, nice_constraints, forbidden_constraints
+
+
+def _known_mapped_fields(constraints: list[Any]) -> list[Field]:
+    out: list[Field] = []
+    seen: set[Field] = set()
+
+    for c in constraints:
+        if _mapping_status_value(getattr(c, "mapping_status", None)) != "known":
+            continue
+
+        for f in getattr(c, "mapped_fields", []) or []:
+            if f not in seen:
+                seen.add(f)
+                out.append(f)
+
+    return out
 
 def _parse_iso_date(x: Any) -> Optional[date]:
     if x is None:
@@ -151,7 +187,7 @@ async def _repair_intent_with_llm(
                     "category": "amenity|policy|location|layout|numeric|property_type|occupancy|other",
                     "mapping_status": "known|unresolved",
                     "mapped_fields": "list[canonical_key]",
-                    "evidence_strategy": "structured|textual|geo|none",
+                    "evidence_strategy": "structured|textual|none",
                 }
             ],
             "filters": {
@@ -320,33 +356,33 @@ def _build_request(
     check_out: date,
 ) -> SearchRequest:
     req = SearchRequest(
-        city=city,
-        check_in=check_in,
-        check_out=check_out,
-        adults=intent_obj.adults or 2,
-        children=intent_obj.children or 0,
-        rooms=intent_obj.rooms or 1,
-        currency="USD",
-        budget_max=None,
-        must_have_fields=[],
-        nice_to_have_fields=[],
-        forbidden_fields=[],
-        min_guest_rating=None,
-        filters=intent_obj.filters,
-        property_types=intent_obj.property_types or None,
-        occupancy_types=intent_obj.occupancy_types or None,
-        constraints=intent_obj.constraints,
-        unknown_requests=[],
-    )
-
+    city=city,
+    check_in=check_in,
+    check_out=check_out,
+    adults=intent_obj.adults or 2,
+    children=intent_obj.children or 0,
+    rooms=intent_obj.rooms or 1,
+    currency="USD",
+    budget_max=None,
+    min_guest_rating=None,
+    filters=intent_obj.filters,
+    property_types=intent_obj.property_types or None,
+    occupancy_types=intent_obj.occupancy_types or None,
+    constraints=intent_obj.constraints,
+)
     # Canonical flow:
     # SearchRequest semantic state is carried by constraints.
     # Legacy fields are derived here only for compatibility/debug layers.
-    return sync_legacy_state_from_constraints(req)
+    return req
 
 
 def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dict[str, Any]]:
     ranked: List[Dict[str, Any]] = []
+
+    must_constraints, nice_constraints, _ = _constraints_by_priority(req)
+    structured_must_fields = _known_mapped_fields(must_constraints)
+    structured_nice_fields = _known_mapped_fields(nice_constraints)
+
     for lst in listings:
         report = match_listing_structured(lst, req)
         numeric_results = evaluate_numeric_filters(
@@ -357,14 +393,16 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
         )
         property_result = match_property_types(lst, req.property_types)
         occupancy_result = match_occupancy_types(lst, req.occupancy_types)
-        # strict amenity must-have filter
-        if _fails_must(report.matches, req.must_have_fields):
+
+        # strict structured must filter: only for canonical MUST constraints
+        # that are known + mapped to structured fields
+        if _fails_must(report.matches, structured_must_fields):
             continue
 
         # strict numeric filter
         if _fails_numeric_filters(numeric_results):
             continue
-        
+
         if property_result is not None and property_result.value == Ternary.NO:
             continue
 
@@ -376,7 +414,7 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
             report.matches,
             numeric_results=numeric_results,
         )
-        
+
         if property_result is not None:
             why.append(property_result.why)
 
@@ -399,6 +437,7 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
                 "listing": lst,
             }
         )
+
     ranked.sort(key=lambda x: x["score"], reverse=True)
     return ranked
 
@@ -423,30 +462,8 @@ async def orchestrate_search(
         }
 
     intent_obj, dropped_requests = await _validate_and_repair_intent(intent, attempts=2)
-    # 🔴 BACKWARD COMPATIBILITY BRIDGE
-    # If intent came in legacy format (must_have_fields, etc.),
-    # but constraints are empty → reconstruct constraints
-    if not intent_obj.constraints:
-        legacy_req = SearchRequest(
-            city=intent_obj.city,
-            check_in=intent_obj.check_in,
-            check_out=intent_obj.check_out,
-            nights=intent_obj.nights,
-            adults=intent_obj.adults or 2,
-            children=intent_obj.children or 0,
-            rooms=intent_obj.rooms or 1,
-            must_have_fields=intent.get("must_have_fields", []),
-            nice_to_have_fields=intent.get("nice_to_have_fields", []),
-            forbidden_fields=intent.get("forbidden_fields", []),
-            unknown_requests=intent.get("unknown_requests", []),
-            filters=intent_obj.filters,
-            property_types=intent_obj.property_types or None,
-            occupancy_types=intent_obj.occupancy_types or None,
-        )
 
-        intent_obj = intent_obj.model_copy(
-            update={"constraints": build_constraints_from_legacy_state(legacy_req)}
-        )
+
 
     resolved = resolve_required_search_context(intent_obj)
 
@@ -531,11 +548,13 @@ async def orchestrate_search(
     # 7) Apply fallback-informed scoring
     ranked = _apply_constraint_resolution_scoring(ranked)
 
-    # 8) Strict must-have / numeric filtering
+    must_constraints, _, _ = _constraints_by_priority(req)
+    structured_must_fields = _known_mapped_fields(must_constraints)
+
     ranked = [
         it
         for it in ranked
-        if not _fails_must(it["matches"], req.must_have_fields)
+        if not _fails_must(it["matches"], structured_must_fields)
         and not _fails_numeric_filters(it.get("numeric_results"))
     ]
     ranked.sort(key=lambda x: x["score"], reverse=True)
@@ -573,26 +592,29 @@ def _score_listing(
     matches: dict[Field, Any],
     numeric_results: List[Any] | None = None,
 ) -> Tuple[float, int, int, List[str]]:
-    """MVP scoring.
+    """
+    Canonical scoring.
 
-    Amenities:
-    - must-have YES: +10
-    - must-have UNCERTAIN: +3
-    - must-have NO: -100
-    - nice-to-have YES: +1
+    Structured scoring is applied only to canonical constraints that:
+    - have priority must/nice
+    - are known
+    - have mapped_fields
 
-    Numeric filters:
-    - YES: +10
-    - UNCERTAIN: +3
-    - NO: -100
+    Unresolved constraints are handled later by fallback and
+    constraint_resolution_results scoring.
     """
     score = 0.0
     why: List[str] = []
 
-    must_total = len(req.must_have_fields or [])
+    must_constraints, nice_constraints, _ = _constraints_by_priority(req)
+
+    structured_must_fields = _known_mapped_fields(must_constraints)
+    structured_nice_fields = _known_mapped_fields(nice_constraints)
+
+    must_total = len(structured_must_fields)
     must_yes = 0
 
-    for f in (req.must_have_fields or []):
+    for f in structured_must_fields:
         fm = matches.get(f)
 
         if fm is None:
@@ -609,7 +631,7 @@ def _score_listing(
 
         why.append(_format_match_why(f, fm))
 
-    for f in (req.nice_to_have_fields or []):
+    for f in structured_nice_fields:
         fm = matches.get(f)
         if fm and fm.value == Ternary.YES:
             score += 1

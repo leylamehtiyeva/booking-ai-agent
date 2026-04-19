@@ -72,10 +72,9 @@ WHEN TO USE add_constraints:
 - unresolved constraints should use:
   - mapping_status="unresolved"
   - mapped_fields=[]
-  - evidence_strategy="textual" or "geo"
+  - evidence_strategy="textual"
 
 LEGACY COMPATIBILITY:
-- Old fields like add_must_have_fields / add_unknown_requests still exist in the schema for backward compatibility
 - But they are NOT the preferred semantic interface
 - Prefer add_constraints whenever possible
 - Prefer remove_constraint_texts whenever possible

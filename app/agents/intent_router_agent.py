@@ -160,7 +160,6 @@ Constraint fields:
 - evidence_strategy:
   - "structured" for canonical provider/amenity style matching
   - "textual" for description/policy/highlights evidence
-  - "geo" for location-style evidence
   - "none" only if there is truly no downstream evidence path yet
 
 KNOWN MAPPING:
@@ -180,11 +179,13 @@ If a constraint is meaningful but cannot be safely mapped to canonical fields:
 - set mapping_status = "unresolved"
 - mapped_fields = []
 - choose the best category
-- use evidence_strategy = "textual" or "geo"
+- use evidence_strategy = "textual" for unresolved constraints that must be checked via listing text
 
 Examples:
-- "in the city center" -> unresolved location, evidence_strategy="geo"
+- "in the city center" -> unresolved location, evidence_strategy="textual"
 - "quiet neighborhood" -> unresolved location, evidence_strategy="textual"
+- "near the metro" -> unresolved location, evidence_strategy="textual"
+- "close to the beach" -> unresolved location, evidence_strategy="textual"
 - "good for working" -> unresolved other or amenity, evidence_strategy="textual"
 - "not on the first floor" -> unresolved layout, evidence_strategy="textual"
 

@@ -3,10 +3,6 @@ from __future__ import annotations
 from datetime import timedelta
 
 from app.logic.request_resolution import parse_iso_date
-from app.logic.constraint_state import (
-    sync_constraints_from_legacy_state,
-    sync_legacy_state_from_constraints,
-)
 from app.logic.request_resolution import parse_iso_date
 from app.schemas.constraints import (
     ConstraintCategory,
@@ -18,7 +14,6 @@ from app.schemas.constraints import (
 from app.schemas.filters import PriceConstraint, SearchFilters
 from app.schemas.intent_patch import SearchIntentPatch
 from app.schemas.query import SearchRequest
-from app.logic.constraint_state import sync_constraints_from_legacy_state
 
 
 def _unique(seq):
@@ -135,42 +130,12 @@ def _dedupe_constraints(constraints: list[UserConstraint]) -> list[UserConstrain
     return out
 
 
-def _legacy_field_to_constraint(field, priority: ConstraintPriority) -> UserConstraint:
-    return UserConstraint(
-        raw_text=field.value,
-        normalized_text=field.value,
-        priority=priority,
-        category=ConstraintCategory.OTHER,
-        mapping_status=ConstraintMappingStatus.KNOWN,
-        mapped_fields=[field],
-        evidence_strategy=EvidenceStrategy.STRUCTURED,
-    )
 
-
-def _legacy_unknown_to_constraint(text: str) -> UserConstraint:
-    normalized = text.strip()
-    return UserConstraint(
-        raw_text=text,
-        normalized_text=normalized,
-        priority=ConstraintPriority.MUST,
-        category=ConstraintCategory.OTHER,
-        mapping_status=ConstraintMappingStatus.UNRESOLVED,
-        mapped_fields=[],
-        evidence_strategy=EvidenceStrategy.TEXTUAL,
-    )
 
 
 def apply_intent_patch(state: SearchRequest, patch: SearchIntentPatch) -> SearchRequest:
     data = state.model_copy(deep=True)
 
-    # Ensure constraints exist even for legacy states
-    if not data.constraints and (
-        data.must_have_fields
-        or data.nice_to_have_fields
-        or data.forbidden_fields
-        or data.unknown_requests
-    ):
-        data = sync_constraints_from_legacy_state(data)
 
     # clear first
     if patch.clear_city:
@@ -229,34 +194,10 @@ def apply_intent_patch(state: SearchRequest, patch: SearchIntentPatch) -> Search
     # direct removals from new patch API
     constraints = _remove_constraints_by_text(constraints, patch.remove_constraint_texts)
 
-    # legacy removals converted into constraint removals
-    legacy_remove_texts = [f.value for f in patch.remove_must_have_fields]
-    legacy_remove_texts += [f.value for f in patch.remove_nice_to_have_fields]
-    legacy_remove_texts += [f.value for f in patch.remove_forbidden_fields]
-    legacy_remove_texts += list(patch.remove_unknown_requests)
-    constraints = _remove_constraints_by_text(constraints, legacy_remove_texts)
 
     # direct adds from new patch API
     constraints.extend(patch.add_constraints)
 
-    # legacy adds converted into constraints
-    constraints.extend(
-        _legacy_field_to_constraint(f, ConstraintPriority.MUST)
-        for f in patch.add_must_have_fields
-    )
-    constraints.extend(
-        _legacy_field_to_constraint(f, ConstraintPriority.NICE)
-        for f in patch.add_nice_to_have_fields
-    )
-    constraints.extend(
-        _legacy_field_to_constraint(f, ConstraintPriority.FORBIDDEN)
-        for f in patch.add_forbidden_fields
-    )
-    constraints.extend(
-        _legacy_unknown_to_constraint(text)
-        for text in patch.add_unknown_requests
-        if text and text.strip()
-    )
 
     data.constraints = _dedupe_constraints(constraints)
 
@@ -275,18 +216,5 @@ def apply_intent_patch(state: SearchRequest, patch: SearchIntentPatch) -> Search
     # filters
     data.filters = _merge_filters(data.filters, patch.set_filters)
 
-    # derive legacy fields from constraints
-    data = sync_legacy_state_from_constraints(data)
-
-    # consistency cleanup for derived layer
-    data.nice_to_have_fields = [
-        x for x in data.nice_to_have_fields if x not in data.must_have_fields
-    ]
-    data.must_have_fields = [
-        x for x in data.must_have_fields if x not in data.forbidden_fields
-    ]
-    data.nice_to_have_fields = [
-        x for x in data.nice_to_have_fields if x not in data.forbidden_fields
-    ]
 
     return data

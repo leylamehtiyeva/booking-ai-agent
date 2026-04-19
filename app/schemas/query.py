@@ -21,9 +21,6 @@ class SearchRequest(BaseModel):
     currency: Optional[str] = "USD"
     budget_max: Optional[float] = None
 
-    must_have_fields: List[Field] = PydanticField(default_factory=list)
-    nice_to_have_fields: List[Field] = PydanticField(default_factory=list)
-    forbidden_fields: List[Field] = PydanticField(default_factory=list)
 
     min_guest_rating: Optional[float] = None
     filters: SearchFilters | None = None
@@ -35,12 +32,6 @@ class SearchRequest(BaseModel):
     # All new logic must read user intent from constraints, not from legacy fields.
     constraints: list[UserConstraint] = PydanticField(default_factory=list)
 
-    # Legacy compatibility projection only.
-    # This field is derived from a subset of constraints (currently unresolved MUST constraints)
-    # and exists only for backward compatibility / debug / UI. It must not be treated as
-    # source-of-truth user meaning and must not drive ranking, fallback, or clarification logic
-    # when constraints are available.
-    unknown_requests: list[str] = PydanticField(default_factory=list)
 
     @model_validator(mode="after")
     def validate_date_range(self):

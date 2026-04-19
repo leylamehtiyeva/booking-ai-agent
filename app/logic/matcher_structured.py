@@ -12,6 +12,50 @@ from app.logic.field_rules import FIELD_RULES
 from app.logic.listing_signals import collect_listing_signals, find_best_signal_match
 
 
+from app.schemas.fields import Field
+
+
+def _priority_value(priority) -> str:
+    return getattr(priority, "value", priority)
+
+
+def _mapping_status_value(mapping_status) -> str:
+    return getattr(mapping_status, "value", mapping_status)
+
+
+def _constraints_by_priority(req):
+    constraints = list(req.constraints or [])
+
+    must_constraints = [
+        c for c in constraints
+        if _priority_value(getattr(c, "priority", None)) == "must"
+    ]
+    nice_constraints = [
+        c for c in constraints
+        if _priority_value(getattr(c, "priority", None)) == "nice"
+    ]
+    forbidden_constraints = [
+        c for c in constraints
+        if _priority_value(getattr(c, "priority", None)) == "forbidden"
+    ]
+    return must_constraints, nice_constraints, forbidden_constraints
+
+
+def _known_mapped_fields(constraints) -> list[Field]:
+    out: list[Field] = []
+    seen: set[Field] = set()
+
+    for c in constraints:
+        if _mapping_status_value(getattr(c, "mapping_status", None)) != "known":
+            continue
+
+        for f in getattr(c, "mapped_fields", []) or []:
+            if f not in seen:
+                seen.add(f)
+                out.append(f)
+
+    return out
+
 def _normalize_text(s: str) -> str:
     return " ".join(s.lower().strip().split())
 
@@ -109,10 +153,12 @@ def match_field_in_facilities(
 
 
 def match_listing_structured(listing: ListingRaw, request: SearchRequest) -> MatchReport:
-    """
-    Deterministic matcher using normalized listing signals + field rules.
-    """
-    requested_fields = list({*(request.must_have_fields or []), *(request.nice_to_have_fields or [])})
+    must_constraints, nice_constraints, _ = _constraints_by_priority(request)
+
+    must_fields = _known_mapped_fields(must_constraints)
+    nice_fields = _known_mapped_fields(nice_constraints)
+
+    requested_fields = list({*must_fields, *nice_fields})
 
     field_matches = {
         f: _match_field_via_rules(listing, f)
@@ -121,7 +167,7 @@ def match_listing_structured(listing: ListingRaw, request: SearchRequest) -> Mat
 
     hard_fail = [
         f
-        for f in (request.must_have_fields or [])
+        for f in must_fields
         if field_matches.get(f) and field_matches[f].value == Ternary.NO
     ]
 
@@ -130,7 +176,6 @@ def match_listing_structured(listing: ListingRaw, request: SearchRequest) -> Mat
         matches=field_matches,
         hard_fail_fields=hard_fail,
     )
-
 
 from app.logic.listing_signals import (
     collect_listing_signals,

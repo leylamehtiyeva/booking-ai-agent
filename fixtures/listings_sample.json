@@ -36,7 +36,7 @@
       "check_in": "2026-04-01",
       "check_out": "2026-04-30"
     },
-    "description": "Apartment in Baku with kitchen and private bathroom. Size is 45 sqm. and have Satellite channels",
+    "description": "Apartment in Baku with kitchen and private bathroom. Size is 45 sqm. and have Satellite channels and its located in the center of city",
     "facilities": [
       {"name": "Kitchen"},
       {"name": "Private bathroom"}
@@ -44,7 +44,7 @@
     "rooms": [
       {
         "name": "One-Bedroom Apartment",
-        "roomType": "One-Bedroom Apartment",
+        "roomType": "2-Bedroom Apartment",
         "facilities": ["Kitchen", "Private bathroom"]
       }
     ]
