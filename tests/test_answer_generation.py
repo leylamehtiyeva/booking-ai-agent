@@ -53,6 +53,51 @@ def test_build_user_answer_for_results():
                     "evidence_strategy": "structured",
                 }
             ],
+            "failed_constraints": [],
+            "matched_constraint_names": ["kitchen"],
+            "uncertain_constraint_names": ["price_total"],
+            "failed_constraint_names": [],
+            "key_facts": {
+                "property_type": "apartment",
+                "listing_currency": "USD",
+            },
+            
+                        "answer_explanation": {
+                "status_label": "partially_confirmed_match",
+                "status_text": "Partially confirmed match",
+                "decision_summary": "This option matches the core request, but some requested details are not fully confirmed.",
+                "confirmed": [
+                    {
+                        "name": "kitchen",
+                        "label": "Kitchen",
+                        "reason": "Private kitchen",
+                    }
+                ],
+                "needs_confirmation": [
+                    {
+                        "name": "price_total",
+                        "label": "Budget",
+                        "reason": "PRICE: currency mismatch listing=USD, request=AZN",
+                    }
+                ],
+                "not_satisfied": [],
+                "tradeoff_summary": "Trade-off: Kitchen is confirmed, but Budget still needs confirmation.",
+            },
+            "fit_summary": "Matches all required criteria.",
+            "why_match": ["Private kitchen"],
+            "tradeoffs": [],
+            "uncertain_points": ["PRICE: currency mismatch listing=USD, request=AZN"],
+            "price_summary": None,
+            "budget_summary": None,
+            "key_facts_summary": "type: apartment",
+            "why": [
+                "KITCHEN: Private kitchen",
+                "PRICE: currency mismatch listing=USD, request=AZN",
+            ],
+        }
+    ],
+    "debug_notes": [],
+}
             "property_types": ["apartment"],
             "occupancy_types": [],
             "filters": {},
@@ -106,9 +151,12 @@ def test_build_user_answer_for_results():
 
     assert "I found 1 relevant option(s) in Baku for 2026-04-08 to 2026-04-15." in out
     assert "Apartment STEL" in out
-    assert "Overall fit: Matches all required criteria." in out
-    assert "Why it matches:" in out
-    assert "- Private kitchen" in out
+    assert "Status: Partially confirmed match" in out
+    assert "Summary: This option matches the core request, but some requested details are not fully confirmed." in out
+    assert "Confirmed:" in out
+    assert "- Kitchen — Private kitchen" in out
+    assert "Needs confirmation:" in out
+    assert "- Budget — PRICE: currency mismatch listing=USD, request=AZN" in out
     assert "Link: https://example.com/stel" in out
 
 

@@ -77,6 +77,15 @@ def classify_ranked_item(item: dict[str, Any]) -> dict[str, Any]:
     unknown_uncertain_count = signals["unknown_uncertain_count"]
     explicit_negative_count = signals["explicit_negative_count"]
 
+    property_result = item.get("property_result")
+    occupancy_result = item.get("occupancy_result")
+
+    property_value = getattr(property_result, "value", None)
+    occupancy_value = getattr(occupancy_result, "value", None)
+
+    property_confirmed = str(property_value) == "YES" or getattr(property_value, "value", None) == "YES"
+    occupancy_confirmed = str(occupancy_value) == "YES" or getattr(occupancy_value, "value", None) == "YES"
+
     selection_reasons: list[str] = []
     blocking_reasons: list[str] = []
 
@@ -91,15 +100,32 @@ def classify_ranked_item(item: dict[str, Any]) -> dict[str, Any]:
     else:
         eligibility_status = "eligible"
 
-        if must_total > 0 and must_matched == must_total and must_uncertain == 0 and unknown_uncertain_count == 0:
+        no_uncertainty = must_uncertain == 0 and unknown_uncertain_count == 0
+        no_failures = must_failed == 0 and explicit_negative_count == 0
+        all_must_confirmed = must_total > 0 and must_matched == must_total
+
+        has_confirmed_core_signal = (
+            all_must_confirmed
+            or property_confirmed
+            or occupancy_confirmed
+        )
+
+        if no_failures and no_uncertainty and has_confirmed_core_signal:
             match_tier = "strong"
-            selection_reasons.append("all required constraints are confirmed")
-        elif must_failed == 0:
+
+            if all_must_confirmed:
+                selection_reasons.append("all required constraints are confirmed")
+            else:
+                selection_reasons.append("core request is confirmed")
+
+        elif no_failures:
             match_tier = "partial"
+
             if must_uncertain > 0 or unknown_uncertain_count > 0:
                 selection_reasons.append("some requested constraints are not fully confirmed")
             else:
                 selection_reasons.append("matches the core request")
+
         else:
             match_tier = "weak"
 

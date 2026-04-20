@@ -132,6 +132,24 @@ def test_build_answer_payload_for_normal_results():
     assert first["key_facts_summary"]
     assert "type: apartment" in first["key_facts_summary"]
     assert "2 bedroom(s)" in first["key_facts_summary"]
+    
+    assert "answer_explanation" in first
+
+    explanation = first["answer_explanation"]
+    assert explanation["status_label"] in {
+        "fully_confirmed_match",
+        "partially_confirmed_match",
+        "strong_match_with_caveats",
+        "relevant_option",
+    }
+    assert explanation["status_text"]
+    assert explanation["decision_summary"]
+
+    assert explanation["confirmed"]
+    assert explanation["confirmed"][0]["label"]
+
+    assert explanation["needs_confirmation"]
+    assert explanation["needs_confirmation"][0]["label"] == "Budget"
 
 
 def test_build_answer_payload_for_clarification():
