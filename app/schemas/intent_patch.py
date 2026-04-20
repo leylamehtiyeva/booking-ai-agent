@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from typing import Annotated, List, Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field as PydanticField
 
 from app.schemas.constraints import UserConstraint
-from app.schemas.fields import Field
 from app.schemas.filters import SearchFilters
 from app.schemas.property_semantics import OccupancyType, PropertyType
 
@@ -24,17 +23,6 @@ class SearchIntentPatch(BaseModel):
     set_children: Optional[int] = None
     set_rooms: Optional[int] = None
 
-    # --- must-have ---
-    add_must_have_fields: List[Field] = PydanticField(default_factory=list)
-    remove_must_have_fields: List[Field] = PydanticField(default_factory=list)
-
-    # --- nice-to-have ---
-    add_nice_to_have_fields: List[Field] = PydanticField(default_factory=list)
-    remove_nice_to_have_fields: List[Field] = PydanticField(default_factory=list)
-
-    # --- forbidden ---
-    add_forbidden_fields: List[Field] = PydanticField(default_factory=list)
-    remove_forbidden_fields: List[Field] = PydanticField(default_factory=list)
 
     # --- constraints (canonical source-of-truth patch layer) ---
     add_constraints: List[UserConstraint] = PydanticField(default_factory=list)
@@ -51,15 +39,3 @@ class SearchIntentPatch(BaseModel):
     add_occupancy_types: List[OccupancyType] = PydanticField(default_factory=list)
     remove_occupancy_types: List[OccupancyType] = PydanticField(default_factory=list)
 
-    # --- legacy compatibility only ---
-    # These fields exist so older patch payloads can still be accepted.
-    # apply_intent_patch() must immediately convert them into canonical constraints.
-    # New logic should prefer add_constraints / remove_constraint_texts.
-    add_unknown_requests: Annotated[
-        List[str],
-        PydanticField(default_factory=list),
-    ]
-    remove_unknown_requests: Annotated[
-        List[str],
-        PydanticField(default_factory=list),
-    ]

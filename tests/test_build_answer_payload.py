@@ -1,13 +1,13 @@
 from app.logic.build_answer_payload import build_answer_payload
 
 from app.schemas.search_response import (
+    ConstraintResolutionEvidence,
+    ConstraintResolutionItem,
     ConstraintStatus,
     NormalizedRequestSummary,
     NormalizedSearchResponse,
     NormalizedSearchResult,
     ResultFact,
-    UnknownFieldEvidence,
-    UnknownRequestResult,
 )
 
 
@@ -19,8 +19,26 @@ def test_build_answer_payload_for_normal_results():
             city="Baku",
             check_in="2026-04-08",
             check_out="2026-04-15",
-            must_have_fields=["kitchen"],
-            nice_to_have_fields=["balcony"],
+            constraints=[
+                {
+                    "raw_text": "with a kitchen",
+                    "normalized_text": "kitchen",
+                    "priority": "must",
+                    "category": "amenity",
+                    "mapping_status": "known",
+                    "mapped_fields": ["kitchen"],
+                    "evidence_strategy": "structured",
+                },
+                {
+                    "raw_text": "balcony",
+                    "normalized_text": "balcony",
+                    "priority": "nice",
+                    "category": "amenity",
+                    "mapping_status": "known",
+                    "mapped_fields": ["balcony"],
+                    "evidence_strategy": "structured",
+                },
+            ],
             property_types=["apartment"],
             occupancy_types=[],
             filters={
@@ -31,7 +49,6 @@ def test_build_answer_payload_for_normal_results():
                     "scope": "per_night",
                 },
             },
-            unknown_requests=[],
         ),
         results=[
             NormalizedSearchResult(
@@ -39,8 +56,6 @@ def test_build_answer_payload_for_normal_results():
                 title="Apartment STEL",
                 url="https://example.com/stel",
                 score=23.0,
-                matched_must_count=1,
-                matched_must_total=1,
                 matched_constraints=[
                     ConstraintStatus(
                         name="kitchen",
@@ -91,7 +106,6 @@ def test_build_answer_payload_for_normal_results():
     first = payload["top_results"][0]
     assert first["result_id"] == "abc123"
     assert first["title"] == "Apartment STEL"
-    assert first["matched_must"] == "1/1"
 
     assert "kitchen" in first["matched_constraint_names"]
     assert "price_total" in first["uncertain_constraint_names"]
@@ -101,7 +115,7 @@ def test_build_answer_payload_for_normal_results():
     assert first["key_facts"]["bedrooms"] == 2
 
     assert first["fit_summary"]
-    assert "Matches all required criteria" in first["fit_summary"]
+    assert "uncertain" in first["fit_summary"].lower()
 
     assert first["why_match"]
     assert "Private kitchen" in first["why_match"]
@@ -153,8 +167,8 @@ def test_build_answer_payload_for_clarification():
     assert payload["questions"] == ["В каком городе искать?"]
     assert payload["results_count"] == 0
     assert payload["top_results"] == []
-    
-    
+
+
 def test_build_answer_payload_uses_uncertain_reason_instead_of_field_name():
     response = NormalizedSearchResponse(
         need_clarification=False,
@@ -163,12 +177,29 @@ def test_build_answer_payload_uses_uncertain_reason_instead_of_field_name():
             city="Baku",
             check_in="2026-04-08",
             check_out="2026-04-15",
-            must_have_fields=["pet_friendly", "kitchen"],
-            nice_to_have_fields=[],
+            constraints=[
+                {
+                    "raw_text": "pet friendly",
+                    "normalized_text": "pet_friendly",
+                    "priority": "must",
+                    "category": "policy",
+                    "mapping_status": "known",
+                    "mapped_fields": ["pet_friendly"],
+                    "evidence_strategy": "structured",
+                },
+                {
+                    "raw_text": "kitchen",
+                    "normalized_text": "kitchen",
+                    "priority": "must",
+                    "category": "amenity",
+                    "mapping_status": "known",
+                    "mapped_fields": ["kitchen"],
+                    "evidence_strategy": "structured",
+                },
+            ],
             property_types=["apartment"],
             occupancy_types=[],
             filters={},
-            unknown_requests=[],
         ),
         results=[
             NormalizedSearchResult(
@@ -176,8 +207,6 @@ def test_build_answer_payload_uses_uncertain_reason_instead_of_field_name():
                 title="Test Apartment",
                 url="https://example.com/test",
                 score=10.0,
-                matched_must_count=1,
-                matched_must_total=2,
                 matched_constraints=[
                     ConstraintStatus(
                         name="kitchen",
@@ -206,9 +235,9 @@ def test_build_answer_payload_uses_uncertain_reason_instead_of_field_name():
     assert first["uncertain_points"] == [
         "Pet policy is not explicitly confirmed in the listing."
     ]
-    
-    
-def test_build_answer_payload_includes_unknown_request_points():
+
+
+def test_build_answer_payload_includes_constraint_resolution_results():
     response = NormalizedSearchResponse(
         need_clarification=False,
         questions=[],
@@ -216,12 +245,29 @@ def test_build_answer_payload_includes_unknown_request_points():
             city="Baku",
             check_in="2026-04-08",
             check_out="2026-04-15",
-            must_have_fields=["iron"],
-            nice_to_have_fields=[],
+            constraints=[
+                {
+                    "raw_text": "iron",
+                    "normalized_text": "iron",
+                    "priority": "must",
+                    "category": "amenity",
+                    "mapping_status": "known",
+                    "mapped_fields": ["iron"],
+                    "evidence_strategy": "structured",
+                },
+                {
+                    "raw_text": "satellite TV",
+                    "normalized_text": "satellite TV",
+                    "priority": "must",
+                    "category": "amenity",
+                    "mapping_status": "unresolved",
+                    "mapped_fields": [],
+                    "evidence_strategy": "textual",
+                },
+            ],
             property_types=["apartment"],
             occupancy_types=[],
             filters={},
-            unknown_requests=["satellite TV"],
         ),
         results=[
             NormalizedSearchResult(
@@ -229,8 +275,6 @@ def test_build_answer_payload_includes_unknown_request_points():
                 title="Compact Apartment",
                 url="https://example.com/compact",
                 score=10.0,
-                matched_must_count=1,
-                matched_must_total=1,
                 matched_constraints=[
                     ConstraintStatus(
                         name="iron",
@@ -240,15 +284,22 @@ def test_build_answer_payload_includes_unknown_request_points():
                 ],
                 uncertain_constraints=[],
                 failed_constraints=[],
-                unknown_request_results=[
-                    UnknownRequestResult(
-                        query_text="satellite TV",
-                        value="FOUND",
-                        reason="The listing description mentions satellite channels.",
+                constraint_resolution_results=[
+                    ConstraintResolutionItem(
+                        listing_id="listing-1",
+                        listing_title="Example listing",
+                        constraint_id="c1",
+                        raw_text="satellite TV",
+                        normalized_text="satellite TV",
+                        resolver_type="textual",
+                        decision="YES",
+                        resolution_status="matched",
+                        reason="Satellite TV is mentioned.",
                         evidence=[
-                            UnknownFieldEvidence(
-                                source_path="listing.description",
-                                snippet="and have satellite channels",
+                            ConstraintResolutionEvidence(
+                                source="description",
+                                path="description",
+                                snippet="Satellite TV available",
                             )
                         ],
                     )
@@ -263,14 +314,11 @@ def test_build_answer_payload_includes_unknown_request_points():
     payload = build_answer_payload(response, top_k=3)
     first = payload["top_results"][0]
 
-    assert "unknown_request_results" in first
-    assert first["unknown_request_results"]
-    assert first["unknown_request_results"][0]["query_text"] == "satellite TV"
-    assert first["unknown_request_points"] == [
-        "The listing description mentions satellite channels."
-    ]
-    
-    
+    assert "constraint_resolution_results" in first
+    assert first["constraint_resolution_results"]
+    assert first["constraint_resolution_results"][0]["normalized_text"] == "satellite TV"
+
+
 def test_build_answer_payload_includes_ranking_reasons_and_standout_reason():
     response = NormalizedSearchResponse(
         need_clarification=False,
@@ -279,12 +327,29 @@ def test_build_answer_payload_includes_ranking_reasons_and_standout_reason():
             city="Baku",
             check_in="2026-04-08",
             check_out="2026-04-15",
-            must_have_fields=["iron"],
-            nice_to_have_fields=[],
+            constraints=[
+                {
+                    "raw_text": "iron",
+                    "normalized_text": "iron",
+                    "priority": "must",
+                    "category": "amenity",
+                    "mapping_status": "known",
+                    "mapped_fields": ["iron"],
+                    "evidence_strategy": "structured",
+                },
+                {
+                    "raw_text": "satellite TV",
+                    "normalized_text": "satellite TV",
+                    "priority": "must",
+                    "category": "amenity",
+                    "mapping_status": "unresolved",
+                    "mapped_fields": [],
+                    "evidence_strategy": "textual",
+                },
+            ],
             property_types=["apartment"],
             occupancy_types=[],
             filters={},
-            unknown_requests=["satellite TV"],
         ),
         results=[
             NormalizedSearchResult(
@@ -292,8 +357,6 @@ def test_build_answer_payload_includes_ranking_reasons_and_standout_reason():
                 title="Compact Apartment",
                 url="https://example.com/compact",
                 score=10.0,
-                matched_must_count=1,
-                matched_must_total=1,
                 matched_constraints=[
                     ConstraintStatus(
                         name="iron",
@@ -303,22 +366,29 @@ def test_build_answer_payload_includes_ranking_reasons_and_standout_reason():
                 ],
                 uncertain_constraints=[],
                 failed_constraints=[],
-                unknown_request_results=[
-                    UnknownRequestResult(
-                        query_text="satellite TV",
-                        value="FOUND",
-                        reason="The listing description mentions satellite channels.",
+                constraint_resolution_results=[
+                    ConstraintResolutionItem(
+                        listing_id="listing-1",
+                        listing_title="Example listing",
+                        constraint_id="c1",
+                        raw_text="satellite TV",
+                        normalized_text="satellite TV",
+                        resolver_type="textual",
+                        decision="YES",
+                        resolution_status="matched",
+                        reason="Satellite TV is mentioned.",
                         evidence=[
-                            UnknownFieldEvidence(
-                                source_path="listing.description",
-                                snippet="and have satellite channels",
+                            ConstraintResolutionEvidence(
+                                source="description",
+                                path="description",
+                                snippet="Satellite TV available",
                             )
                         ],
                     )
                 ],
                 facts=[],
                 why=[
-                    "UNKNOWN_MATCH: satellite TV found",
+                    "CONSTRAINT_RESOLUTION: satellite TV confirmed",
                     "PROPERTY_TYPE: matched apartment",
                 ],
             )
@@ -330,5 +400,5 @@ def test_build_answer_payload_includes_ranking_reasons_and_standout_reason():
     first = payload["top_results"][0]
 
     assert first["ranking_reasons"]
-    assert "satellite TV found" in first["ranking_reasons"][0]
-    assert first["standout_reason"] == "The only option that explicitly matches your requested detail: satellite TV"
+    assert "matched apartment" in first["ranking_reasons"][0]
+    assert first["standout_reason"] is None

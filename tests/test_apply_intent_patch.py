@@ -56,21 +56,7 @@ def test_price_merge_preserves_other_price_fields():
     assert new_state.filters.price.scope == "per_night"
 
 
-def test_add_and_remove_must_have_fields():
-    state = SearchRequest(
-        city="Baku",
-        must_have_fields=[Field.KITCHEN, Field.PRIVATE_BATHROOM],
-    )
 
-    patch = SearchIntentPatch(
-        add_must_have_fields=[Field.WIFI],
-        remove_must_have_fields=[Field.KITCHEN],
-    )
-    new_state = apply_intent_patch(state, patch)
-
-    assert Field.KITCHEN not in new_state.must_have_fields
-    assert Field.PRIVATE_BATHROOM in new_state.must_have_fields
-    assert Field.WIFI in new_state.must_have_fields
 
 
 def test_clear_city_sets_city_to_none():
@@ -125,36 +111,8 @@ def test_apply_patch_updates_only_adults_without_touching_other_fields():
     assert new_state.rooms == 1
     
     
-def test_apply_patch_adds_unknown_requests():
-    state = SearchRequest(
-        city="Baku",
-        unknown_requests=[],
-    )
-
-    patch = SearchIntentPatch(
-        add_unknown_requests=["2 beds"],
-    )
-
-    new_state = apply_intent_patch(state, patch)
-
-    assert any(c.normalized_text == "2 beds" for c in new_state.constraints)
-    assert new_state.unknown_requests == ["2 beds"]
 
 
-def test_apply_patch_removes_unknown_requests():
-    state = SearchRequest(
-        city="Baku",
-        unknown_requests=["2 beds", "satellite TV"],
-    )
-
-    patch = SearchIntentPatch(
-        remove_unknown_requests=["2 beds"],
-    )
-
-    new_state = apply_intent_patch(state, patch)
-
-    assert all(c.normalized_text != "2 beds" for c in new_state.constraints)
-    assert new_state.unknown_requests == ["satellite TV"]
     
     
 def test_set_check_in_only_recomputes_checkout_to_one_night():

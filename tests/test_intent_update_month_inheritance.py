@@ -12,9 +12,7 @@ def test_followup_month_inheritance_is_temporarily_disabled_for_partial_update()
         children=0,
         rooms=1,
         currency="USD",
-        must_have_fields=[],
-        nice_to_have_fields=[],
-        forbidden_fields=[],
+        constraints=[],
         property_types=[],
         occupancy_types=[],
     )
@@ -45,9 +43,7 @@ def test_followup_month_inheritance_is_temporarily_disabled_for_explicit_month_u
         children=0,
         rooms=1,
         currency="USD",
-        must_have_fields=[],
-        nice_to_have_fields=[],
-        forbidden_fields=[],
+        constraints=[],
         property_types=[],
         occupancy_types=[],
     )

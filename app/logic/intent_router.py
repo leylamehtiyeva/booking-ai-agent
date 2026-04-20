@@ -13,7 +13,6 @@ from google.adk.sessions import InMemorySessionService
 from google.genai.types import Content, Part
 
 from app.agents.intent_router_agent import IntentRoute, build_intent_router_agent
-from app.logic.constraint_state import sync_legacy_state_from_constraints
 from app.logic.date_normalization import normalize_intent_dates
 from app.logic.request_resolution import resolve_required_search_context
 from app.schemas.query import SearchRequest
@@ -161,23 +160,17 @@ async def build_search_request_adk_async(user_text: str) -> SearchRequest:
     clean_filters = _clean_filters(intent.filters)
 
     req = SearchRequest(
-        city=resolved.city,
-        check_in=resolved.check_in,
-        check_out=resolved.check_out,
-        adults=intent.adults or 2,
-        children=intent.children or 0,
-        rooms=intent.rooms or 1,
-        must_have_fields=[],
-        nice_to_have_fields=[],
-        forbidden_fields=[],
-        filters=clean_filters,
-        property_types=intent.property_types or None,
-        occupancy_types=intent.occupancy_types or None,
-        constraints=intent.constraints,
-        unknown_requests=[],
-    )
-    req = sync_legacy_state_from_constraints(req)
-
+    city=resolved.city,
+    check_in=resolved.check_in,
+    check_out=resolved.check_out,
+    adults=intent.adults or 2,
+    children=intent.children or 0,
+    rooms=intent.rooms or 1,
+    filters=clean_filters,
+    property_types=intent.property_types or None,
+    occupancy_types=intent.occupancy_types or None,
+    constraints=intent.constraints,
+)
     print("\n=== SEARCH REQUEST ===")
     print(req.model_dump(mode="json", exclude_none=True))
     return req

@@ -17,50 +17,40 @@ def test_build_user_answer_for_clarification():
 
 def test_build_user_answer_for_results():
     payload = {
-    "need_clarification": False,
-    "questions": [],
-    "request_summary": {
-        "city": "Baku",
-        "check_in": "2026-04-08",
-        "check_out": "2026-04-15",
-        "must_have_fields": ["kitchen"],
-        "nice_to_have_fields": [],
-        "property_types": ["apartment"],
-        "occupancy_types": [],
-        "filters": {},
-        "unknown_requests": [],
-    },
-    "active_intent": {
-        "city": "Baku",
-        "check_in": "2026-04-08",
-        "check_out": "2026-04-15",
-        "must_have_fields": ["kitchen"],
-        "nice_to_have_fields": [],
-        "property_types": ["apartment"],
-        "occupancy_types": [],
-        "filters": {},
-        "unknown_requests": [],
-    },
-    "results_count": 1,
-    "top_results": [
-        {
-            "result_id": "abc123",
-            "title": "Apartment STEL",
-            "url": "https://example.com/stel",
-            "score": 23.0,
-            "matched_must": "1/1",
-            "matched_constraints": [
+        "need_clarification": False,
+        "questions": [],
+        "request_summary": {
+            "city": "Baku",
+            "check_in": "2026-04-08",
+            "check_out": "2026-04-15",
+            "constraints": [
                 {
-                    "name": "kitchen",
-                    "status": "matched",
-                    "reason": "Private kitchen",
+                    "raw_text": "kitchen",
+                    "normalized_text": "kitchen",
+                    "priority": "must",
+                    "category": "amenity",
+                    "mapping_status": "known",
+                    "mapped_fields": ["kitchen"],
+                    "evidence_strategy": "structured",
                 }
             ],
-            "uncertain_constraints": [
+            "property_types": ["apartment"],
+            "occupancy_types": [],
+            "filters": {},
+        },
+        "active_intent": {
+            "city": "Baku",
+            "check_in": "2026-04-08",
+            "check_out": "2026-04-15",
+            "constraints": [
                 {
-                    "name": "price_total",
-                    "status": "uncertain",
-                    "reason": "PRICE: currency mismatch listing=USD, request=AZN",
+                    "raw_text": "kitchen",
+                    "normalized_text": "kitchen",
+                    "priority": "must",
+                    "category": "amenity",
+                    "mapping_status": "known",
+                    "mapped_fields": ["kitchen"],
+                    "evidence_strategy": "structured",
                 }
             ],
             "failed_constraints": [],
@@ -108,6 +98,54 @@ def test_build_user_answer_for_results():
     ],
     "debug_notes": [],
 }
+            "property_types": ["apartment"],
+            "occupancy_types": [],
+            "filters": {},
+        },
+        "results_count": 1,
+        "top_results": [
+            {
+                "result_id": "abc123",
+                "title": "Apartment STEL",
+                "url": "https://example.com/stel",
+                "score": 23.0,
+                "matched_constraints": [
+                    {
+                        "name": "kitchen",
+                        "status": "matched",
+                        "reason": "Private kitchen",
+                    }
+                ],
+                "uncertain_constraints": [
+                    {
+                        "name": "price_total",
+                        "status": "uncertain",
+                        "reason": "PRICE: currency mismatch listing=USD, request=AZN",
+                    }
+                ],
+                "failed_constraints": [],
+                "matched_constraint_names": ["kitchen"],
+                "uncertain_constraint_names": ["price_total"],
+                "failed_constraint_names": [],
+                "key_facts": {
+                    "property_type": "apartment",
+                    "listing_currency": "USD",
+                },
+                "fit_summary": "Matches all required criteria.",
+                "why_match": ["Private kitchen"],
+                "tradeoffs": [],
+                "uncertain_points": ["PRICE: currency mismatch listing=USD, request=AZN"],
+                "price_summary": None,
+                "budget_summary": None,
+                "key_facts_summary": "type: apartment",
+                "why": [
+                    "KITCHEN: Private kitchen",
+                    "PRICE: currency mismatch listing=USD, request=AZN",
+                ],
+            }
+        ],
+        "debug_notes": [],
+    }
 
     out = build_user_answer(payload)
 
@@ -136,9 +174,9 @@ def test_build_user_answer_for_multiple_questions():
     assert "I need a few more details:" in out
     assert "В каком городе искать?" in out
     assert "Какие даты заезда и выезда?" in out
-    
-    
-def test_build_user_answer_shows_unknown_request_points():
+
+
+def test_build_user_answer_shows_constraint_resolution_details():
     payload = {
         "need_clarification": False,
         "questions": [],
@@ -146,12 +184,29 @@ def test_build_user_answer_shows_unknown_request_points():
             "city": "Baku",
             "check_in": "2026-04-08",
             "check_out": "2026-04-15",
-            "must_have_fields": ["iron"],
-            "nice_to_have_fields": [],
+            "constraints": [
+                {
+                    "raw_text": "ironing facilities",
+                    "normalized_text": "iron",
+                    "priority": "must",
+                    "category": "amenity",
+                    "mapping_status": "known",
+                    "mapped_fields": ["iron"],
+                    "evidence_strategy": "structured",
+                },
+                {
+                    "raw_text": "satellite TV",
+                    "normalized_text": "satellite TV",
+                    "priority": "must",
+                    "category": "amenity",
+                    "mapping_status": "unresolved",
+                    "mapped_fields": [],
+                    "evidence_strategy": "textual",
+                },
+            ],
             "property_types": ["apartment"],
             "occupancy_types": [],
             "filters": {},
-            "unknown_requests": ["satellite TV"],
         },
         "results_count": 1,
         "top_results": [
@@ -165,8 +220,13 @@ def test_build_user_answer_shows_unknown_request_points():
                 "why_match": ["Ironing facilities"],
                 "tradeoffs": [],
                 "uncertain_points": [],
-                "unknown_request_points": [
-                    "The listing description mentions satellite channels."
+                "constraint_resolution_results": [
+                    {
+                        "normalized_text": "satellite TV",
+                        "decision": "YES",
+                        "resolution_status": "matched",
+                        "reason": "Found in description",
+                    }
                 ],
             }
         ],
@@ -175,11 +235,10 @@ def test_build_user_answer_shows_unknown_request_points():
     out = build_user_answer(payload)
 
     assert "Compact Apartment" in out
-    assert "Other requested details:" in out
-    assert "The listing description mentions satellite channels." in out
-    
-    
-def test_build_user_answer_can_show_unknown_request_points_alongside_ranked_option():
+    assert "satellite tv" in out.lower()
+
+
+def test_build_user_answer_can_show_constraint_resolution_alongside_ranking():
     payload = {
         "need_clarification": False,
         "questions": [],
@@ -187,12 +246,29 @@ def test_build_user_answer_can_show_unknown_request_points_alongside_ranked_opti
             "city": "Baku",
             "check_in": "2026-04-08",
             "check_out": "2026-04-15",
-            "must_have_fields": ["iron"],
-            "nice_to_have_fields": [],
+            "constraints": [
+                {
+                    "raw_text": "ironing facilities",
+                    "normalized_text": "iron",
+                    "priority": "must",
+                    "category": "amenity",
+                    "mapping_status": "known",
+                    "mapped_fields": ["iron"],
+                    "evidence_strategy": "structured",
+                },
+                {
+                    "raw_text": "satellite TV",
+                    "normalized_text": "satellite TV",
+                    "priority": "must",
+                    "category": "amenity",
+                    "mapping_status": "unresolved",
+                    "mapped_fields": [],
+                    "evidence_strategy": "textual",
+                },
+            ],
             "property_types": ["apartment"],
             "occupancy_types": [],
             "filters": {},
-            "unknown_requests": ["satellite TV"],
         },
         "results_count": 1,
         "top_results": [
@@ -206,8 +282,13 @@ def test_build_user_answer_can_show_unknown_request_points_alongside_ranked_opti
                 "why_match": ["Ironing facilities"],
                 "tradeoffs": [],
                 "uncertain_points": [],
-                "unknown_request_points": [
-                    "The listing description mentions satellite channels."
+                "constraint_resolution_results": [
+                    {
+                        "normalized_text": "satellite TV",
+                        "decision": "YES",
+                        "resolution_status": "matched",
+                        "reason": "Found in description",
+                    }
                 ],
                 "ranking_reasons": ["satellite TV found"],
                 "standout_reason": "Explicitly matches your requested detail: satellite TV",
@@ -218,5 +299,4 @@ def test_build_user_answer_can_show_unknown_request_points_alongside_ranked_opti
     out = build_user_answer(payload)
 
     assert "Compact Apartment" in out
-    assert "Other requested details:" in out
-    assert "The listing description mentions satellite channels." in out
+    assert "satellite tv" in out.lower()

@@ -24,6 +24,16 @@ class DummyPropertyResult:
         self.why = why
 
 
+def _priority_value(constraint) -> str:
+    value = getattr(constraint, "priority", None)
+    return str(value).split(".")[-1].lower() if value is not None else ""
+
+
+def _mapping_status_value(constraint) -> str:
+    value = getattr(constraint, "mapping_status", None)
+    return str(value).split(".")[-1].lower() if value is not None else ""
+
+
 def test_normalize_search_response_builds_request_summary_and_results():
     req = SearchRequest(
         city="Baku",
@@ -34,9 +44,6 @@ def test_normalize_search_response_builds_request_summary_and_results():
         rooms=1,
         currency="USD",
         budget_max=None,
-        must_have_fields=[Field.KITCHEN],
-        nice_to_have_fields=[Field.BALCONY],
-        forbidden_fields=[],
         min_guest_rating=None,
         filters=SearchFilters(
             bedrooms_min=2,
@@ -77,8 +84,6 @@ def test_normalize_search_response_builds_request_summary_and_results():
                 evidence_strategy=EvidenceStrategy.TEXTUAL,
             ),
         ],
-        # Intentionally kept different from dropped_requests to verify contract.
-        unknown_requests=[],
     )
 
     listing = ListingRaw(
@@ -141,8 +146,6 @@ def test_normalize_search_response_builds_request_summary_and_results():
             "property_result": property_result,
             "occupancy_result": None,
             "score": 23.0,
-            "must_have_matched": 1,
-            "must_have_total": 1,
             "why": [
                 "KITCHEN: Private kitchen",
                 "BEDROOMS: 2 >= required 2",
@@ -162,15 +165,22 @@ def test_normalize_search_response_builds_request_summary_and_results():
     assert out.need_clarification is False
     assert out.request_summary is not None
     assert out.request_summary.city == "Baku"
-    assert out.request_summary.must_have_fields == ["kitchen"]
-    assert out.request_summary.nice_to_have_fields == ["balcony"]
     assert out.request_summary.property_types == ["apartment"]
 
-    # A3 contract:
-    # unknown_requests is derived from unresolved MUST constraints only.
-    assert out.request_summary.unknown_requests == ["satellite TV"]
+    constraints = out.request_summary.constraints
+    must_constraints = [c for c in constraints if c["priority"] == "must"]
+    nice_constraints = [c for c in constraints if c["priority"] == "nice"]
 
-    # dropped_requests is separate and must not pollute unknown_requests.
+    unresolved_must = [
+        c
+        for c in constraints
+        if c["priority"] == "must" and c["mapping_status"] == "unresolved"
+    ]
+
+    assert any(c["normalized_text"] == "kitchen" for c in must_constraints)
+    assert any("balcony" in c["normalized_text"] for c in nice_constraints)
+    assert any(c["normalized_text"] == "satellite TV" for c in unresolved_must)
+
     assert out.request_summary.dropped_requests == ["legacy parse residue"]
 
     assert len(out.results) == 1
@@ -180,8 +190,6 @@ def test_normalize_search_response_builds_request_summary_and_results():
     assert r0.url == "https://example.com/stel"
     assert r0.result_id.startswith("url_")
     assert r0.score == 23.0
-    assert r0.matched_must_count == 1
-    assert r0.matched_must_total == 1
 
     matched_names = [x.name for x in r0.matched_constraints]
     uncertain_names = [x.name for x in r0.uncertain_constraints]
@@ -201,18 +209,12 @@ def test_normalize_search_response_builds_request_summary_and_results():
     assert "budget_total_derived" in fact_keys
 
 
-def test_request_summary_falls_back_to_legacy_unknown_requests_when_constraints_are_absent():
+def test_request_summary_keeps_constraints_empty_when_no_constraints_exist():
     req = SearchRequest(
         city="Baku",
         check_in=date(2026, 4, 8),
         check_out=date(2026, 4, 15),
-        must_have_fields=[],
-        nice_to_have_fields=[],
-        property_types=[],
-        occupancy_types=[],
-        filters=None,
         constraints=[],
-        unknown_requests=["quiet neighborhood", "quiet neighborhood"],
     )
 
     out = normalize_search_response(
@@ -223,11 +225,11 @@ def test_request_summary_falls_back_to_legacy_unknown_requests_when_constraints_
     )
 
     assert out.request_summary is not None
-    assert out.request_summary.unknown_requests == ["quiet neighborhood"]
+    assert out.request_summary.constraints == []
     assert out.request_summary.dropped_requests == ["dropped item"]
 
 
-def test_request_summary_does_not_project_unresolved_nice_constraints_into_unknown_requests():
+def test_request_summary_keeps_unresolved_nice_constraints_but_no_unresolved_must_projection():
     req = SearchRequest(
         city="Baku",
         check_in=date(2026, 4, 8),
@@ -243,7 +245,6 @@ def test_request_summary_does_not_project_unresolved_nice_constraints_into_unkno
                 evidence_strategy=EvidenceStrategy.TEXTUAL,
             )
         ],
-        unknown_requests=["legacy value that should not win"],
     )
 
     out = normalize_search_response(
@@ -254,11 +255,19 @@ def test_request_summary_does_not_project_unresolved_nice_constraints_into_unkno
     )
 
     assert out.request_summary is not None
-    # Because constraints are present and unresolved NICE is not part of the
-    # compatibility projection, unknown_requests must stay empty.
-    assert out.request_summary.unknown_requests == []
-    
-    
+
+    constraints = out.request_summary.constraints
+    unresolved_must = [
+        c
+        for c in constraints
+        if _priority_value(c) == "must" and _mapping_status_value(c) == "unresolved"
+    ]
+
+    assert unresolved_must == []
+    assert len(constraints) == 1
+    assert constraints[0]["normalized_text"] == "balcony if possible"
+
+
 def test_normalize_search_response_merges_constraint_resolution_results():
     req = SearchRequest(
         city="Baku",
@@ -269,9 +278,6 @@ def test_normalize_search_response_merges_constraint_resolution_results():
         rooms=1,
         currency="USD",
         budget_max=None,
-        must_have_fields=[Field.KITCHEN],
-        nice_to_have_fields=[],
-        forbidden_fields=[],
         min_guest_rating=None,
         filters=None,
         property_types=[],
@@ -296,7 +302,6 @@ def test_normalize_search_response_merges_constraint_resolution_results():
                 evidence_strategy=EvidenceStrategy.TEXTUAL,
             ),
         ],
-        unknown_requests=[],
     )
 
     listing = ListingRaw(
@@ -325,8 +330,6 @@ def test_normalize_search_response_merges_constraint_resolution_results():
             "property_result": None,
             "occupancy_result": None,
             "score": 17.0,
-            "must_have_matched": 0,
-            "must_have_total": 1,
             "why": [],
             "constraint_resolution_results": [
                 {
@@ -386,28 +389,19 @@ def test_normalize_search_response_merges_constraint_resolution_results():
 
     assert "kitchen" in matched_names
     assert "satellite TV" in uncertain_names
-
-    # structured uncertain kitchen должен быть заменён fallback matched результатом,
-    # а не остаться одновременно и в uncertain, и в matched
     assert "kitchen" not in uncertain_names
 
     assert len(r0.constraint_resolution_results) == 2
     assert r0.constraint_resolution_results[0].normalized_text == "kitchen"
     assert r0.constraint_resolution_results[1].normalized_text == "satellite TV"
-    
-    
+
+
 def test_normalize_search_response_includes_selection_metadata():
     req = SearchRequest(
         city="Baku",
         check_in=date(2026, 4, 8),
         check_out=date(2026, 4, 15),
-        must_have_fields=[],
-        nice_to_have_fields=[],
-        property_types=[],
-        occupancy_types=[],
-        filters=None,
         constraints=[],
-        unknown_requests=[],
     )
 
     listing = ListingRaw(
@@ -428,8 +422,6 @@ def test_normalize_search_response_includes_selection_metadata():
             "property_result": None,
             "occupancy_result": None,
             "score": 23.0,
-            "must_have_matched": 1,
-            "must_have_total": 1,
             "eligibility_status": "eligible",
             "match_tier": "strong",
             "selection_reasons": ["all required constraints are confirmed"],

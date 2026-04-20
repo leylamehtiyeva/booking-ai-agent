@@ -2,10 +2,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from app.logic.constraint_state import (
-    sync_constraints_from_legacy_state,
-    sync_legacy_state_from_constraints,
-)
 from app.logic.intent_router import build_search_request_adk_async
 from app.logic.intent_update import update_search_state_async
 from app.logic.request_resolution import resolve_required_search_context
@@ -21,29 +17,9 @@ from app.schemas.fallback_policy import FallbackPolicy
 
 
 def _build_state_payload(state: SearchRequest | None) -> dict[str, Any] | None:
-    """
-    Build a fully synchronized state payload for conversation/debug/output layers.
-
-    Contract:
-    - constraints is the semantic source of truth
-    - legacy fields are compatibility-only derived views
-    - if a legacy-only state still arrives, lift it into constraints first
-    - always serialize the synchronized representation
-    """
     if state is None:
         return None
-
-    synced = state
-    if not synced.constraints and (
-        synced.must_have_fields
-        or synced.nice_to_have_fields
-        or synced.forbidden_fields
-        or synced.unknown_requests
-    ):
-        synced = sync_constraints_from_legacy_state(synced)
-
-    synced = sync_legacy_state_from_constraints(synced)
-    return synced.model_dump(mode="json", exclude_none=True)
+    return state.model_dump(mode="json", exclude_none=True)
 
 
 async def _answer_listing_question(
@@ -112,12 +88,7 @@ async def _answer_listing_question(
 
 def _build_orchestrate_intent_payload(state: SearchRequest) -> dict[str, Any]:
     """
-    Ensure the payload handed to orchestrate_search is fully synchronized
-    with the constraint-centric state.
-
-    If a mocked / legacy state still arrives with only must_have_fields /
-    unknown_requests and empty constraints, first lift it into constraints,
-    then derive legacy fields back from constraints.
+    Serialize the canonical constraint-centric search state for orchestrate_search.
     """
     payload = _build_state_payload(state)
     assert payload is not None
