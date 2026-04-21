@@ -17,6 +17,9 @@ from app.logic.date_normalization import normalize_intent_dates
 from app.logic.request_resolution import resolve_required_search_context
 from app.schemas.query import SearchRequest
 
+import asyncio
+from google.genai.errors import ClientError
+
 
 APP_NAME = "booking-ai-agent"
 USER_ID = "local-user"
@@ -50,49 +53,73 @@ def _strip_json_fence(text: str) -> str:
 async def _route_intent_via_adk(user_text: str) -> IntentRoute:
     _ensure_gemini_key()
 
-    agent = build_intent_router_agent()
-    session_service = InMemorySessionService()
-    runner = Runner(agent=agent, app_name=APP_NAME, session_service=session_service)
+    max_retries = 3
+    delay_seconds = 1.0
 
-    session_id = f"intent-{uuid.uuid4().hex[:8]}"
-    await session_service.create_session(app_name=APP_NAME, user_id=USER_ID, session_id=session_id)
+    for attempt in range(max_retries):
+        try:
+            agent = build_intent_router_agent()
+            session_service = InMemorySessionService()
+            runner = Runner(agent=agent, app_name=APP_NAME, session_service=session_service)
 
-    msg = Content(role="user", parts=[Part.from_text(text=user_text)])
-    cfg = RunConfig(response_modalities=["TEXT"])
+            session_id = f"intent-{uuid.uuid4().hex[:8]}"
+            await session_service.create_session(
+                app_name=APP_NAME,
+                user_id=USER_ID,
+                session_id=session_id,
+            )
 
-    final_text: Optional[str] = None
-    async for ev in runner.run_async(
-        user_id=USER_ID,
-        session_id=session_id,
-        new_message=msg,
-        run_config=cfg,
-    ):
-        content = getattr(ev, "content", None)
-        if content and getattr(content, "parts", None):
-            for p in content.parts:
-                t = getattr(p, "text", None)
-                if t:
-                    final_text = (final_text or "") + t
+            msg = Content(role="user", parts=[Part.from_text(text=user_text)])
+            cfg = RunConfig(response_modalities=["TEXT"])
 
-    if not final_text:
-        raise ValueError("ADK returned empty response text")
+            final_text: Optional[str] = None
+            async for ev in runner.run_async(
+                user_id=USER_ID,
+                session_id=session_id,
+                new_message=msg,
+                run_config=cfg,
+            ):
+                content = getattr(ev, "content", None)
+                if content and getattr(content, "parts", None):
+                    for p in content.parts:
+                        t = getattr(p, "text", None)
+                        if t:
+                            final_text = (final_text or "") + t
 
-    clean = _strip_json_fence(final_text)
-    payload = json.loads(clean)
+            if not final_text:
+                raise ValueError("ADK returned empty response text")
 
-    if payload.get("filters") is None:
-        payload["filters"] = {}
+            clean = _strip_json_fence(final_text)
+            payload = json.loads(clean)
 
-    if payload.get("constraints") is None:
-        payload["constraints"] = []
+            if payload.get("filters") is None:
+                payload["filters"] = {}
 
-    if payload.get("property_types") is None:
-        payload["property_types"] = []
+            if payload.get("constraints") is None:
+                payload["constraints"] = []
 
-    if payload.get("occupancy_types") is None:
-        payload["occupancy_types"] = []
+            if payload.get("property_types") is None:
+                payload["property_types"] = []
 
-    return IntentRoute.model_validate(payload)
+            if payload.get("occupancy_types") is None:
+                payload["occupancy_types"] = []
+
+            return IntentRoute.model_validate(payload)
+
+        except Exception as e:
+            error_text = str(e)
+            is_resource_exhausted = (
+                "RESOURCE_EXHAUSTED" in error_text
+                or "429" in error_text
+                or "_ResourceExhaustedError" in e.__class__.__name__
+            )
+
+            if is_resource_exhausted and attempt < max_retries - 1:
+                await asyncio.sleep(delay_seconds)
+                delay_seconds *= 2
+                continue
+
+            raise
 
 
 async def route_intent_adk_async(user_text: str) -> IntentRoute:
