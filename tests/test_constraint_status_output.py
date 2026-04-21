@@ -2,6 +2,7 @@ import pytest
 
 from app.logic.constraint_evidence_resolution import ConstraintResolutionResult
 from app.tools.orchestrate_search_tool import orchestrate_search
+from app.tools.orchestrate_search_tool import FallbackPolicy
 
 
 @pytest.mark.asyncio
@@ -62,7 +63,7 @@ async def test_orchestrate_search_returns_constraint_statuses(monkeypatch):
         intent,
         source="fixtures",
         max_items=5,
-    )
+        )
 
     assert "constraint_statuses" in out
     assert isinstance(out["constraint_statuses"], list)

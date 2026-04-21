@@ -23,8 +23,8 @@ class SearchFilters(BaseModel):
     """
     Typed structured constraints extracted from the user query.
 
-    These are NOT boolean amenity fields and therefore should not be stored
-    in must_have_fields / nice_to_have_fields.
+    These are structured numeric constraints.
+    They must live in SearchFilters, not in semantic constraints.
     """
     bedrooms_min: int | None = None
     bedrooms_max: int | None = None

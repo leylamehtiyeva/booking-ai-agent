@@ -17,40 +17,46 @@ def test_build_user_answer_for_clarification():
 
 def test_build_user_answer_for_results():
     payload = {
-        "need_clarification": False,
-        "questions": [],
-        "request_summary": {
-            "city": "Baku",
-            "check_in": "2026-04-08",
-            "check_out": "2026-04-15",
-            "constraints": [
+    "need_clarification": False,
+    "questions": [],
+    "request_summary": {
+        "city": "Baku",
+        "check_in": "2026-04-08",
+        "check_out": "2026-04-15",
+        "constraints": [
+            {
+                "raw_text": "kitchen",
+                "normalized_text": "kitchen",
+                "priority": "must",
+                "category": "amenity",
+                "mapping_status": "known",
+                "mapped_fields": ["kitchen"],
+                "evidence_strategy": "structured",
+            }
+        ],
+        "property_types": ["apartment"],
+        "occupancy_types": [],
+        "filters": {},
+    },
+    "results_count": 1,
+    "top_results": [
+        {
+            "result_id": "abc123",
+            "title": "Apartment STEL",
+            "url": "https://example.com/stel",
+            "score": 23.0,
+            "matched_constraints": [
                 {
-                    "raw_text": "kitchen",
-                    "normalized_text": "kitchen",
-                    "priority": "must",
-                    "category": "amenity",
-                    "mapping_status": "known",
-                    "mapped_fields": ["kitchen"],
-                    "evidence_strategy": "structured",
+                    "name": "kitchen",
+                    "status": "matched",
+                    "reason": "Private kitchen",
                 }
             ],
-            "property_types": ["apartment"],
-            "occupancy_types": [],
-            "filters": {},
-        },
-        "active_intent": {
-            "city": "Baku",
-            "check_in": "2026-04-08",
-            "check_out": "2026-04-15",
-            "constraints": [
+            "uncertain_constraints": [
                 {
-                    "raw_text": "kitchen",
-                    "normalized_text": "kitchen",
-                    "priority": "must",
-                    "category": "amenity",
-                    "mapping_status": "known",
-                    "mapped_fields": ["kitchen"],
-                    "evidence_strategy": "structured",
+                    "name": "price_total",
+                    "status": "uncertain",
+                    "reason": "PRICE: currency mismatch listing=USD, request=AZN",
                 }
             ],
             "failed_constraints": [],
@@ -61,8 +67,7 @@ def test_build_user_answer_for_results():
                 "property_type": "apartment",
                 "listing_currency": "USD",
             },
-            
-                        "answer_explanation": {
+            "answer_explanation": {
                 "status_label": "partially_confirmed_match",
                 "status_text": "Partially confirmed match",
                 "decision_summary": "This option matches the core request, but some requested details are not fully confirmed.",
@@ -98,54 +103,6 @@ def test_build_user_answer_for_results():
     ],
     "debug_notes": [],
 }
-            "property_types": ["apartment"],
-            "occupancy_types": [],
-            "filters": {},
-        },
-        "results_count": 1,
-        "top_results": [
-            {
-                "result_id": "abc123",
-                "title": "Apartment STEL",
-                "url": "https://example.com/stel",
-                "score": 23.0,
-                "matched_constraints": [
-                    {
-                        "name": "kitchen",
-                        "status": "matched",
-                        "reason": "Private kitchen",
-                    }
-                ],
-                "uncertain_constraints": [
-                    {
-                        "name": "price_total",
-                        "status": "uncertain",
-                        "reason": "PRICE: currency mismatch listing=USD, request=AZN",
-                    }
-                ],
-                "failed_constraints": [],
-                "matched_constraint_names": ["kitchen"],
-                "uncertain_constraint_names": ["price_total"],
-                "failed_constraint_names": [],
-                "key_facts": {
-                    "property_type": "apartment",
-                    "listing_currency": "USD",
-                },
-                "fit_summary": "Matches all required criteria.",
-                "why_match": ["Private kitchen"],
-                "tradeoffs": [],
-                "uncertain_points": ["PRICE: currency mismatch listing=USD, request=AZN"],
-                "price_summary": None,
-                "budget_summary": None,
-                "key_facts_summary": "type: apartment",
-                "why": [
-                    "KITCHEN: Private kitchen",
-                    "PRICE: currency mismatch listing=USD, request=AZN",
-                ],
-            }
-        ],
-        "debug_notes": [],
-    }
 
     out = build_user_answer(payload)
 

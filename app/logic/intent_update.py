@@ -14,7 +14,6 @@ from google.genai.types import Content, Part
 
 from app.agents.intent_update_agent import build_intent_update_agent
 from app.logic.apply_intent_patch import apply_intent_patch
-from app.logic.constraint_state import sync_constraints_from_legacy_state
 from app.logic.date_normalization import normalize_patch_dates
 from app.logic.request_resolution import parse_iso_date
 from app.schemas.constraints import (
@@ -45,27 +44,10 @@ def _strip_json_fence(text: str) -> str:
     return t
 
 
-def _ensure_constraint_state(previous_state: SearchRequest) -> SearchRequest:
-    if previous_state.constraints:
-        return previous_state
-
-    if (
-        previous_state.must_have_fields
-        or previous_state.nice_to_have_fields
-        or previous_state.forbidden_fields
-        or previous_state.unknown_requests
-    ):
-        return sync_constraints_from_legacy_state(previous_state)
-
-    return previous_state
-
-
 
 
 
 def _build_update_prompt(previous_state: SearchRequest, user_message: str) -> str:
-    previous_state = _ensure_constraint_state(previous_state)
-
     state_json = json.dumps(
         previous_state.model_dump(mode="json", exclude_none=True),
         ensure_ascii=False,
@@ -126,7 +108,7 @@ async def route_intent_update_patch_async(
     user_message: str,
 ) -> SearchIntentPatch:
     _ensure_gemini_key()
-    previous_state = _ensure_constraint_state(previous_state)
+    
 
     agent = build_intent_update_agent()
     session_service = InMemorySessionService()
@@ -189,7 +171,6 @@ async def update_search_state_async(
     previous_state: SearchRequest,
     user_message: str,
 ) -> SearchRequest:
-    previous_state = _ensure_constraint_state(previous_state)
     patch = await route_intent_update_patch_async(previous_state, user_message)
 
     print("\n=== INTENT UPDATE PATCH ===")

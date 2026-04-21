@@ -4,8 +4,8 @@ from app.logic.result_selection import classify_ranked_item, select_ranked_items
 def test_classify_ranked_item_as_strong_when_all_required_constraints_are_confirmed():
     item = {
         "score": 25.0,
-        "must_have_total": 2,
-        "must_have_matched": 2,
+        "matched_must_total": 2,
+        "matched_must_count": 2,
         "constraint_resolution_results": [],
         "matches": {},
         "numeric_results": [],
@@ -23,8 +23,8 @@ def test_classify_ranked_item_as_strong_when_all_required_constraints_are_confir
 def test_classify_ranked_item_as_partial_when_required_constraints_are_uncertain():
     item = {
         "score": 20.0,
-        "must_have_total": 2,
-        "must_have_matched": 1,
+        "matched_must_total": 2,
+        "matched_must_count": 1,
         "constraint_resolution_results": [
             {
                 "normalized_text": "satellite TV",
@@ -48,8 +48,8 @@ def test_classify_ranked_item_as_partial_when_required_constraints_are_uncertain
 def test_classify_ranked_item_as_ineligible_when_required_constraints_failed():
     item = {
         "score": 18.0,
-        "must_have_total": 1,
-        "must_have_matched": 0,
+        "matched_must_total": 1,
+        "matched_must_count": 0,
         "constraint_resolution_results": [
             {
                 "normalized_text": "satellite TV",
@@ -74,8 +74,8 @@ def test_select_ranked_items_prefers_strong_matches_before_partial():
     strong_item = {
         "listing_name": "Strong listing",
         "score": 30.0,
-        "must_have_total": 1,
-        "must_have_matched": 1,
+        "matched_must_total": 1,
+        "matched_must_count": 1,
         "constraint_resolution_results": [],
         "matches": {},
         "numeric_results": [],
@@ -86,8 +86,8 @@ def test_select_ranked_items_prefers_strong_matches_before_partial():
     partial_item = {
         "listing_name": "Partial listing",
         "score": 40.0,
-        "must_have_total": 2,
-        "must_have_matched": 1,
+        "matched_must_total": 2,
+        "matched_must_count": 1,
         "constraint_resolution_results": [
             {
                 "normalized_text": "satellite TV",

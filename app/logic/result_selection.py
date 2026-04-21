@@ -11,8 +11,8 @@ def summarize_selection_signals(item: dict[str, Any]) -> dict[str, int]:
     if not matched_constraints and not uncertain_constraints and not failed_constraints:
         matched_constraints, uncertain_constraints, failed_constraints = _derive_constraint_buckets(item)
 
-    must_total = int(item.get("must_have_total", 0))
-    must_matched = int(item.get("must_have_matched", 0))
+    must_total = int(item.get("matched_must_total", 0))
+    must_matched = int(item.get("matched_must_count", 0))
     must_failed = 0
     must_uncertain = 0
 

@@ -150,20 +150,19 @@ async def _repair_intent_with_llm(
 
     Contract:
     - constraints is the canonical semantic state
-    - unknown_requests is NOT the semantic fallback target
-    - invalid legacy enum-like items may be dropped from enum slots; they can be
-      reported separately as dropped_requests later by the salvage layer
+    - only schema-defined keys are allowed
+    - invalid legacy enum-like items may be dropped from enum slots
+    - preserve user meaning inside constraints whenever possible
     """
     allowed_values = [f.value for f in Field]
-
+    
     system = (
         "You are a JSON repair assistant.\n"
         "Return ONLY a valid JSON object. No markdown. No code fences.\n"
         "Fix the JSON to match the target schema EXACTLY.\n"
         "constraints is the source of truth for user constraints.\n"
         "Do NOT invent new keys.\n"
-        "Do NOT use unknown_requests as a semantic fallback bucket.\n"
-        "If a legacy enum-like item cannot be mapped safely, remove it from that enum list.\n"
+        "If an invalid legacy enum-like item cannot be mapped safely, remove it from that enum list.\n"
         "Preserve meaningful user meaning inside constraints whenever possible.\n"
     )
 
@@ -251,12 +250,9 @@ def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Tuple[Dict[str, Any]
         "children": intent_dict.get("children"),
         "rooms": intent_dict.get("rooms"),
         "constraints": intent_dict.get("constraints") or [],
-        "must_have_fields": [],
-        "nice_to_have_fields": [],
         "filters": intent_dict.get("filters") or {},
         "property_types": [],
         "occupancy_types": [],
-        "unknown_requests": [],
     }
 
     def parse_enum_list(xs, enum_cls):
@@ -293,8 +289,6 @@ def _salvage_only_enum_keys(intent_dict: Dict[str, Any]) -> Tuple[Dict[str, Any]
                 dropped_requests.append(str(x))
         return ok
 
-    out["must_have_fields"] = parse_enum_list(intent_dict.get("must_have_fields"), Field)
-    out["nice_to_have_fields"] = parse_enum_list(intent_dict.get("nice_to_have_fields"), Field)
     out["property_types"] = parse_enum_list(intent_dict.get("property_types"), PropertyType)
     out["occupancy_types"] = parse_enum_list(intent_dict.get("occupancy_types"), OccupancyType)
 
@@ -372,7 +366,6 @@ def _build_request(
 )
     # Canonical flow:
     # SearchRequest semantic state is carried by constraints.
-    # Legacy fields are derived here only for compatibility/debug layers.
     return req
 
 
@@ -431,8 +424,8 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
                 "property_result": property_result,
                 "occupancy_result": occupancy_result,
                 "score": score,
-                "must_have_matched": must_yes,
-                "must_have_total": must_total,
+                "matched_must_count": must_yes,
+                "matched_must_total": must_total,
                 "why": why,
                 "listing": lst,
             }

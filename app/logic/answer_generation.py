@@ -10,6 +10,7 @@ def _format_bullets(items: list[str] | None, prefix: str = "- ") -> list[str]:
             out.append(f"{prefix}{item}")
     return out
 
+
 def _format_constraint_rows(items: list[dict[str, Any]] | None) -> list[str]:
     out: list[str] = []
 
@@ -32,11 +33,10 @@ def _format_constraint_resolution_points(
     Convert canonical constraint_resolution_results into short, user-facing lines.
 
     Priority:
-    1. explicit YES matches from constraint_resolution_results
+    1. explicit matches from constraint_resolution_results
     2. fallback to unresolved_constraint_points if already provided upstream
 
-    This keeps answer_generation aligned with canonical payloads and avoids
-    depending on legacy unknown_request_points-style fields.
+    This keeps answer_generation aligned with canonical payloads.
     """
     points: list[str] = []
 
@@ -44,20 +44,17 @@ def _format_constraint_resolution_points(
         if not isinstance(item, dict):
             continue
 
-        decision = item.get("decision")
         label = item.get("normalized_text")
         if not label:
             continue
-        reason = item.get("reason")
 
-        if label:
-            if isinstance(reason, str) and reason:
-                points.append(f"{label} — {reason}")
-            else:
-                points.append(str(label))
+        reason = item.get("reason")
+        if isinstance(reason, str) and reason:
+            points.append(f"{label} — {reason}")
+        else:
+            points.append(str(label))
 
     if points:
-        # dedupe while preserving order
         seen: set[str] = set()
         unique: list[str] = []
         for p in points:
@@ -79,7 +76,6 @@ def _format_constraint_resolution_points(
 def _format_top_result(result: dict[str, Any], rank: int) -> str:
     title = result.get("title") or "Unknown option"
     url = result.get("url")
-    price_summary = result.get("price_summary")
     budget_summary = result.get("budget_summary")
     key_facts_summary = result.get("key_facts_summary")
 
@@ -107,7 +103,7 @@ def _format_top_result(result: dict[str, Any], rank: int) -> str:
     if needs_confirmation:
         lines.append("Needs confirmation:")
         lines.extend(_format_constraint_rows(needs_confirmation))
-        
+
     if strengths_summary:
         lines.append(strengths_summary)
 
@@ -168,11 +164,20 @@ def _format_top_result(result: dict[str, Any], rank: int) -> str:
     return "\n".join(lines)
 
 
+def _get_request_context(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    Prefer active_intent as canonical runtime state.
+    Fall back to request_summary for tests / normalized payloads that do not
+    include active_intent.
+    """
+    return (payload.get("active_intent") or payload.get("request_summary") or {})
+
+
 def _build_intro(payload: dict[str, Any]) -> str:
-    active_intent = payload.get("active_intent") or {}
-    city = active_intent.get("city")
-    check_in = active_intent.get("check_in")
-    check_out = active_intent.get("check_out")
+    request_ctx = _get_request_context(payload)
+    city = request_ctx.get("city")
+    check_in = request_ctx.get("check_in")
+    check_out = request_ctx.get("check_out")
     results_count = payload.get("results_count") or 0
     shown_count = len(payload.get("top_results") or [])
 
@@ -195,9 +200,9 @@ def _build_intro(payload: dict[str, Any]) -> str:
 
 
 def _build_refinement_hint(payload: dict[str, Any]) -> str:
-    active_intent = payload.get("active_intent") or {}
-    filters = active_intent.get("filters") or {}
-    constraints = active_intent.get("constraints") or []
+    request_ctx = _get_request_context(payload)
+    filters = request_ctx.get("filters") or {}
+    constraints = request_ctx.get("constraints") or []
 
     suggestions: list[str] = []
 
@@ -221,7 +226,8 @@ def build_user_answer(payload: dict[str, Any]) -> str:
     Deterministic user-facing formatter.
 
     This formatter should remain stable, explicit, and safe.
-    It uses active_intent as source of truth and latest_user_query only implicitly.
+    It prefers active_intent as the source of truth, but can fall back to
+    request_summary for normalized/test payloads.
     """
     if payload.get("need_clarification"):
         questions = payload.get("questions") or []
@@ -232,10 +238,10 @@ def build_user_answer(payload: dict[str, Any]) -> str:
         return "I need a few more details:\n- " + "\n- ".join(questions)
 
     top_results = payload.get("top_results") or []
-    active_intent = payload.get("active_intent") or {}
-    city = active_intent.get("city")
-    check_in = active_intent.get("check_in")
-    check_out = active_intent.get("check_out")
+    request_ctx = _get_request_context(payload)
+    city = request_ctx.get("city")
+    check_in = request_ctx.get("check_in")
+    check_out = request_ctx.get("check_out")
 
     if not top_results:
         if city and check_in and check_out:

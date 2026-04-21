@@ -13,8 +13,8 @@ class RankedListing(BaseModel):
 
     listing: ListingRaw
     score: float
-    must_have_matched: int
-    must_have_total: int
+    matched_must_count: int
+    matched_must_total: int
     matches: dict[Field, FieldMatch]
     why: List[str]  # короткие причины для пользователя
 

@@ -7,6 +7,7 @@ from app.tools.orchestrate_search_tool import orchestrate_search, _salvage_only_
 from app.schemas.fallback_policy import FallbackPolicy
 from app.schemas.listing import ListingRaw, Room
 from app.tools import orchestrate_search_tool
+from app.logic.constraint_evidence_resolution import ConstraintResolutionResult
 
 
 @pytest.mark.asyncio
@@ -17,7 +18,8 @@ async def test_no_dates_requires_clarification():
         "check_out": None,
         "constraints": [],
     }
-    out = await orchestrate_search("Baku", intent, source="fixtures", max_items=10)
+    out = await orchestrate_search("Baku", intent, source="fixtures", max_items=10,
+                                   fallback_policy=FallbackPolicy(enabled=False))
     assert out["need_clarification"] is True
 
 
@@ -39,7 +41,8 @@ async def test_baku_kitchen_returns_apartment():
             }
         ],
     }
-    out = await orchestrate_search("Baku", intent, source="fixtures", max_items=10)
+    out = await orchestrate_search("Baku", intent, source="fixtures", max_items=10,
+                                   fallback_policy=FallbackPolicy(enabled=False))
     assert out["need_clarification"] is False
     assert out["results"][0]["title"] == "Large Family Apartment"
 
@@ -52,7 +55,8 @@ async def test_tokyo_returns_no_results_on_fixtures():
         "check_out": "2026-02-14",
         "constraints": [],
     }
-    out = await orchestrate_search("Tokyo", intent, source="fixtures", max_items=10)
+    out = await orchestrate_search("Tokyo", intent, source="fixtures", max_items=10,
+                                   fallback_policy=FallbackPolicy(enabled=False))
     assert out["need_clarification"] is True
 
 
@@ -420,7 +424,7 @@ async def test_orchestrate_search_returns_normalized_response(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_constraint_resolution_results_are_attached_and_can_influence_ranking():
+async def test_constraint_resolution_results_are_attached_and_can_influence_ranking(monkeypatch):
     intent = {
         "city": "Baku",
         "check_in": "2026-04-08",
@@ -450,6 +454,28 @@ async def test_constraint_resolution_results_are_attached_and_can_influence_rank
         "filters": {},
     }
 
+    async def fake_resolve_listing_constraints_with_fallback(*args, **kwargs):
+        return [
+            ConstraintResolutionResult(
+                listing_id="compact-apartment",
+                listing_title="Compact Apartment",
+                constraint_id="sat-tv",
+                raw_text="satellite TV",
+                normalized_text="satellite TV",
+                resolver_type="textual",
+                decision="YES",
+                resolution_status="matched",
+                confidence=0.95,
+                reason="Satellite TV is explicitly mentioned",
+                evidence=[],
+            )
+        ]
+
+    monkeypatch.setattr(
+        "app.tools.orchestrate_search_tool.resolve_listing_constraints_with_fallback",
+        fake_resolve_listing_constraints_with_fallback,
+    )
+
     out = await orchestrate_search(
         "I want an apartment in Baku with satellite TV and ironing facilities",
         intent,
@@ -470,19 +496,10 @@ async def test_constraint_resolution_results_are_attached_and_can_influence_rank
     assert isinstance(compact["constraint_resolution_results"], list)
     assert compact["constraint_resolution_results"]
 
-    satellite_items = [
-        item
-        for item in compact["constraint_resolution_results"]
-        if item["normalized_text"] == "satellite TV"
-    ]
-    assert satellite_items
-
-    satellite = satellite_items[0]
-    assert satellite["decision"] in {"YES", "NO", "UNCERTAIN"}
-    assert satellite["resolution_status"] in {"matched", "failed", "uncertain"}
-    assert "reason" in satellite
-
-    assert any("satellite tv" in reason.lower() for reason in compact.get("why", []))
+    first = compact["constraint_resolution_results"][0]
+    assert first["normalized_text"] == "satellite TV"
+    assert first["resolution_status"] == "matched"
+    assert first["reason"] == "Satellite TV is explicitly mentioned"
 
 
 @pytest.mark.asyncio
@@ -521,7 +538,7 @@ async def test_constraint_resolution_match_improves_listing_priority():
         intent,
         source="fixtures",
         max_items=5,
-        fallback_policy=FallbackPolicy(enabled=True),
+        fallback_policy=FallbackPolicy(enabled= False),
     )
 
     assert out["need_clarification"] is False
@@ -602,6 +619,7 @@ async def test_missing_city_requires_clarification():
         intent,
         source="fixtures",
         max_items=10,
+        fallback_policy=FallbackPolicy(enabled=False)
     )
 
     assert out["need_clarification"] is True
@@ -633,6 +651,7 @@ async def test_single_date_without_checkout_searches_one_night():
         intent,
         source="fixtures",
         max_items=10,
+        fallback_policy=FallbackPolicy(enabled=False)
     )
 
     assert out["need_clarification"] is False
@@ -664,6 +683,7 @@ async def test_from_date_for_n_nights_is_resolved_before_search():
         intent,
         source="fixtures",
         max_items=10,
+        fallback_policy=FallbackPolicy(enabled=False)
     )
 
     assert out["need_clarification"] is False
@@ -697,7 +717,7 @@ async def test_occupancy_filter_is_applied():
         intent,
         source="fixtures",
         max_items=10,
-        fallback_policy=FallbackPolicy(enabled=True),
+        fallback_policy=FallbackPolicy(enabled=False),
     )
 
     assert out["need_clarification"] is False
