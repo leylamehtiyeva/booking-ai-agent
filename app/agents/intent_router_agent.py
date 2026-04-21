@@ -67,12 +67,14 @@ GENERAL:
   - constraints
   - property_types
   - occupancy_types
+  - unknown_requests
 
 IMPORTANT CONTRACT:
 - Preserve user meaning in constraints.
+- unknown_requests is a legacy compatibility field only.
+- Do NOT use unknown_requests as the main fallback bucket for user meaning.
+- In normal cases, return unknown_requests=[].
 - If something is meaningful but not safely mappable, keep it as an unresolved constraint.
-- Do NOT invent new keys.
-- Do NOT drop meaningful user constraints unless they are clearly invalid noise.
 
 CITY:
 - Normalize city names to the English form used by providers when possible.
@@ -188,6 +190,7 @@ IMPORTANT:
 - Do NOT drop meaningful constraints.
 - Do NOT put numeric constraints into constraints if they fit filters.
 - Do NOT use constraints for property_types / occupancy_types if they already fit dedicated slots.
+- Do NOT use unknown_requests as the semantic catch-all.
 - A user may express positive, negative, and soft-preference constraints in one message.
 
 Examples:
@@ -201,15 +204,18 @@ Return a JSON where:
 - constraints contains:
   - must constraint for cooking mapped to ["kitchen"]
   - nice constraint for balcony mapped to ["balcony"]
+- unknown_requests=[]
 
 User: "хочу чтобы можно было жить с собакой и желательно в центре"
 Return constraints containing:
 - must policy constraint mapped to ["pet_friendly"]
 - nice unresolved location constraint for city center
+- unknown_requests=[]
 
 User: "без шумного района"
 Return constraints containing:
 - forbidden unresolved location/other constraint with textual evidence strategy
+- unknown_requests=[]
 """.strip()
 
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")

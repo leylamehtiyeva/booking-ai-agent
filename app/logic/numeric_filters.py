@@ -7,6 +7,7 @@ from app.schemas.filters import SearchFilters
 from app.schemas.listing import ListingRaw
 from app.schemas.match import Evidence, EvidenceSource, Ternary
 from app.schemas.filters import PriceConstraint, SearchFilters
+from app.services.currency_rates import convert_amount_to_usd
 
 
 _NUMBER_WORDS = {
@@ -596,7 +597,42 @@ def match_price_filters(
     listing_currency_norm = _normalize_currency(listing_currency)
     request_currency_norm = _normalize_currency(price_filter.currency)
 
-    if (
+    required_min_total = price_filter.min_amount
+    required_max_total = price_filter.max_amount
+
+    if request_currency_norm is not None and listing_currency_norm == "USD" and request_currency_norm != "USD":
+        converted_min, fx_snapshot = (
+            convert_amount_to_usd(required_min_total, request_currency_norm)
+            if required_min_total is not None
+            else (None, None)
+        )
+        converted_max, fx_snapshot_max = (
+            convert_amount_to_usd(required_max_total, request_currency_norm)
+            if required_max_total is not None
+            else (None, None)
+        )
+
+        fx_snapshot = fx_snapshot or fx_snapshot_max
+
+        if (required_min_total is not None and converted_min is None) or (
+            required_max_total is not None and converted_max is None
+        ):
+            stale_note = " using stale cached FX rates" if fx_snapshot and fx_snapshot.is_stale else ""
+            return NumericMatchResult(
+                attribute="price_total",
+                value=Ternary.UNCERTAIN,
+                actual_value=total_price,
+                evidence=evidence,
+                why=(
+                    f"PRICE: could not convert request currency {request_currency_norm} to USD"
+                    f" for provider-side comparison{stale_note}"
+                ),
+            )
+
+        required_min_total = converted_min
+        required_max_total = converted_max
+
+    elif (
         request_currency_norm is not None
         and listing_currency_norm is not None
         and request_currency_norm != listing_currency_norm
@@ -607,13 +643,10 @@ def match_price_filters(
             actual_value=total_price,
             evidence=evidence,
             why=(
-                f"PRICE: currency mismatch listing={listing_currency_norm}, "
+                f"PRICE: unsupported currency comparison listing={listing_currency_norm}, "
                 f"request={request_currency_norm}"
             ),
         )
-
-    required_min_total = price_filter.min_amount
-    required_max_total = price_filter.max_amount
 
     if price_filter.scope == "per_night":
         nights = _night_count(check_in, check_out)

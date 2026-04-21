@@ -196,7 +196,7 @@ Return:
         raise ValueError("Missing GEMINI_API_KEY/GOOGLE_API_KEY")
 
     llm = Gemini(
-        model="models/gemini-2.0-flash",
+        model="models/gemini-1.5-flash",
         api_key=api_key,
     )
 

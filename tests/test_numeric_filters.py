@@ -219,7 +219,7 @@ def test_match_price_filters_total_stay_yes():
     assert out.value == Ternary.YES
 
 
-def test_match_price_filters_currency_mismatch_uncertain():
+def test_match_price_filters_converts_non_usd_request_budget(monkeypatch):
     filters = SearchFilters(
         price=PriceConstraint(
             max_amount=500,
@@ -227,6 +227,12 @@ def test_match_price_filters_currency_mismatch_uncertain():
             scope="total_stay",
         )
     )
+
+    def _fake_convert(amount, currency):
+        assert currency == "AZN"
+        return amount / 2.0, None
+
+    monkeypatch.setattr("app.logic.numeric_filters.convert_amount_to_usd", _fake_convert)
 
     out = match_price_filters(
         total_price=700.0,
@@ -237,9 +243,8 @@ def test_match_price_filters_currency_mismatch_uncertain():
     )
 
     assert out is not None
-    assert out.value == Ternary.UNCERTAIN
-    assert "currency mismatch" in out.why.lower()
-    
+    assert out.value == Ternary.NO
+    assert "allowed max total 250.0" in out.why.lower()
     
 def test_extract_bathroom_count_from_description_numeric():
     listing = ListingRaw(
@@ -322,3 +327,31 @@ def test_match_bathroom_filters_uncertain_when_missing():
 
     assert out is not None
     assert out.value == Ternary.UNCERTAIN
+    
+    
+    
+def test_match_price_filters_non_usd_request_budget_uncertain_when_fx_unavailable(monkeypatch):
+    filters = SearchFilters(
+        price=PriceConstraint(
+            max_amount=500,
+            currency="EUR",
+            scope="total_stay",
+        )
+    )
+
+    monkeypatch.setattr(
+        "app.logic.numeric_filters.convert_amount_to_usd",
+        lambda amount, currency: (None, None),
+    )
+
+    out = match_price_filters(
+        total_price=700.0,
+        listing_currency="USD",
+        filters=filters,
+        check_in=date(2026, 4, 8),
+        check_out=date(2026, 4, 15),
+    )
+
+    assert out is not None
+    assert out.value == Ternary.UNCERTAIN
+    assert "could not convert request currency eur to usd" in out.why.lower()
