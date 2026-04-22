@@ -15,7 +15,8 @@ def build_display_answer(result: dict[str, Any]) -> tuple[str, dict[str, Any] | 
             "request_summary": None,
             "top_results": [],
             "results_count": 0,
-            "active_intent": result.get("state", {}),
+            "active_intent": result.get("active_intent", result.get("state", {})),
+            "debug_notes": result.get("debug_notes", []),
         }
         return build_user_answer(payload), payload
 

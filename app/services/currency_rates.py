@@ -9,7 +9,8 @@ from typing import Any
 from urllib import request as urlrequest
 
 
-_DEFAULT_FX_API_URL = "https://api.frankfurter.app/latest?from=USD"
+
+_DEFAULT_FX_API_URL = "https://api.frankfurter.dev/v2/rates?base=USD"
 _DEFAULT_FX_CACHE_PATH = "data/fx_rates_usd.json"
 _DEFAULT_FX_CACHE_TTL_DAYS = 10
 
@@ -47,15 +48,20 @@ def _api_url() -> str:
     return os.getenv("FX_API_URL", _DEFAULT_FX_API_URL)
 
 
-def _read_json_from_url(url: str, timeout: int = 20) -> dict[str, Any]:
-    req = urlrequest.Request(
+import requests
+
+
+def _read_json_from_url(url: str, timeout: int = 20) -> dict[str, Any] | list[dict[str, Any]]:
+    resp = requests.get(
         url,
-        headers={"Accept": "application/json"},
-        method="GET",
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "BookingAIAssistant/1.0",
+        },
+        timeout=timeout,
     )
-    with urlrequest.urlopen(req, timeout=timeout) as resp:
-        body = resp.read().decode("utf-8")
-        return json.loads(body)
+    resp.raise_for_status()
+    return resp.json()
 
 
 def _parse_snapshot(data: dict[str, Any], *, is_stale: bool) -> FxSnapshot:
@@ -126,25 +132,55 @@ def _save_snapshot(snapshot: FxSnapshot) -> None:
 
 def _fetch_latest_snapshot() -> FxSnapshot:
     payload = _read_json_from_url(_api_url())
-    snapshot = FxSnapshot(
-        base=str(payload.get("base") or "USD").upper(),
-        rates={str(k).upper(): float(v) for k, v in (payload.get("rates") or {}).items()},
-        provider_date=str(payload.get("date")) if payload.get("date") is not None else None,
+
+    rates: dict[str, float] = {}
+    provider_date: str | None = None
+    base = "USD"
+
+    for row in payload:
+        quote = row.get("quote")
+        rate = row.get("rate")
+
+        if provider_date is None and row.get("date") is not None:
+            provider_date = str(row.get("date"))
+        if row.get("base") is not None:
+            base = str(row.get("base")).upper()
+
+        if quote is None or rate is None:
+            continue
+
+        try:
+            rates[str(quote).upper()] = float(rate)
+        except (TypeError, ValueError):
+            continue
+
+    rates.setdefault(base, 1.0)
+
+    return FxSnapshot(
+        base=base,
+        rates=rates,
+        provider_date=provider_date,
         fetched_at=_utc_now(),
         is_stale=False,
     )
-    snapshot.rates.setdefault(snapshot.base, 1.0)
-    return snapshot
 
 
 def get_fx_snapshot() -> FxSnapshot | None:
+    print("FX DEBUG: get_fx_snapshot called")
+    print("FX DEBUG: cache path =", _cache_path().resolve())
     cached = _load_cached_snapshot()
+    print("FX DEBUG: cached exists =", cached is not None)
+
     if cached and _snapshot_is_fresh(cached):
+        print("FX DEBUG: cached base =", cached.base)
+        print("FX DEBUG: cached rates count =", len(cached.rates))
+        print("FX DEBUG: cached fresh =", _snapshot_is_fresh(cached))
         return cached
 
     try:
         fresh = _fetch_latest_snapshot()
-    except Exception:
+    except Exception as e:
+        print("FX DEBUG: fetch failed:", repr(e))
         if cached:
             return FxSnapshot(
                 base=cached.base,

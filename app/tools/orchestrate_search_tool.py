@@ -25,9 +25,7 @@ from app.logic.request_resolution import resolve_required_search_context
 from app.logic.occupancy import evaluate_occupancy
 from app.config.llm import get_gemini_model_for_adk
 from app.config.llm import get_gemini_model
-
-
-
+from collections import Counter
 
 from app.logic.constraint_evidence_resolution import (
     resolve_listing_constraints_with_fallback,
@@ -521,11 +519,17 @@ async def orchestrate_search(
 
     listings = filtered_listings
 
-    # 4) No candidates after filters → ask to change dates / clarify
+    # 4) No candidates after initial filters
     if not listings:
         return {
             "need_clarification": True,
             "questions": ["Ничего не найдено по текущим условиям. Попробуй изменить требования."],
+            "debug_notes": [
+                "No listings remained after initial city/date/occupancy filtering.",
+                f"city={req.city}, check_in={req.check_in}, check_out={req.check_out}",
+            ],
+            "active_intent": req.model_dump(mode="json", exclude_none=True),
+            "dropped_requests": dropped_requests,
         }
 
     # 5) Structured ranking
@@ -555,6 +559,60 @@ async def orchestrate_search(
         and not _fails_numeric_filters(it.get("numeric_results"))
     ]
     ranked.sort(key=lambda x: x["score"], reverse=True)
+    
+    if not ranked:
+        debug_notes = ["No listings remained after structured filtering."]
+
+        # --- PRICE ---
+        price = req.filters.price if req.filters else None
+        if price and price.max_amount is not None:
+            debug_notes.append(
+                f"Active price filter: max {price.max_amount} {price.currency or 'USD'} {price.scope or ''}".strip()
+            )
+
+        # --- BEDROOMS ---
+        if req.filters and req.filters.bedrooms_min is not None:
+            debug_notes.append(f"Active bedrooms filter: min {req.filters.bedrooms_min}")
+
+        # --- AREA ---
+        if req.filters and req.filters.area_sqm_min is not None:
+            debug_notes.append(f"Active area filter: min {req.filters.area_sqm_min} sqm")
+
+
+        # --- PROPERTY TYPE ---
+        if req.property_types:
+            debug_notes.append(
+                "Active property types: " + ", ".join(pt.value for pt in req.property_types)
+            )
+
+        # --- CONSTRAINTS (source of truth) ---
+        must_constraints = [
+            c.normalized_text
+            for c in (req.constraints or [])
+            if getattr(c, "priority", None) == "must"
+        ]
+        if must_constraints:
+            debug_notes.append(
+                "Active must constraints: " + ", ".join(must_constraints)
+            )
+
+        nice_constraints = [
+            c.normalized_text
+            for c in (req.constraints or [])
+            if getattr(c, "priority", None) == "nice"
+        ]
+        if nice_constraints:
+            debug_notes.append(
+                "Optional constraints: " + ", ".join(nice_constraints)
+            )
+
+        return {
+            "need_clarification": True,
+            "questions": ["Ничего не найдено по текущим условиям. Попробуй изменить требования."],
+            "debug_notes": debug_notes,
+            "active_intent": req.model_dump(mode="json", exclude_none=True),
+            "dropped_requests": dropped_requests,
+        }
 
     selected = select_ranked_items(ranked, top_n=top_n)
 
