@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from app.config.llm import get_gemini_model_for_adk
 
 from google.adk.agents import Agent
 from google.adk.models.google_llm import Gemini
@@ -115,7 +116,7 @@ Return ONLY JSON.
         raise ValueError("Missing GEMINI_API_KEY/GOOGLE_API_KEY")
 
     llm = Gemini(
-        model="models/gemini-1.5-flash",
+        model=get_gemini_model_for_adk(),
         api_key=api_key,
     )
 

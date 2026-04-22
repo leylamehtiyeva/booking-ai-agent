@@ -316,12 +316,13 @@ def build_resolution_request(
         resolver_type="textual",
         listing_evidence=_prepare_listing_evidence(listing),
     )
+from app.config.llm import get_gemini_model
 
 
 async def resolve_constraint_via_textual_evidence(
     req: ConstraintResolutionRequest,
     *,
-    model: str = "gemini-2.0-flash",
+    model: str = get_gemini_model(),
 ) -> ConstraintResolutionResult:
     payload = {
         "constraint": {

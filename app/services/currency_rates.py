@@ -9,7 +9,7 @@ from typing import Any
 from urllib import request as urlrequest
 
 
-_DEFAULT_FX_API_URL = "https://api.frankfurter.dev/v2/rates?base=USD"
+_DEFAULT_FX_API_URL = "https://api.frankfurter.app/latest?from=USD"
 _DEFAULT_FX_CACHE_PATH = "data/fx_rates_usd.json"
 _DEFAULT_FX_CACHE_TTL_DAYS = 10
 

@@ -10,7 +10,7 @@ from google.genai import Client
 from google.genai import types as genai_types
 from pydantic import ValidationError
 from app.agents.intent_router_agent import IntentRoute
-from app.config import MAX_ITEMS_DEFAULT, MAX_ITEMS_HARD_CAP
+from app.config.settings import MAX_ITEMS_DEFAULT, MAX_ITEMS_HARD_CAP
 from app.logic.matcher_structured import match_listing_structured
 from app.logic.numeric_filters import evaluate_numeric_filters
 from app.retrieval import Source, get_candidates
@@ -23,6 +23,10 @@ from app.schemas.match import Ternary
 from app.logic.normalize_search_response import normalize_search_response
 from app.logic.request_resolution import resolve_required_search_context
 from app.logic.occupancy import evaluate_occupancy
+from app.config.llm import get_gemini_model_for_adk
+from app.config.llm import get_gemini_model
+
+
 
 
 from app.logic.constraint_evidence_resolution import (
@@ -144,7 +148,7 @@ def _gemini_client() -> Client:
 async def _repair_intent_with_llm(
     intent_raw: Dict[str, Any],
     errors: list[dict],
-    model: str = "gemini-2.0-flash",
+    model: str = get_gemini_model(),
 ) -> Dict[str, Any]:
     """Ask LLM to repair intent so it matches IntentRoute exactly.
 
@@ -657,7 +661,7 @@ def _build_fallback_policy(
         run_for_unresolved=True,
         run_for_structured_uncertain=True,
         max_constraints_per_listing=3,
-        model="gemini-2.0-flash",
+        model=get_gemini_model_for_adk(),
     )
 
 async def _apply_constraint_fallback_layer(
