@@ -33,7 +33,6 @@ class ConstraintCategory(str, Enum):
 class EvidenceStrategy(str, Enum):
     STRUCTURED = "structured"
     TEXTUAL = "textual"
-    GEO = "geo"
     NONE = "none"
 
 

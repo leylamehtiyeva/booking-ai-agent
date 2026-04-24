@@ -206,7 +206,7 @@ async def _repair_intent_with_llm(
                 },
             },
             "property_types": [
-                "apartment|hotel|hostel|house|aparthotel|guesthouse"
+                "ryokan|hotel|apartment|resort|villa|bed_and_breakfast|holiday_home|guest_house|hostel|capsule_hotel|homestay|chalet|lodge|campsite|country_house|love_hotel|house|aparthotel|guesthouse"
             ],
             "occupancy_types": [
                 "entire_place|private_room|shared_room|hotel_room"

@@ -35,7 +35,7 @@ def process_user_message(user_message: str) -> None:
             handle_user_message(
                 user_message=user_message,
                 previous_state=previous_state,
-                source="fixtures",
+                source="apify",
                 top_n=5,
                 fallback_policy=FallbackPolicy(enabled=True, top_k=5),
                 max_items=10,

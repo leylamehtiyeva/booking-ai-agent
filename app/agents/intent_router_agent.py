@@ -105,14 +105,34 @@ Price rules:
 - Use max_amount unless the user clearly asks for a minimum
 - Include currency when mentioned
 
-PROPERTY TYPE / OCCUPANCY:
 Use property_types only for:
-- apartment
+- ryokan
 - hotel
+- apartment
+- resort
+- villa
+- bed_and_breakfast
+- holiday_home
+- guest_house
 - hostel
+- capsule_hotel
+- homestay
+- chalet
+- lodge
+- campsite
+- country_house
+- love_hotel
 - house
 - aparthotel
 - guesthouse
+
+Synonyms:
+- рекан / риокан / ryokan / ryokans / 旅館 -> ryokan
+- гестхаус / guest house / guesthouse -> guest_house
+- b&b / bed and breakfast -> bed_and_breakfast
+- holiday home / vacation home -> holiday_home
+- capsule hotel / капсульный отель -> capsule_hotel
+- love hotel -> love_hotel
 
 Use occupancy_types only for:
 - entire_place

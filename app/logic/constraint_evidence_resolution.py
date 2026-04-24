@@ -359,7 +359,26 @@ async def resolve_constraint_via_textual_evidence(
             ),
         )
 
-        data = json.loads(_extract_json(resp.text or ""))
+        raw_text = resp.text or ""
+        raw_json = _extract_json(raw_text)
+
+        try:
+            data = json.loads(raw_json)
+        except json.JSONDecodeError:
+            return _normalize_result(
+                {
+                    "status": "UNCERTAIN",
+                    "answer": "UNCERTAIN",
+                    "snippet": None,
+                    "source": "llm_fallback",
+                    "reason": (
+                        "LLM fallback returned invalid JSON. "
+                        f"Raw response: {raw_text[:300]}"
+                    ),
+                },
+                req,
+            )
+
         return _normalize_result(data, req)
 
     return await asyncio.to_thread(_call_sync)
