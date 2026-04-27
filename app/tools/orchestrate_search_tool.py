@@ -10,7 +10,7 @@ from google.genai import Client
 from google.genai import types as genai_types
 from pydantic import ValidationError
 from app.agents.intent_router_agent import IntentRoute
-from app.config.settings import MAX_ITEMS_DEFAULT, MAX_ITEMS_HARD_CAP
+from app.config.settings import MAX_ITEMS_HARD_CAP
 from app.logic.matcher_structured import match_listing_structured
 from app.logic.numeric_filters import evaluate_numeric_filters
 from app.retrieval import Source, get_candidates
@@ -444,8 +444,8 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
 async def orchestrate_search(
     user_text: str,
     intent: Dict[str, Any],
-    top_n: int = MAX_ITEMS_DEFAULT,
-    max_items: int = MAX_ITEMS_DEFAULT,
+    top_n: int = MAX_ITEMS_HARD_CAP,
+    max_items: int = MAX_ITEMS_HARD_CAP,
     source: Source = "fixtures",
     fallback_policy: FallbackPolicy | None = None,
 ) -> Dict[str, Any]:
@@ -680,7 +680,7 @@ def _score_listing(
             score += 10
             must_yes += 1
         elif fm.value == Ternary.UNCERTAIN:
-            score += 3
+            pass
         else:
             score -= 100
 
@@ -699,7 +699,7 @@ def _score_listing(
         if nr.value == Ternary.YES:
             score += 10
         elif nr.value == Ternary.UNCERTAIN:
-            score += 3
+            pass
         else:
             score -= 100
 
@@ -763,17 +763,46 @@ def _apply_constraint_resolution_scoring(ranked_items: list[dict]) -> list[dict]
 
         for r in item.get("constraint_resolution_results", []) or []:
             label = r.get("normalized_text") or "constraint"
-            decision = r.get("decision")
+            decision = str(r.get("decision") or "").upper()
+            priority = str(r.get("priority") or "").lower()
 
-            if decision == "YES":
-                delta += 3.0
-                extra_why.append(f"CONSTRAINT_MATCH: {label} confirmed by listing text")
-            elif decision == "NO":
-                if r.get("explicit_negative"):
-                    delta -= 4.0
-                    extra_why.append(f"CONSTRAINT_MATCH: {label} explicitly not supported")
+            if priority == "must":
+                if decision == "YES":
+                    delta += 3.0
+                    extra_why.append(f"CONSTRAINT_MATCH: {label} confirmed by listing text")
+                elif decision == "NO":
+                    delta -= 100.0
+                    extra_why.append(f"CONSTRAINT_FAIL: must constraint '{label}' not satisfied")
+                else:
+                    extra_why.append(f"CONSTRAINT_UNCERTAIN: must constraint '{label}' not confirmed")
+
+            elif priority in {"nice", "nice_to_have"}:
+                if decision == "YES":
+                    delta += 3.0
+                    extra_why.append(f"CONSTRAINT_MATCH: nice-to-have '{label}' confirmed by listing text")
+                elif decision == "NO":
+                    extra_why.append(f"CONSTRAINT_NO_MATCH: nice-to-have '{label}' not satisfied")
+                else:
+                    extra_why.append(f"CONSTRAINT_UNCERTAIN: nice-to-have '{label}' not confirmed")
+
+            elif priority == "forbidden":
+                if decision == "YES":
+                    delta -= 100.0
+                    extra_why.append(f"CONSTRAINT_FAIL: forbidden constraint '{label}' detected")
+                elif decision == "NO":
+                    delta += 3.0
+                    extra_why.append(f"CONSTRAINT_MATCH: forbidden constraint '{label}' not detected")
+                else:
+                    extra_why.append(f"CONSTRAINT_UNCERTAIN: forbidden constraint '{label}' unclear")
+
             else:
-                extra_why.append(f"CONSTRAINT_MATCH: {label} not confirmed")
+                # Defensive fallback: do not reward unknown priority.
+                if decision == "YES":
+                    extra_why.append(f"CONSTRAINT_MATCH: {label} confirmed, but priority is unknown")
+                elif decision == "NO":
+                    extra_why.append(f"CONSTRAINT_NO_MATCH: {label} not satisfied, but priority is unknown")
+                else:
+                    extra_why.append(f"CONSTRAINT_UNCERTAIN: {label} not confirmed")
 
         if delta != 0:
             item["score"] = float(item.get("score", 0.0)) + delta

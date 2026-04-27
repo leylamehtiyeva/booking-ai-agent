@@ -1,0 +1,1908 @@
+{
+  "overall_metrics": {
+    "total_cases": 103,
+    "exact_match_rate": 0.970873786407767,
+    "selected_set_match_rate": 1.0,
+    "top_1_accuracy": 0.9805825242718447,
+    "ineligible_leak_rate": 0.0,
+    "tier_violation_rate": 0.019417475728155338,
+    "exact_match_count": 100,
+    "selected_set_match_count": 103,
+    "top_1_correct_count": 101,
+    "ineligible_leak_count": 0,
+    "tier_violation_count": 2
+  },
+  "group_metrics": {
+    "strong_vs_partial": {
+      "total_cases": 11,
+      "exact_match_rate": 1.0,
+      "selected_set_match_rate": 1.0,
+      "top_1_accuracy": 1.0,
+      "ineligible_leak_rate": 0.0,
+      "tier_violation_rate": 0.0,
+      "exact_match_count": 11,
+      "selected_set_match_count": 11,
+      "top_1_correct_count": 11,
+      "ineligible_leak_count": 0,
+      "tier_violation_count": 0
+    },
+    "score_vs_tier_conflict": {
+      "total_cases": 7,
+      "exact_match_rate": 1.0,
+      "selected_set_match_rate": 1.0,
+      "top_1_accuracy": 1.0,
+      "ineligible_leak_rate": 0.0,
+      "tier_violation_rate": 0.0,
+      "exact_match_count": 7,
+      "selected_set_match_count": 7,
+      "top_1_correct_count": 7,
+      "ineligible_leak_count": 0,
+      "tier_violation_count": 0
+    },
+    "ineligible_filtering": {
+      "total_cases": 11,
+      "exact_match_rate": 1.0,
+      "selected_set_match_rate": 1.0,
+      "top_1_accuracy": 1.0,
+      "ineligible_leak_rate": 0.0,
+      "tier_violation_rate": 0.0,
+      "exact_match_count": 11,
+      "selected_set_match_count": 11,
+      "top_1_correct_count": 11,
+      "ineligible_leak_count": 0,
+      "tier_violation_count": 0
+    },
+    "uncertain_must": {
+      "total_cases": 11,
+      "exact_match_rate": 0.9090909090909091,
+      "selected_set_match_rate": 1.0,
+      "top_1_accuracy": 0.9090909090909091,
+      "ineligible_leak_rate": 0.0,
+      "tier_violation_rate": 0.0,
+      "exact_match_count": 10,
+      "selected_set_match_count": 11,
+      "top_1_correct_count": 10,
+      "ineligible_leak_count": 0,
+      "tier_violation_count": 0
+    },
+    "failed_must": {
+      "total_cases": 10,
+      "exact_match_rate": 1.0,
+      "selected_set_match_rate": 1.0,
+      "top_1_accuracy": 1.0,
+      "ineligible_leak_rate": 0.0,
+      "tier_violation_rate": 0.0,
+      "exact_match_count": 10,
+      "selected_set_match_count": 10,
+      "top_1_correct_count": 10,
+      "ineligible_leak_count": 0,
+      "tier_violation_count": 0
+    },
+    "forbidden_constraints": {
+      "total_cases": 10,
+      "exact_match_rate": 1.0,
+      "selected_set_match_rate": 1.0,
+      "top_1_accuracy": 1.0,
+      "ineligible_leak_rate": 0.0,
+      "tier_violation_rate": 0.0,
+      "exact_match_count": 10,
+      "selected_set_match_count": 10,
+      "top_1_correct_count": 10,
+      "ineligible_leak_count": 0,
+      "tier_violation_count": 0
+    },
+    "nice_to_have_score_only": {
+      "total_cases": 10,
+      "exact_match_rate": 1.0,
+      "selected_set_match_rate": 1.0,
+      "top_1_accuracy": 1.0,
+      "ineligible_leak_rate": 0.0,
+      "tier_violation_rate": 0.0,
+      "exact_match_count": 10,
+      "selected_set_match_count": 10,
+      "top_1_correct_count": 10,
+      "ineligible_leak_count": 0,
+      "tier_violation_count": 0
+    },
+    "fallback_yes_no_uncertain": {
+      "total_cases": 19,
+      "exact_match_rate": 0.8947368421052632,
+      "selected_set_match_rate": 1.0,
+      "top_1_accuracy": 0.9473684210526315,
+      "ineligible_leak_rate": 0.0,
+      "tier_violation_rate": 0.10526315789473684,
+      "exact_match_count": 17,
+      "selected_set_match_count": 19,
+      "top_1_correct_count": 18,
+      "ineligible_leak_count": 0,
+      "tier_violation_count": 2
+    },
+    "property_type_uncertain": {
+      "total_cases": 8,
+      "exact_match_rate": 1.0,
+      "selected_set_match_rate": 1.0,
+      "top_1_accuracy": 1.0,
+      "ineligible_leak_rate": 0.0,
+      "tier_violation_rate": 0.0,
+      "exact_match_count": 8,
+      "selected_set_match_count": 8,
+      "top_1_correct_count": 8,
+      "ineligible_leak_count": 0,
+      "tier_violation_count": 0
+    },
+    "occupancy_uncertain": {
+      "total_cases": 6,
+      "exact_match_rate": 1.0,
+      "selected_set_match_rate": 1.0,
+      "top_1_accuracy": 1.0,
+      "ineligible_leak_rate": 0.0,
+      "tier_violation_rate": 0.0,
+      "exact_match_count": 6,
+      "selected_set_match_count": 6,
+      "top_1_correct_count": 6,
+      "ineligible_leak_count": 0,
+      "tier_violation_count": 0
+    }
+  },
+  "cases": [
+    {
+      "case_id": "rank_001_001",
+      "group": "strong_vs_partial",
+      "description": "Strong item must rank above partial item, even with lower score.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_002",
+      "group": "score_vs_tier_conflict",
+      "description": "Score should only matter within the same tier.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_003",
+      "group": "ineligible_filtering",
+      "description": "Ineligible item should be filtered out, even with the highest score.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_004",
+      "group": "uncertain_must",
+      "description": "Uncertain MUST should make item partial, not ineligible.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_005",
+      "group": "failed_must",
+      "description": "Failed MUST should make item ineligible.",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_006",
+      "group": "forbidden_constraints",
+      "description": "Forbidden confirmed negative should make item ineligible.",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_007",
+      "group": "nice_to_have_score_only",
+      "description": "Nice-to-have can change score only within the same tier.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_008",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Fallback YES can support a listing.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_009",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Fallback UNCERTAIN should not make a listing strong.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_010",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Fallback NO for must-have should make item worse or ineligible depending on failed_constraints.",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_011",
+      "group": "property_type_uncertain",
+      "description": "Property Type uncertain.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_012",
+      "group": "occupancy_uncertain",
+      "description": "Occupancy uncertain.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_013",
+      "group": "strong_vs_partial",
+      "description": "Multiple items, ensure correct ordering.",
+      "top_n": 4,
+      "predicted_ids": [
+        "listing_1",
+        "listing_3",
+        "listing_2",
+        "listing_4"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_3",
+        "listing_2",
+        "listing_4"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_014",
+      "group": "ineligible_filtering",
+      "description": "Mix of eligible and ineligible, check filtering.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_3"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_3"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_015",
+      "group": "uncertain_must",
+      "description": "Multiple uncertain MUSTs.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_016",
+      "group": "failed_must",
+      "description": "Multiple failed MUSTs.",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_017",
+      "group": "forbidden_constraints",
+      "description": "Multiple forbidden constraints.",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_018",
+      "group": "nice_to_have_score_only",
+      "description": "Multiple nice-to-haves, different scores.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2",
+        "listing_3"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2",
+        "listing_3"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_019",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Mix of fallback YES/NO/UNCERTAIN.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_3"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_3"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_001_020",
+      "group": "property_type_uncertain",
+      "description": "Multiple property type uncertainties.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_2",
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_2",
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_001",
+      "group": "strong_vs_partial",
+      "description": "Strong item must rank above partial item even with lower score.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_002",
+      "group": "score_vs_tier_conflict",
+      "description": "Partial item has much higher score but strong must rank first.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_003",
+      "group": "ineligible_filtering",
+      "description": "Ineligible item must be filtered out even with the highest score.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_004",
+      "group": "uncertain_must",
+      "description": "Uncertain MUST makes item partial, not ineligible.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_005",
+      "group": "failed_must",
+      "description": "Failed MUST makes item ineligible.",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_006",
+      "group": "forbidden_constraints",
+      "description": "Forbidden constraint confirmed negative makes item ineligible.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_007",
+      "group": "nice_to_have_score_only",
+      "description": "Nice-to-have changes score but doesn't affect eligibility.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_2",
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_2",
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_008",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Fallback YES can support a listing.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_009",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Fallback UNCERTAIN should not make a listing strong.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_010",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Fallback NO for must-have makes item ineligible.",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_011",
+      "group": "property_type_uncertain",
+      "description": "Uncertain property type should make listing partial",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_012",
+      "group": "occupancy_uncertain",
+      "description": "Uncertain occupancy should make listing partial",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_013",
+      "group": "strong_vs_partial",
+      "description": "Strong item must rank above partial item even with a slightly lower score.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_014",
+      "group": "ineligible_filtering",
+      "description": "Ineligible item must be filtered out even with a very high score, multiple items",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_3",
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_3",
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_015",
+      "group": "uncertain_must",
+      "description": "Multiple uncertain MUST constraints makes item partial, not ineligible.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_016",
+      "group": "failed_must",
+      "description": "Multiple failed MUST constraints make item ineligible.",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_017",
+      "group": "forbidden_constraints",
+      "description": "Forbidden constraint confirmed negative makes item ineligible, multiple constraints",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_018",
+      "group": "nice_to_have_score_only",
+      "description": "Nice-to-have changes score but doesn't affect eligibility, multiple items.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_2",
+        "listing_3",
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_2",
+        "listing_3",
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_019",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Fallback YES can support a listing, multiple musts.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_002_020",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Fallback NO for must-have makes item ineligible, multiple musts.",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_001",
+      "group": "strong_vs_partial",
+      "description": "Strong vs Partial with score conflict",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2",
+        "listing_3"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2",
+        "listing_3"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_002",
+      "group": "score_vs_tier_conflict",
+      "description": "Score vs Tier conflict resolution",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_003",
+      "group": "ineligible_filtering",
+      "description": "Ineligible item with highest score",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_004",
+      "group": "uncertain_must",
+      "description": "Uncertain MUST constraint",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_005",
+      "group": "failed_must",
+      "description": "Failed MUST constraint",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_006",
+      "group": "forbidden_constraints",
+      "description": "Forbidden confirmed negative",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_007",
+      "group": "nice_to_have_score_only",
+      "description": "Nice-to-have increases score",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_008",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Fallback YES supports listing",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_009",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Fallback UNCERTAIN does not make listing strong",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_010",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Fallback NO makes listing ineligible",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_011",
+      "group": "property_type_uncertain",
+      "description": "Property type is uncertain",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_012",
+      "group": "occupancy_uncertain",
+      "description": "Occupancy is uncertain",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_013",
+      "group": "strong_vs_partial",
+      "description": "Strong vs Partial, equal scores",
+      "top_n": 2,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_014",
+      "group": "ineligible_filtering",
+      "description": "One eligible, one ineligible",
+      "top_n": 1,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_015",
+      "group": "uncertain_must",
+      "description": "Multiple uncertain MUSTs",
+      "top_n": 1,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_016",
+      "group": "failed_must",
+      "description": "Multiple failed MUSTs",
+      "top_n": 1,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_017",
+      "group": "forbidden_constraints",
+      "description": "Multiple forbidden constraints",
+      "top_n": 1,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_018",
+      "group": "nice_to_have_score_only",
+      "description": "Multiple nice-to-haves",
+      "top_n": 2,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_019",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Mixed fallback results",
+      "top_n": 1,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_003_020",
+      "group": "property_type_uncertain",
+      "description": "Property type uncertain with other constraints",
+      "top_n": 2,
+      "predicted_ids": [
+        "listing_2",
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_2",
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_001",
+      "group": "strong_vs_partial",
+      "description": "Strong item should rank higher than partial, even with lower score.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_002",
+      "group": "score_vs_tier_conflict",
+      "description": "Higher score should not override tier priority.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_003",
+      "group": "ineligible_filtering",
+      "description": "Ineligible item should be filtered out, even with the highest score.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_004",
+      "group": "uncertain_must",
+      "description": "Uncertain MUST constraint should result in a partial match.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_005",
+      "group": "failed_must",
+      "description": "Failed MUST constraint should result in an ineligible listing.",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_006",
+      "group": "forbidden_constraints",
+      "description": "Forbidden constraint with negative evidence should result in an ineligible listing.",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_007",
+      "group": "nice_to_have_score_only",
+      "description": "Nice-to-have preferences should only affect the score within the same tier.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_008",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Fallback YES can support a listing, NO makes it ineligible, UNCERTAIN makes it partial.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_3"
+      ],
+      "expected_ids": [
+        "listing_3",
+        "listing_1"
+      ],
+      "exact_match": false,
+      "selected_set_match": true,
+      "top_1_correct": false,
+      "ineligible_leak": false,
+      "tier_violation": true
+    },
+    {
+      "case_id": "rank_004_009",
+      "group": "property_type_uncertain",
+      "description": "Property type uncertain should result in a partial match.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_010",
+      "group": "occupancy_uncertain",
+      "description": "Occupancy uncertain should result in a partial match.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_011",
+      "group": "strong_vs_partial",
+      "description": "Multiple strong and partial listings, strong should rank higher.",
+      "top_n": 4,
+      "predicted_ids": [
+        "listing_1",
+        "listing_3",
+        "listing_4",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_3",
+        "listing_4",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_012",
+      "group": "score_vs_tier_conflict",
+      "description": "Weak listing with very high score should still rank lower than strong and partial.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_013",
+      "group": "ineligible_filtering",
+      "description": "Multiple listings, one ineligible, should be filtered out.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_3",
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_3",
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_014",
+      "group": "uncertain_must",
+      "description": "Multiple uncertain MUST constraints should still result in a partial match.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_015",
+      "group": "failed_must",
+      "description": "Multiple failed MUST constraints should result in an ineligible listing.",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_016",
+      "group": "forbidden_constraints",
+      "description": "Forbidden constraint with negative evidence and another eligible listing.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_017",
+      "group": "nice_to_have_score_only",
+      "description": "Nice-to-have increases score, but not enough to overcome tier differences.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_018",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Fallback decisions with multiple listings.",
+      "top_n": 4,
+      "predicted_ids": [
+        "listing_4",
+        "listing_1",
+        "listing_3"
+      ],
+      "expected_ids": [
+        "listing_4",
+        "listing_3",
+        "listing_1"
+      ],
+      "exact_match": false,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": true
+    },
+    {
+      "case_id": "rank_004_019",
+      "group": "property_type_uncertain",
+      "description": "Property type uncertain with strong alternative.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_2",
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_2",
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_004_020",
+      "group": "occupancy_uncertain",
+      "description": "Occupancy uncertain with ineligible alternative.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_001",
+      "group": "strong_vs_partial",
+      "description": "Strong item should be ranked above partial item even if the partial item has a higher score.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_002",
+      "group": "score_vs_tier_conflict",
+      "description": "Ineligible item should be excluded even if it has the highest score.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_003",
+      "group": "ineligible_filtering",
+      "description": "Filtering ineligible listings.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_004",
+      "group": "uncertain_must",
+      "description": "Uncertain MUST should make item partial, not ineligible.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_005",
+      "group": "failed_must",
+      "description": "Failed MUST should make item ineligible.",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_006",
+      "group": "forbidden_constraints",
+      "description": "Forbidden confirmed negative should make item ineligible.",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_007",
+      "group": "nice_to_have_score_only",
+      "description": "Nice-to-have can change score only within the same tier.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_008",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Fallback YES can support a listing.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_009",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Fallback UNCERTAIN should not make a listing strong.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_010",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Fallback NO for must-have should make item worse or ineligible depending on failed_constraints.",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_011",
+      "group": "property_type_uncertain",
+      "description": "Property type uncertain.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_012",
+      "group": "occupancy_uncertain",
+      "description": "Occupancy uncertain.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_013",
+      "group": "strong_vs_partial",
+      "description": "Strong vs Partial with multiple items.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_3",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_3",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_014",
+      "group": "ineligible_filtering",
+      "description": "Multiple ineligible listings.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_015",
+      "group": "nice_to_have_score_only",
+      "description": "Nice to have increases score within the same tier.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_2",
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_2",
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_016",
+      "group": "forbidden_constraints",
+      "description": "Multiple forbidden constraints.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_017",
+      "group": "uncertain_must",
+      "description": "Multiple uncertain constraints.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1"
+      ],
+      "expected_ids": [
+        "listing_1"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_018",
+      "group": "failed_must",
+      "description": "Multiple failed constraints.",
+      "top_n": 3,
+      "predicted_ids": [],
+      "expected_ids": [],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_019",
+      "group": "strong_vs_partial",
+      "description": "Strong, Partial and Weak listings",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2",
+        "listing_3"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2",
+        "listing_3"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "rank_005_020",
+      "group": "fallback_yes_no_uncertain",
+      "description": "Multiple fallbacks.",
+      "top_n": 3,
+      "predicted_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "expected_ids": [
+        "listing_1",
+        "listing_2"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "manual_001",
+      "group": "score_vs_tier_conflict",
+      "description": "Strong must beat higher score partial",
+      "top_n": 3,
+      "predicted_ids": [
+        "A",
+        "B"
+      ],
+      "expected_ids": [
+        "A",
+        "B"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "manual_002",
+      "group": "ineligible_filtering",
+      "description": "Ineligible must be filtered even with highest score",
+      "top_n": 3,
+      "predicted_ids": [
+        "A"
+      ],
+      "expected_ids": [
+        "A"
+      ],
+      "exact_match": true,
+      "selected_set_match": true,
+      "top_1_correct": true,
+      "ineligible_leak": false,
+      "tier_violation": false
+    },
+    {
+      "case_id": "manual_003",
+      "group": "uncertain_must",
+      "description": "All uncertain must should be weak",
+      "top_n": 3,
+      "predicted_ids": [
+        "B",
+        "A"
+      ],
+      "expected_ids": [
+        "A",
+        "B"
+      ],
+      "exact_match": false,
+      "selected_set_match": true,
+      "top_1_correct": false,
+      "ineligible_leak": false,
+      "tier_violation": false
+    }
+  ]
+}

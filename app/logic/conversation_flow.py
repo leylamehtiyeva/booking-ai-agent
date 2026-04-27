@@ -14,6 +14,8 @@ from app.logic.constraint_evidence_resolution import (
     resolve_constraint_via_textual_evidence,
 )
 from app.schemas.fallback_policy import FallbackPolicy
+from app.config.settings import MAX_ITEMS_HARD_CAP
+
 
 
 def _build_state_payload(state: SearchRequest | None) -> dict[str, Any] | None:
@@ -102,7 +104,7 @@ async def handle_user_message(
     source: str = "fixtures",
     top_n: int = 5,
     fallback_policy: FallbackPolicy | None = None,
-    max_items: int = 10,
+    max_items: int = MAX_ITEMS_HARD_CAP,
     shown_listing: dict[str, Any] | None = None,
     latest_result_context: dict[str, Any] | None = None,
 ) -> Dict[str, Any]:

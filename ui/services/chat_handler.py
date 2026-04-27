@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from app.config.settings import MAX_ITEMS_HARD_CAP
 import asyncio
 import sys
 from pathlib import Path
@@ -35,10 +35,10 @@ def process_user_message(user_message: str) -> None:
             handle_user_message(
                 user_message=user_message,
                 previous_state=previous_state,
-                source="apify",
+                source="fixtures",
                 top_n=5,
                 fallback_policy=FallbackPolicy(enabled=True, top_k=5),
-                max_items=10,
+                max_items=MAX_ITEMS_HARD_CAP,
             )
         )
 

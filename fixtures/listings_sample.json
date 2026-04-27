@@ -1213,5 +1213,68 @@
         "facilities": ["Kitchen", "Air conditioning"]
       }
     ]
+  },
+    {
+    "id": "manila-apt-1",
+    "name": "Manila City Apartment",
+    "city": "Manila",
+    "url": "https://example.com/manila-apt-1",
+    "price": 3500,
+    "currency": "PHP",
+    "property_type": "apartment",
+    "available_dates": {
+      "check_in": "2026-04-01",
+      "check_out": "2026-04-30"
+    },
+    "description": "Apartment about 70 sqm in Manila city center, close to malls and metro. Has kitchen and air conditioning.",
+    "facilities": [
+      {"name": "Air conditioning"}
+    ],
+    "policies": [
+      {"title": "Pets", "content": "Pets are not allowed."}
+    ],
+    "rooms": [
+      {
+        "name": "Apartment",
+        "roomType": "Studio Apartment",
+        "facilities": ["Kitchen", "Air conditioning"]
+      }
+    ]
+  },
+  {
+    "id": "kyoto-ryokan-1",
+    "name": "Kyoto Traditional Ryokan",
+    "city": "Kyoto",
+    "url": "https://example.com/kyoto-ryokan-1",
+    "price": 180,
+    "currency": "USD",
+    "property_type": "ryokan",
+    "available_dates": {
+      "check_in": "2026-05-20",
+      "check_out": "2026-05-23"
+    },
+    "description": "Traditional Japanese ryokan in Kyoto city center with tatami rooms, futon beds, and an onsen bath. Close to temples and public transport.",
+    "facilities": [
+      {"name": "Free WiFi"},
+      {"name": "Air conditioning"},
+      {"name": "Public bath"},
+      {"name": "Onsen"}
+    ],
+    "policies": [
+      {"title": "Pets", "content": "Pets are not allowed."},
+      {"title": "Smoking", "content": "Non-smoking throughout."}
+    ],
+    "rooms": [
+      {
+        "name": "Japanese Room",
+        "roomType": "Japanese-Style Room",
+        "facilities": [
+          "Tatami",
+          "Futon beds",
+          "Air conditioning",
+          "Shared bathroom"
+        ]
+      }
+    ]
   }
 ]

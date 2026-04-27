@@ -2,34 +2,34 @@
   "dataset_path": "evaluation/datasets/constraint_extraction/constraint_golden_set_v2_final.jsonl",
   "n_cases": 166,
   "metrics": {
-    "constraint_extraction_precision": 0.7980295566502463,
-    "constraint_extraction_recall": 0.801980198019802,
-    "constraint_extraction_f1": 0.8,
-    "priority_accuracy_on_matched_constraints": 0.9012345679012346,
-    "category_accuracy_on_matched_constraints": 0.9320987654320988,
+    "constraint_extraction_precision": 0.7832512315270936,
+    "constraint_extraction_recall": 0.7871287128712872,
+    "constraint_extraction_f1": 0.7851851851851852,
+    "priority_accuracy_on_matched_constraints": 0.9245283018867925,
+    "category_accuracy_on_matched_constraints": 0.9308176100628931,
     "mapping_status_accuracy_on_matched_constraints": 1.0,
-    "mapped_fields_exact_match_accuracy_on_matched_constraints": 0.9444444444444444,
+    "mapped_fields_exact_match_accuracy_on_matched_constraints": 0.9433962264150944,
     "evidence_strategy_accuracy_on_matched_constraints": 1.0,
     "exact_constraint_set_match_rate": 0.7951807228915663,
-    "exact_full_case_match_rate": 0.6445783132530121,
+    "exact_full_case_match_rate": 0.6566265060240963,
     "no_constraint_case_rate": 0.08433734939759036,
     "counts": {
       "n_cases": 166,
       "total_gold_constraints": 202,
       "total_pred_constraints": 203,
-      "total_correct_constraints": 162,
-      "total_priority_rows": 162,
-      "total_priority_correct": 146,
-      "total_category_rows": 162,
-      "total_category_correct": 151,
-      "total_mapping_status_rows": 162,
-      "total_mapping_status_correct": 162,
-      "total_mapped_fields_rows": 162,
-      "total_mapped_fields_correct": 153,
-      "total_evidence_strategy_rows": 162,
-      "total_evidence_strategy_correct": 162,
+      "total_correct_constraints": 159,
+      "total_priority_rows": 159,
+      "total_priority_correct": 147,
+      "total_category_rows": 159,
+      "total_category_correct": 148,
+      "total_mapping_status_rows": 159,
+      "total_mapping_status_correct": 159,
+      "total_mapped_fields_rows": 159,
+      "total_mapped_fields_correct": 150,
+      "total_evidence_strategy_rows": 159,
+      "total_evidence_strategy_correct": 159,
       "exact_constraint_set_match_cases": 132,
-      "exact_full_case_match_cases": 107,
+      "exact_full_case_match_cases": 109,
       "no_constraint_cases": 14
     },
     "group_breakdown": [
@@ -39,27 +39,27 @@
         "precision": 0.8181818181818182,
         "recall": 0.8181818181818182,
         "f1": 0.8181818181818182,
-        "priority_acc": 0.8611111111111112,
-        "category_acc": 0.9722222222222222,
+        "priority_acc": 0.8888888888888888,
+        "category_acc": 0.9444444444444444,
         "mapping_status_acc": 1.0,
         "mapped_fields_exact_match_acc": 0.9722222222222222,
         "evidence_strategy_acc": 1.0,
-        "exact_constraint_set_match_rate": 0.7272727272727273,
+        "exact_constraint_set_match_rate": 0.6818181818181818,
         "exact_full_case_match_rate": 0.45454545454545453,
         "no_constraint_case_rate": 0.0
       },
       {
         "group": "mixed_priorities",
         "cases": 28,
-        "precision": 0.6071428571428571,
-        "recall": 0.6071428571428571,
-        "f1": 0.6071428571428571,
-        "priority_acc": 0.8823529411764706,
-        "category_acc": 0.9411764705882353,
+        "precision": 0.5714285714285714,
+        "recall": 0.5714285714285714,
+        "f1": 0.5714285714285714,
+        "priority_acc": 0.875,
+        "category_acc": 0.9375,
         "mapping_status_acc": 1.0,
-        "mapped_fields_exact_match_acc": 0.7941176470588235,
+        "mapped_fields_exact_match_acc": 0.78125,
         "evidence_strategy_acc": 1.0,
-        "exact_constraint_set_match_rate": 0.39285714285714285,
+        "exact_constraint_set_match_rate": 0.4642857142857143,
         "exact_full_case_match_rate": 0.21428571428571427,
         "no_constraint_case_rate": 0.0
       },
@@ -69,7 +69,7 @@
         "precision": 0.9,
         "recall": 0.9,
         "f1": 0.9,
-        "priority_acc": 1.0,
+        "priority_acc": 0.8888888888888888,
         "category_acc": 1.0,
         "mapping_status_acc": 1.0,
         "mapped_fields_exact_match_acc": 0.8888888888888888,
@@ -81,76 +81,76 @@
       {
         "group": "single_known_must",
         "cases": 24,
-        "precision": 0.75,
-        "recall": 0.75,
-        "f1": 0.75,
+        "precision": 0.7083333333333334,
+        "recall": 0.7083333333333334,
+        "f1": 0.7083333333333334,
         "priority_acc": 1.0,
         "category_acc": 1.0,
         "mapping_status_acc": 1.0,
         "mapped_fields_exact_match_acc": 1.0,
         "evidence_strategy_acc": 1.0,
-        "exact_constraint_set_match_rate": 0.75,
-        "exact_full_case_match_rate": 0.75,
+        "exact_constraint_set_match_rate": 0.7083333333333334,
+        "exact_full_case_match_rate": 0.7083333333333334,
         "no_constraint_case_rate": 0.0
       },
       {
         "group": "single_known_nice",
         "cases": 5,
-        "precision": 0.8,
-        "recall": 0.8,
-        "f1": 0.8000000000000002,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
         "priority_acc": 1.0,
         "category_acc": 1.0,
         "mapping_status_acc": 1.0,
         "mapped_fields_exact_match_acc": 1.0,
         "evidence_strategy_acc": 1.0,
-        "exact_constraint_set_match_rate": 0.8,
-        "exact_full_case_match_rate": 0.8,
+        "exact_constraint_set_match_rate": 1.0,
+        "exact_full_case_match_rate": 1.0,
         "no_constraint_case_rate": 0.0
       },
       {
         "group": "single_unresolved_forbidden",
         "cases": 15,
-        "precision": 0.9375,
-        "recall": 1.0,
-        "f1": 0.967741935483871,
-        "priority_acc": 0.9333333333333333,
-        "category_acc": 1.0,
+        "precision": 0.875,
+        "recall": 0.9333333333333333,
+        "f1": 0.9032258064516129,
+        "priority_acc": 0.9285714285714286,
+        "category_acc": 0.9285714285714286,
         "mapping_status_acc": 1.0,
         "mapped_fields_exact_match_acc": 1.0,
         "evidence_strategy_acc": 1.0,
-        "exact_constraint_set_match_rate": 0.9333333333333333,
-        "exact_full_case_match_rate": 0.9333333333333333,
+        "exact_constraint_set_match_rate": 0.8666666666666667,
+        "exact_full_case_match_rate": 0.7333333333333333,
         "no_constraint_case_rate": 0.0
       },
       {
         "group": "single_unresolved_must",
         "cases": 24,
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1": 1.0,
-        "priority_acc": 0.875,
-        "category_acc": 0.9166666666666666,
+        "precision": 0.9583333333333334,
+        "recall": 0.9583333333333334,
+        "f1": 0.9583333333333334,
+        "priority_acc": 0.9565217391304348,
+        "category_acc": 0.9130434782608695,
         "mapping_status_acc": 1.0,
         "mapped_fields_exact_match_acc": 1.0,
         "evidence_strategy_acc": 1.0,
-        "exact_constraint_set_match_rate": 1.0,
+        "exact_constraint_set_match_rate": 0.9583333333333334,
         "exact_full_case_match_rate": 0.8333333333333334,
         "no_constraint_case_rate": 0.0
       },
       {
         "group": "single_unresolved_nice",
         "cases": 24,
-        "precision": 0.9166666666666666,
-        "recall": 0.9166666666666666,
-        "f1": 0.9166666666666666,
-        "priority_acc": 0.8636363636363636,
-        "category_acc": 0.7272727272727273,
+        "precision": 0.9583333333333334,
+        "recall": 0.9583333333333334,
+        "f1": 0.9583333333333334,
+        "priority_acc": 0.9565217391304348,
+        "category_acc": 0.8260869565217391,
         "mapping_status_acc": 1.0,
         "mapped_fields_exact_match_acc": 1.0,
         "evidence_strategy_acc": 1.0,
-        "exact_constraint_set_match_rate": 0.9166666666666666,
-        "exact_full_case_match_rate": 0.5416666666666666,
+        "exact_constraint_set_match_rate": 0.9583333333333334,
+        "exact_full_case_match_rate": 0.75,
         "no_constraint_case_rate": 0.0
       },
       {
@@ -217,14 +217,14 @@
         "missed_constraints": [],
         "extra_constraints": [],
         "exact_constraint_set_match": true,
-        "exact_full_case_match": false
+        "exact_full_case_match": true
       },
       "matched_rows": [
         {
           "normalized_text": "quiet neighborhood",
           "gold_priority": "nice",
-          "pred_priority": "must",
-          "priority_correct": false,
+          "pred_priority": "nice",
+          "priority_correct": true,
           "gold_category": "location",
           "pred_category": "location",
           "category_correct": true,
@@ -237,7 +237,7 @@
           "gold_evidence_strategy": "textual",
           "pred_evidence_strategy": "textual",
           "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": false
+          "fully_correct_on_matched_constraint": true
         }
       ]
     },
@@ -351,8 +351,8 @@
         {
           "normalized_text": "smoking_allowed",
           "gold_priority": "forbidden",
-          "pred_priority": "forbidden",
-          "priority_correct": true,
+          "pred_priority": "must",
+          "priority_correct": false,
           "gold_category": "policy",
           "pred_category": "policy",
           "category_correct": true,
@@ -419,41 +419,19 @@
       "constraint_extraction": {
         "gold_count": 2,
         "pred_count": 2,
-        "correct_count": 1,
+        "correct_count": 0,
         "missed_constraints": [
+          "pet_friendly",
           "wifi"
         ],
         "extra_constraints": [
+          "i'd prefer not to have pets",
           "wifi is essential"
         ],
         "exact_constraint_set_match": false,
         "exact_full_case_match": false
       },
-      "matched_rows": [
-        {
-          "normalized_text": "pet_friendly",
-          "gold_priority": "forbidden",
-          "pred_priority": "forbidden",
-          "priority_correct": true,
-          "gold_category": "policy",
-          "pred_category": "policy",
-          "category_correct": true,
-          "gold_mapping_status": "known",
-          "pred_mapping_status": "known",
-          "mapping_status_correct": true,
-          "gold_mapped_fields": [
-            "pet_friendly"
-          ],
-          "pred_mapped_fields": [
-            "pet_friendly"
-          ],
-          "mapped_fields_exact_match": true,
-          "gold_evidence_strategy": "structured",
-          "pred_evidence_strategy": "structured",
-          "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": true
-        }
-      ]
+      "matched_rows": []
     },
     {
       "case_id": "case_0076",
@@ -613,60 +591,19 @@
       "constraint_extraction": {
         "gold_count": 2,
         "pred_count": 2,
-        "correct_count": 2,
-        "missed_constraints": [],
-        "extra_constraints": [],
-        "exact_constraint_set_match": true,
-        "exact_full_case_match": true
+        "correct_count": 0,
+        "missed_constraints": [
+          "free_cancellation",
+          "workspace"
+        ],
+        "extra_constraints": [
+          "free cancellation would be nice",
+          "workspace is a must"
+        ],
+        "exact_constraint_set_match": false,
+        "exact_full_case_match": false
       },
-      "matched_rows": [
-        {
-          "normalized_text": "free_cancellation",
-          "gold_priority": "nice",
-          "pred_priority": "nice",
-          "priority_correct": true,
-          "gold_category": "policy",
-          "pred_category": "policy",
-          "category_correct": true,
-          "gold_mapping_status": "known",
-          "pred_mapping_status": "known",
-          "mapping_status_correct": true,
-          "gold_mapped_fields": [
-            "free_cancellation"
-          ],
-          "pred_mapped_fields": [
-            "free_cancellation"
-          ],
-          "mapped_fields_exact_match": true,
-          "gold_evidence_strategy": "structured",
-          "pred_evidence_strategy": "structured",
-          "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": true
-        },
-        {
-          "normalized_text": "workspace",
-          "gold_priority": "must",
-          "pred_priority": "must",
-          "priority_correct": true,
-          "gold_category": "amenity",
-          "pred_category": "amenity",
-          "category_correct": true,
-          "gold_mapping_status": "known",
-          "pred_mapping_status": "known",
-          "mapping_status_correct": true,
-          "gold_mapped_fields": [
-            "workspace"
-          ],
-          "pred_mapped_fields": [
-            "workspace"
-          ],
-          "mapped_fields_exact_match": true,
-          "gold_evidence_strategy": "structured",
-          "pred_evidence_strategy": "structured",
-          "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": true
-        }
-      ]
+      "matched_rows": []
     },
     {
       "case_id": "case_0028",
@@ -760,15 +697,11 @@
       "constraint_extraction": {
         "gold_count": 2,
         "pred_count": 2,
-        "correct_count": 1,
-        "missed_constraints": [
-          "workspace"
-        ],
-        "extra_constraints": [
-          "must have a workspace"
-        ],
-        "exact_constraint_set_match": false,
-        "exact_full_case_match": false
+        "correct_count": 2,
+        "missed_constraints": [],
+        "extra_constraints": [],
+        "exact_constraint_set_match": true,
+        "exact_full_case_match": true
       },
       "matched_rows": [
         {
@@ -787,6 +720,29 @@
           "mapped_fields_exact_match": true,
           "gold_evidence_strategy": "textual",
           "pred_evidence_strategy": "textual",
+          "evidence_strategy_correct": true,
+          "fully_correct_on_matched_constraint": true
+        },
+        {
+          "normalized_text": "workspace",
+          "gold_priority": "must",
+          "pred_priority": "must",
+          "priority_correct": true,
+          "gold_category": "amenity",
+          "pred_category": "amenity",
+          "category_correct": true,
+          "gold_mapping_status": "known",
+          "pred_mapping_status": "known",
+          "mapping_status_correct": true,
+          "gold_mapped_fields": [
+            "workspace"
+          ],
+          "pred_mapped_fields": [
+            "workspace"
+          ],
+          "mapped_fields_exact_match": true,
+          "gold_evidence_strategy": "structured",
+          "pred_evidence_strategy": "structured",
           "evidence_strategy_correct": true,
           "fully_correct_on_matched_constraint": true
         }
@@ -1220,7 +1176,7 @@
           "wifi"
         ],
         "extra_constraints": [
-          "be in a quiet neighborhood",
+          "in a quiet neighborhood",
           "must have wifi"
         ],
         "exact_constraint_set_match": false,
@@ -1452,19 +1408,56 @@
       "constraint_extraction": {
         "gold_count": 2,
         "pred_count": 2,
-        "correct_count": 0,
-        "missed_constraints": [
-          "nice view",
-          "wifi"
-        ],
-        "extra_constraints": [
-          "a nice view",
-          "must have wifi"
-        ],
-        "exact_constraint_set_match": false,
+        "correct_count": 2,
+        "missed_constraints": [],
+        "extra_constraints": [],
+        "exact_constraint_set_match": true,
         "exact_full_case_match": false
       },
-      "matched_rows": []
+      "matched_rows": [
+        {
+          "normalized_text": "nice view",
+          "gold_priority": "nice",
+          "pred_priority": "nice",
+          "priority_correct": true,
+          "gold_category": "other",
+          "pred_category": "location",
+          "category_correct": false,
+          "gold_mapping_status": "unresolved",
+          "pred_mapping_status": "unresolved",
+          "mapping_status_correct": true,
+          "gold_mapped_fields": [],
+          "pred_mapped_fields": [],
+          "mapped_fields_exact_match": true,
+          "gold_evidence_strategy": "textual",
+          "pred_evidence_strategy": "textual",
+          "evidence_strategy_correct": true,
+          "fully_correct_on_matched_constraint": false
+        },
+        {
+          "normalized_text": "wifi",
+          "gold_priority": "must",
+          "pred_priority": "must",
+          "priority_correct": true,
+          "gold_category": "amenity",
+          "pred_category": "amenity",
+          "category_correct": true,
+          "gold_mapping_status": "known",
+          "pred_mapping_status": "known",
+          "mapping_status_correct": true,
+          "gold_mapped_fields": [
+            "wifi"
+          ],
+          "pred_mapped_fields": [
+            "wifi"
+          ],
+          "mapped_fields_exact_match": true,
+          "gold_evidence_strategy": "structured",
+          "pred_evidence_strategy": "structured",
+          "evidence_strategy_correct": true,
+          "fully_correct_on_matched_constraint": true
+        }
+      ]
     },
     {
       "case_id": "case_0009",
@@ -1750,8 +1743,8 @@
         {
           "normalized_text": "not on the first floor",
           "gold_priority": "forbidden",
-          "pred_priority": "must",
-          "priority_correct": false,
+          "pred_priority": "forbidden",
+          "priority_correct": true,
           "gold_category": "layout",
           "pred_category": "layout",
           "category_correct": true,
@@ -1764,7 +1757,7 @@
           "gold_evidence_strategy": "textual",
           "pred_evidence_strategy": "textual",
           "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": false
+          "fully_correct_on_matched_constraint": true
         }
       ]
     },
@@ -1788,7 +1781,7 @@
           "pred_priority": "nice",
           "priority_correct": true,
           "gold_category": "other",
-          "pred_category": "layout",
+          "pred_category": "location",
           "category_correct": false,
           "gold_mapping_status": "unresolved",
           "pred_mapping_status": "unresolved",
@@ -1868,41 +1861,19 @@
       "constraint_extraction": {
         "gold_count": 2,
         "pred_count": 2,
-        "correct_count": 1,
+        "correct_count": 0,
         "missed_constraints": [
-          "non_smoking"
+          "non_smoking",
+          "parking"
         ],
         "extra_constraints": [
-          "non-smoking property"
+          "must have parking",
+          "non-smoking property preferred"
         ],
         "exact_constraint_set_match": false,
         "exact_full_case_match": false
       },
-      "matched_rows": [
-        {
-          "normalized_text": "parking",
-          "gold_priority": "must",
-          "pred_priority": "must",
-          "priority_correct": true,
-          "gold_category": "policy",
-          "pred_category": "amenity",
-          "category_correct": false,
-          "gold_mapping_status": "known",
-          "pred_mapping_status": "known",
-          "mapping_status_correct": true,
-          "gold_mapped_fields": [
-            "parking"
-          ],
-          "pred_mapped_fields": [
-            "parking"
-          ],
-          "mapped_fields_exact_match": true,
-          "gold_evidence_strategy": "structured",
-          "pred_evidence_strategy": "structured",
-          "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": false
-        }
-      ]
+      "matched_rows": []
     },
     {
       "case_id": "case_0026",
@@ -2089,41 +2060,19 @@
       "constraint_extraction": {
         "gold_count": 2,
         "pred_count": 2,
-        "correct_count": 1,
+        "correct_count": 0,
         "missed_constraints": [
-          "children_allowed"
+          "children_allowed",
+          "parties_allowed"
         ],
         "extra_constraints": [
+          "avoid places that allow parties",
           "children allowed"
         ],
         "exact_constraint_set_match": false,
         "exact_full_case_match": false
       },
-      "matched_rows": [
-        {
-          "normalized_text": "parties_allowed",
-          "gold_priority": "forbidden",
-          "pred_priority": "forbidden",
-          "priority_correct": true,
-          "gold_category": "policy",
-          "pred_category": "policy",
-          "category_correct": true,
-          "gold_mapping_status": "known",
-          "pred_mapping_status": "known",
-          "mapping_status_correct": true,
-          "gold_mapped_fields": [
-            "parties_allowed"
-          ],
-          "pred_mapped_fields": [
-            "parties_allowed"
-          ],
-          "mapped_fields_exact_match": true,
-          "gold_evidence_strategy": "structured",
-          "pred_evidence_strategy": "structured",
-          "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": true
-        }
-      ]
+      "matched_rows": []
     },
     {
       "case_id": "case_0098",
@@ -2368,7 +2317,7 @@
         "missed_constraints": [],
         "extra_constraints": [],
         "exact_constraint_set_match": true,
-        "exact_full_case_match": false
+        "exact_full_case_match": true
       },
       "matched_rows": [
         {
@@ -2377,8 +2326,8 @@
           "pred_priority": "nice",
           "priority_correct": true,
           "gold_category": "other",
-          "pred_category": "layout",
-          "category_correct": false,
+          "pred_category": "other",
+          "category_correct": true,
           "gold_mapping_status": "unresolved",
           "pred_mapping_status": "unresolved",
           "mapping_status_correct": true,
@@ -2388,7 +2337,7 @@
           "gold_evidence_strategy": "textual",
           "pred_evidence_strategy": "textual",
           "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": false
+          "fully_correct_on_matched_constraint": true
         }
       ]
     },
@@ -2442,7 +2391,7 @@
         "missed_constraints": [],
         "extra_constraints": [],
         "exact_constraint_set_match": true,
-        "exact_full_case_match": false
+        "exact_full_case_match": true
       },
       "matched_rows": [
         {
@@ -2471,8 +2420,8 @@
         {
           "normalized_text": "near the metro",
           "gold_priority": "nice",
-          "pred_priority": "must",
-          "priority_correct": false,
+          "pred_priority": "nice",
+          "priority_correct": true,
           "gold_category": "location",
           "pred_category": "location",
           "category_correct": true,
@@ -2485,7 +2434,7 @@
           "gold_evidence_strategy": "textual",
           "pred_evidence_strategy": "textual",
           "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": false
+          "fully_correct_on_matched_constraint": true
         }
       ]
     },
@@ -2545,8 +2494,8 @@
         {
           "normalized_text": "parties_allowed",
           "gold_priority": "forbidden",
-          "pred_priority": "nice",
-          "priority_correct": false,
+          "pred_priority": "forbidden",
+          "priority_correct": true,
           "gold_category": "policy",
           "pred_category": "policy",
           "category_correct": true,
@@ -2563,7 +2512,7 @@
           "gold_evidence_strategy": "structured",
           "pred_evidence_strategy": "structured",
           "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": false
+          "fully_correct_on_matched_constraint": true
         }
       ]
     },
@@ -2574,37 +2523,17 @@
       "constraint_extraction": {
         "gold_count": 1,
         "pred_count": 1,
-        "correct_count": 1,
-        "missed_constraints": [],
-        "extra_constraints": [],
-        "exact_constraint_set_match": true,
-        "exact_full_case_match": true
+        "correct_count": 0,
+        "missed_constraints": [
+          "air_conditioning"
+        ],
+        "extra_constraints": [
+          "with air conditioning"
+        ],
+        "exact_constraint_set_match": false,
+        "exact_full_case_match": false
       },
-      "matched_rows": [
-        {
-          "normalized_text": "air_conditioning",
-          "gold_priority": "must",
-          "pred_priority": "must",
-          "priority_correct": true,
-          "gold_category": "amenity",
-          "pred_category": "amenity",
-          "category_correct": true,
-          "gold_mapping_status": "known",
-          "pred_mapping_status": "known",
-          "mapping_status_correct": true,
-          "gold_mapped_fields": [
-            "air_conditioning"
-          ],
-          "pred_mapped_fields": [
-            "air_conditioning"
-          ],
-          "mapped_fields_exact_match": true,
-          "gold_evidence_strategy": "structured",
-          "pred_evidence_strategy": "structured",
-          "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": true
-        }
-      ]
+      "matched_rows": []
     },
     {
       "case_id": "case_0044",
@@ -2617,7 +2546,7 @@
         "missed_constraints": [],
         "extra_constraints": [],
         "exact_constraint_set_match": true,
-        "exact_full_case_match": false
+        "exact_full_case_match": true
       },
       "matched_rows": [
         {
@@ -2626,8 +2555,8 @@
           "pred_priority": "nice",
           "priority_correct": true,
           "gold_category": "other",
-          "pred_category": "layout",
-          "category_correct": false,
+          "pred_category": "other",
+          "category_correct": true,
           "gold_mapping_status": "unresolved",
           "pred_mapping_status": "unresolved",
           "mapping_status_correct": true,
@@ -2637,7 +2566,7 @@
           "gold_evidence_strategy": "textual",
           "pred_evidence_strategy": "textual",
           "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": false
+          "fully_correct_on_matched_constraint": true
         }
       ]
     },
@@ -2805,8 +2734,8 @@
           "kettle"
         ],
         "extra_constraints": [
-          "must have heating",
-          "nice to have a kettle"
+          "kettle available",
+          "must have heating"
         ],
         "exact_constraint_set_match": false,
         "exact_full_case_match": false
@@ -2859,7 +2788,7 @@
         "missed_constraints": [],
         "extra_constraints": [],
         "exact_constraint_set_match": true,
-        "exact_full_case_match": true
+        "exact_full_case_match": false
       },
       "matched_rows": [
         {
@@ -2868,8 +2797,8 @@
           "pred_priority": "must",
           "priority_correct": true,
           "gold_category": "location",
-          "pred_category": "location",
-          "category_correct": true,
+          "pred_category": "other",
+          "category_correct": false,
           "gold_mapping_status": "unresolved",
           "pred_mapping_status": "unresolved",
           "mapping_status_correct": true,
@@ -2879,7 +2808,7 @@
           "gold_evidence_strategy": "textual",
           "pred_evidence_strategy": "textual",
           "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": true
+          "fully_correct_on_matched_constraint": false
         }
       ]
     },
@@ -2979,37 +2908,19 @@
       "constraint_extraction": {
         "gold_count": 2,
         "pred_count": 2,
-        "correct_count": 1,
+        "correct_count": 0,
         "missed_constraints": [
+          "not on the first floor",
           "parking"
         ],
         "extra_constraints": [
+          "i'd prefer it not be on the first floor",
           "must have parking"
         ],
         "exact_constraint_set_match": false,
         "exact_full_case_match": false
       },
-      "matched_rows": [
-        {
-          "normalized_text": "not on the first floor",
-          "gold_priority": "nice",
-          "pred_priority": "nice",
-          "priority_correct": true,
-          "gold_category": "layout",
-          "pred_category": "layout",
-          "category_correct": true,
-          "gold_mapping_status": "unresolved",
-          "pred_mapping_status": "unresolved",
-          "mapping_status_correct": true,
-          "gold_mapped_fields": [],
-          "pred_mapped_fields": [],
-          "mapped_fields_exact_match": true,
-          "gold_evidence_strategy": "textual",
-          "pred_evidence_strategy": "textual",
-          "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": true
-        }
-      ]
+      "matched_rows": []
     },
     {
       "case_id": "case_0018",
@@ -3099,14 +3010,14 @@
         "missed_constraints": [],
         "extra_constraints": [],
         "exact_constraint_set_match": true,
-        "exact_full_case_match": false
+        "exact_full_case_match": true
       },
       "matched_rows": [
         {
           "normalized_text": "not on the first floor",
           "gold_priority": "must",
-          "pred_priority": "forbidden",
-          "priority_correct": false,
+          "pred_priority": "must",
+          "priority_correct": true,
           "gold_category": "layout",
           "pred_category": "layout",
           "category_correct": true,
@@ -3119,7 +3030,7 @@
           "gold_evidence_strategy": "textual",
           "pred_evidence_strategy": "textual",
           "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": false
+          "fully_correct_on_matched_constraint": true
         }
       ]
     },
@@ -3178,7 +3089,7 @@
           "pred_priority": "nice",
           "priority_correct": true,
           "gold_category": "other",
-          "pred_category": "layout",
+          "pred_category": "location",
           "category_correct": false,
           "gold_mapping_status": "unresolved",
           "pred_mapping_status": "unresolved",
@@ -3239,33 +3150,17 @@
       "constraint_extraction": {
         "gold_count": 1,
         "pred_count": 1,
-        "correct_count": 1,
-        "missed_constraints": [],
-        "extra_constraints": [],
-        "exact_constraint_set_match": true,
-        "exact_full_case_match": true
+        "correct_count": 0,
+        "missed_constraints": [
+          "away from noisy streets"
+        ],
+        "extra_constraints": [
+          "not in a noisy area"
+        ],
+        "exact_constraint_set_match": false,
+        "exact_full_case_match": false
       },
-      "matched_rows": [
-        {
-          "normalized_text": "away from noisy streets",
-          "gold_priority": "forbidden",
-          "pred_priority": "forbidden",
-          "priority_correct": true,
-          "gold_category": "location",
-          "pred_category": "location",
-          "category_correct": true,
-          "gold_mapping_status": "unresolved",
-          "pred_mapping_status": "unresolved",
-          "mapping_status_correct": true,
-          "gold_mapped_fields": [],
-          "pred_mapped_fields": [],
-          "mapped_fields_exact_match": true,
-          "gold_evidence_strategy": "textual",
-          "pred_evidence_strategy": "textual",
-          "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": true
-        }
-      ]
+      "matched_rows": []
     },
     {
       "case_id": "case_0094",
@@ -3436,7 +3331,7 @@
         ],
         "extra_constraints": [
           "must have a private bathroom",
-          "pet-friendly preferred"
+          "prefer pet-friendly"
         ],
         "exact_constraint_set_match": false,
         "exact_full_case_match": false
@@ -3834,32 +3729,17 @@
       "constraint_extraction": {
         "gold_count": 2,
         "pred_count": 2,
-        "correct_count": 2,
-        "missed_constraints": [],
-        "extra_constraints": [],
-        "exact_constraint_set_match": true,
-        "exact_full_case_match": true
+        "correct_count": 1,
+        "missed_constraints": [
+          "near the metro"
+        ],
+        "extra_constraints": [
+          "preferably near the metro"
+        ],
+        "exact_constraint_set_match": false,
+        "exact_full_case_match": false
       },
       "matched_rows": [
-        {
-          "normalized_text": "near the metro",
-          "gold_priority": "nice",
-          "pred_priority": "nice",
-          "priority_correct": true,
-          "gold_category": "location",
-          "pred_category": "location",
-          "category_correct": true,
-          "gold_mapping_status": "unresolved",
-          "pred_mapping_status": "unresolved",
-          "mapping_status_correct": true,
-          "gold_mapped_fields": [],
-          "pred_mapped_fields": [],
-          "mapped_fields_exact_match": true,
-          "gold_evidence_strategy": "textual",
-          "pred_evidence_strategy": "textual",
-          "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": true
-        },
         {
           "normalized_text": "pet_friendly",
           "gold_priority": "must",
@@ -4129,14 +4009,14 @@
         "missed_constraints": [],
         "extra_constraints": [],
         "exact_constraint_set_match": true,
-        "exact_full_case_match": false
+        "exact_full_case_match": true
       },
       "matched_rows": [
         {
           "normalized_text": "quiet neighborhood",
           "gold_priority": "nice",
-          "pred_priority": "must",
-          "priority_correct": false,
+          "pred_priority": "nice",
+          "priority_correct": true,
           "gold_category": "location",
           "pred_category": "location",
           "category_correct": true,
@@ -4149,7 +4029,7 @@
           "gold_evidence_strategy": "textual",
           "pred_evidence_strategy": "textual",
           "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": false
+          "fully_correct_on_matched_constraint": true
         }
       ]
     },
@@ -4160,17 +4040,37 @@
       "constraint_extraction": {
         "gold_count": 1,
         "pred_count": 1,
-        "correct_count": 0,
-        "missed_constraints": [
-          "private_bathroom"
-        ],
-        "extra_constraints": [
-          "private bathroom is preferred"
-        ],
-        "exact_constraint_set_match": false,
-        "exact_full_case_match": false
+        "correct_count": 1,
+        "missed_constraints": [],
+        "extra_constraints": [],
+        "exact_constraint_set_match": true,
+        "exact_full_case_match": true
       },
-      "matched_rows": []
+      "matched_rows": [
+        {
+          "normalized_text": "private_bathroom",
+          "gold_priority": "nice",
+          "pred_priority": "nice",
+          "priority_correct": true,
+          "gold_category": "amenity",
+          "pred_category": "amenity",
+          "category_correct": true,
+          "gold_mapping_status": "known",
+          "pred_mapping_status": "known",
+          "mapping_status_correct": true,
+          "gold_mapped_fields": [
+            "private_bathroom"
+          ],
+          "pred_mapped_fields": [
+            "private_bathroom"
+          ],
+          "mapped_fields_exact_match": true,
+          "gold_evidence_strategy": "structured",
+          "pred_evidence_strategy": "structured",
+          "evidence_strategy_correct": true,
+          "fully_correct_on_matched_constraint": true
+        }
+      ]
     },
     {
       "case_id": "case_0052",
@@ -4221,7 +4121,7 @@
         ],
         "extra_constraints": [
           "must have a kitchen",
-          "parking is preferred"
+          "preferably with parking"
         ],
         "exact_constraint_set_match": false,
         "exact_full_case_match": false
@@ -4239,7 +4139,7 @@
         "missed_constraints": [],
         "extra_constraints": [],
         "exact_constraint_set_match": true,
-        "exact_full_case_match": false
+        "exact_full_case_match": true
       },
       "matched_rows": [
         {
@@ -4248,8 +4148,8 @@
           "pred_priority": "must",
           "priority_correct": true,
           "gold_category": "location",
-          "pred_category": "other",
-          "category_correct": false,
+          "pred_category": "location",
+          "category_correct": true,
           "gold_mapping_status": "unresolved",
           "pred_mapping_status": "unresolved",
           "mapping_status_correct": true,
@@ -4259,7 +4159,7 @@
           "gold_evidence_strategy": "textual",
           "pred_evidence_strategy": "textual",
           "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": false
+          "fully_correct_on_matched_constraint": true
         }
       ]
     },
@@ -4574,7 +4474,7 @@
           "parking"
         ],
         "extra_constraints": [
-          "parking is nice to have"
+          "parking would be nice"
         ],
         "exact_constraint_set_match": false,
         "exact_full_case_match": false
@@ -4709,33 +4609,17 @@
       "constraint_extraction": {
         "gold_count": 1,
         "pred_count": 1,
-        "correct_count": 1,
-        "missed_constraints": [],
-        "extra_constraints": [],
-        "exact_constraint_set_match": true,
+        "correct_count": 0,
+        "missed_constraints": [
+          "nice view"
+        ],
+        "extra_constraints": [
+          "offers a nice view"
+        ],
+        "exact_constraint_set_match": false,
         "exact_full_case_match": false
       },
-      "matched_rows": [
-        {
-          "normalized_text": "nice view",
-          "gold_priority": "must",
-          "pred_priority": "nice",
-          "priority_correct": false,
-          "gold_category": "other",
-          "pred_category": "layout",
-          "category_correct": false,
-          "gold_mapping_status": "unresolved",
-          "pred_mapping_status": "unresolved",
-          "mapping_status_correct": true,
-          "gold_mapped_fields": [],
-          "pred_mapped_fields": [],
-          "mapped_fields_exact_match": true,
-          "gold_evidence_strategy": "textual",
-          "pred_evidence_strategy": "textual",
-          "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": false
-        }
-      ]
+      "matched_rows": []
     },
     {
       "case_id": "case_0010",
@@ -4923,11 +4807,15 @@
       "constraint_extraction": {
         "gold_count": 2,
         "pred_count": 2,
-        "correct_count": 2,
-        "missed_constraints": [],
-        "extra_constraints": [],
-        "exact_constraint_set_match": true,
-        "exact_full_case_match": true
+        "correct_count": 1,
+        "missed_constraints": [
+          "wifi"
+        ],
+        "extra_constraints": [
+          "with wifi"
+        ],
+        "exact_constraint_set_match": false,
+        "exact_full_case_match": false
       },
       "matched_rows": [
         {
@@ -4948,29 +4836,6 @@
           "pred_evidence_strategy": "textual",
           "evidence_strategy_correct": true,
           "fully_correct_on_matched_constraint": true
-        },
-        {
-          "normalized_text": "wifi",
-          "gold_priority": "must",
-          "pred_priority": "must",
-          "priority_correct": true,
-          "gold_category": "amenity",
-          "pred_category": "amenity",
-          "category_correct": true,
-          "gold_mapping_status": "known",
-          "pred_mapping_status": "known",
-          "mapping_status_correct": true,
-          "gold_mapped_fields": [
-            "wifi"
-          ],
-          "pred_mapped_fields": [
-            "wifi"
-          ],
-          "mapped_fields_exact_match": true,
-          "gold_evidence_strategy": "structured",
-          "pred_evidence_strategy": "structured",
-          "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": true
         }
       ]
     },
@@ -4981,19 +4846,60 @@
       "constraint_extraction": {
         "gold_count": 2,
         "pred_count": 2,
-        "correct_count": 0,
-        "missed_constraints": [
-          "kitchen",
-          "parking"
-        ],
-        "extra_constraints": [
-          "it would be great if it had a kitchen",
-          "must have parking"
-        ],
-        "exact_constraint_set_match": false,
+        "correct_count": 2,
+        "missed_constraints": [],
+        "extra_constraints": [],
+        "exact_constraint_set_match": true,
         "exact_full_case_match": false
       },
-      "matched_rows": []
+      "matched_rows": [
+        {
+          "normalized_text": "kitchen",
+          "gold_priority": "nice",
+          "pred_priority": "nice",
+          "priority_correct": true,
+          "gold_category": "amenity",
+          "pred_category": "amenity",
+          "category_correct": true,
+          "gold_mapping_status": "known",
+          "pred_mapping_status": "known",
+          "mapping_status_correct": true,
+          "gold_mapped_fields": [
+            "kitchen"
+          ],
+          "pred_mapped_fields": [
+            "kitchen"
+          ],
+          "mapped_fields_exact_match": true,
+          "gold_evidence_strategy": "structured",
+          "pred_evidence_strategy": "structured",
+          "evidence_strategy_correct": true,
+          "fully_correct_on_matched_constraint": true
+        },
+        {
+          "normalized_text": "parking",
+          "gold_priority": "must",
+          "pred_priority": "must",
+          "priority_correct": true,
+          "gold_category": "policy",
+          "pred_category": "amenity",
+          "category_correct": false,
+          "gold_mapping_status": "known",
+          "pred_mapping_status": "known",
+          "mapping_status_correct": true,
+          "gold_mapped_fields": [
+            "parking"
+          ],
+          "pred_mapped_fields": [
+            "parking"
+          ],
+          "mapped_fields_exact_match": true,
+          "gold_evidence_strategy": "structured",
+          "pred_evidence_strategy": "structured",
+          "evidence_strategy_correct": true,
+          "fully_correct_on_matched_constraint": false
+        }
+      ]
     },
     {
       "case_id": "case_0161",
@@ -5045,7 +4951,7 @@
         "missed_constraints": [],
         "extra_constraints": [],
         "exact_constraint_set_match": true,
-        "exact_full_case_match": true
+        "exact_full_case_match": false
       },
       "matched_rows": [
         {
@@ -5054,8 +4960,8 @@
           "pred_priority": "forbidden",
           "priority_correct": true,
           "gold_category": "location",
-          "pred_category": "location",
-          "category_correct": true,
+          "pred_category": "other",
+          "category_correct": false,
           "gold_mapping_status": "unresolved",
           "pred_mapping_status": "unresolved",
           "mapping_status_correct": true,
@@ -5065,7 +4971,7 @@
           "gold_evidence_strategy": "textual",
           "pred_evidence_strategy": "textual",
           "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": true
+          "fully_correct_on_matched_constraint": false
         }
       ]
     },
@@ -5376,14 +5282,14 @@
         "missed_constraints": [],
         "extra_constraints": [],
         "exact_constraint_set_match": true,
-        "exact_full_case_match": true
+        "exact_full_case_match": false
       },
       "matched_rows": [
         {
           "normalized_text": "not on the first floor",
           "gold_priority": "forbidden",
-          "pred_priority": "forbidden",
-          "priority_correct": true,
+          "pred_priority": "must",
+          "priority_correct": false,
           "gold_category": "layout",
           "pred_category": "layout",
           "category_correct": true,
@@ -5396,7 +5302,7 @@
           "gold_evidence_strategy": "textual",
           "pred_evidence_strategy": "textual",
           "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": true
+          "fully_correct_on_matched_constraint": false
         }
       ]
     },
@@ -5442,17 +5348,36 @@
       "constraint_extraction": {
         "gold_count": 2,
         "pred_count": 2,
-        "correct_count": 1,
-        "missed_constraints": [
-          "heating"
-        ],
-        "extra_constraints": [
-          "must have heating"
-        ],
-        "exact_constraint_set_match": false,
+        "correct_count": 2,
+        "missed_constraints": [],
+        "extra_constraints": [],
+        "exact_constraint_set_match": true,
         "exact_full_case_match": false
       },
       "matched_rows": [
+        {
+          "normalized_text": "heating",
+          "gold_priority": "must",
+          "pred_priority": "must",
+          "priority_correct": true,
+          "gold_category": "amenity",
+          "pred_category": "amenity",
+          "category_correct": true,
+          "gold_mapping_status": "known",
+          "pred_mapping_status": "known",
+          "mapping_status_correct": true,
+          "gold_mapped_fields": [
+            "heating"
+          ],
+          "pred_mapped_fields": [
+            "heating"
+          ],
+          "mapped_fields_exact_match": true,
+          "gold_evidence_strategy": "structured",
+          "pred_evidence_strategy": "structured",
+          "evidence_strategy_correct": true,
+          "fully_correct_on_matched_constraint": true
+        },
         {
           "normalized_text": "smoking_allowed",
           "gold_priority": "forbidden",
@@ -5674,7 +5599,7 @@
           "washing_machine"
         ],
         "extra_constraints": [
-          "must have washing machine",
+          "must have a washing machine",
           "nice to have a dryer"
         ],
         "exact_constraint_set_match": false,
@@ -5777,8 +5702,8 @@
         {
           "normalized_text": "smoking_allowed",
           "gold_priority": "forbidden",
-          "pred_priority": "forbidden",
-          "priority_correct": true,
+          "pred_priority": "must",
+          "priority_correct": false,
           "gold_category": "policy",
           "pred_category": "policy",
           "category_correct": true,
@@ -5903,7 +5828,7 @@
         "missed_constraints": [],
         "extra_constraints": [],
         "exact_constraint_set_match": true,
-        "exact_full_case_match": true
+        "exact_full_case_match": false
       },
       "matched_rows": [
         {
@@ -5912,8 +5837,8 @@
           "pred_priority": "must",
           "priority_correct": true,
           "gold_category": "location",
-          "pred_category": "location",
-          "category_correct": true,
+          "pred_category": "other",
+          "category_correct": false,
           "gold_mapping_status": "unresolved",
           "pred_mapping_status": "unresolved",
           "mapping_status_correct": true,
@@ -5923,7 +5848,7 @@
           "gold_evidence_strategy": "textual",
           "pred_evidence_strategy": "textual",
           "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": true
+          "fully_correct_on_matched_constraint": false
         }
       ]
     },
@@ -5977,14 +5902,14 @@
         "missed_constraints": [],
         "extra_constraints": [],
         "exact_constraint_set_match": true,
-        "exact_full_case_match": false
+        "exact_full_case_match": true
       },
       "matched_rows": [
         {
           "normalized_text": "balcony",
           "gold_priority": "must",
-          "pred_priority": "nice",
-          "priority_correct": false,
+          "pred_priority": "must",
+          "priority_correct": true,
           "gold_category": "amenity",
           "pred_category": "amenity",
           "category_correct": true,
@@ -6001,7 +5926,7 @@
           "gold_evidence_strategy": "structured",
           "pred_evidence_strategy": "structured",
           "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": false
+          "fully_correct_on_matched_constraint": true
         },
         {
           "normalized_text": "in the city center",
@@ -6157,7 +6082,7 @@
           "pred_priority": "nice",
           "priority_correct": true,
           "gold_category": "other",
-          "pred_category": "layout",
+          "pred_category": "location",
           "category_correct": false,
           "gold_mapping_status": "unresolved",
           "pred_mapping_status": "unresolved",
@@ -6241,17 +6166,33 @@
       "constraint_extraction": {
         "gold_count": 1,
         "pred_count": 1,
-        "correct_count": 0,
-        "missed_constraints": [
-          "in the city center"
-        ],
-        "extra_constraints": [
-          "preferably in the city center"
-        ],
-        "exact_constraint_set_match": false,
-        "exact_full_case_match": false
+        "correct_count": 1,
+        "missed_constraints": [],
+        "extra_constraints": [],
+        "exact_constraint_set_match": true,
+        "exact_full_case_match": true
       },
-      "matched_rows": []
+      "matched_rows": [
+        {
+          "normalized_text": "in the city center",
+          "gold_priority": "nice",
+          "pred_priority": "nice",
+          "priority_correct": true,
+          "gold_category": "location",
+          "pred_category": "location",
+          "category_correct": true,
+          "gold_mapping_status": "unresolved",
+          "pred_mapping_status": "unresolved",
+          "mapping_status_correct": true,
+          "gold_mapped_fields": [],
+          "pred_mapped_fields": [],
+          "mapped_fields_exact_match": true,
+          "gold_evidence_strategy": "textual",
+          "pred_evidence_strategy": "textual",
+          "evidence_strategy_correct": true,
+          "fully_correct_on_matched_constraint": true
+        }
+      ]
     },
     {
       "case_id": "case_0180",
@@ -6289,8 +6230,8 @@
         {
           "normalized_text": "not on the first floor",
           "gold_priority": "forbidden",
-          "pred_priority": "forbidden",
-          "priority_correct": true,
+          "pred_priority": "must",
+          "priority_correct": false,
           "gold_category": "layout",
           "pred_category": "layout",
           "category_correct": true,
@@ -6303,7 +6244,7 @@
           "gold_evidence_strategy": "textual",
           "pred_evidence_strategy": "textual",
           "evidence_strategy_correct": true,
-          "fully_correct_on_matched_constraint": true
+          "fully_correct_on_matched_constraint": false
         },
         {
           "normalized_text": "smoking_allowed",
