@@ -19,6 +19,18 @@ def _iso(d: Any) -> str:
         return d.strip()
     raise ValueError(f"Invalid date value: {d!r}")
 
+def _property_type_query(req: SearchRequest) -> str:
+    if not req.property_types:
+        return ""
+
+    parts: list[str] = []
+
+    for pt in req.property_types:
+        value = pt.value if hasattr(pt, "value") else str(pt)
+        parts.append(value.replace("_", " "))
+
+    return " ".join(parts).strip()
+
 
 def _post_json_sync(url: str, payload: Dict[str, Any], timeout: int = 180) -> Any:
     data = json.dumps(payload).encode("utf-8")
@@ -53,14 +65,16 @@ class ApifyRetriever:
         currency = getattr(req, "currency", None) or os.getenv("APIFY_CURRENCY", "USD")
         language = os.getenv("APIFY_LANGUAGE", "en-gb")
         adults = int(getattr(req, "adults", 2) or 2)
+        children = int(getattr(req, "children", 0) or 0)
+        rooms = int(getattr(req, "rooms", 1) or 1)
 
-        # ✅ IMPORTANT: Apify booking-scraper search works best with Latin query.
-        # If city contains non-ascii, we pass a safe fallback query: "<city> Japan".
-        # (No synonym dictionaries; just a robust retrieval fallback.)
+
         search_query = str(req.city).strip()
-        if any(ord(ch) > 127 for ch in search_query):
-            # Keep original text but also add "Japan" to help geocoding/search
-            search_query = f"{search_query} Japan"
+
+        property_query = _property_type_query(req)
+        if property_query:
+            search_query = f"{search_query} {property_query}".strip()
+
 
         actor_input = {
             "search": search_query,
@@ -70,6 +84,8 @@ class ApifyRetriever:
             "checkIn": _iso(req.check_in),
             "checkOut": _iso(req.check_out),
             "adults": adults,
+            "children": children,
+            "rooms": rooms,
         }
 
         api_base = os.getenv("APIFY_BASE_URL", "https://api.apify.com")

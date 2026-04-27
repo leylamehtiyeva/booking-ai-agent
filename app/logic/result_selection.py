@@ -83,25 +83,66 @@ def classify_ranked_item(item: dict[str, Any]) -> dict[str, Any]:
     property_value = getattr(property_result, "value", None)
     occupancy_value = getattr(occupancy_result, "value", None)
 
-    property_confirmed = str(property_value) == "YES" or getattr(property_value, "value", None) == "YES"
-    occupancy_confirmed = str(occupancy_value) == "YES" or getattr(occupancy_value, "value", None) == "YES"
+    property_value_str = str(getattr(property_value, "value", property_value)).lower()
+    occupancy_value_str = str(getattr(occupancy_value, "value", occupancy_value)).lower()
+
+    property_confirmed = property_value_str == "yes"
+    occupancy_confirmed = occupancy_value_str == "yes"
+
+    property_failed = property_value_str == "no"
+    occupancy_failed = occupancy_value_str == "no"
+
+    property_uncertain = property_value_str == "uncertain"
+    occupancy_uncertain = occupancy_value_str == "uncertain"
 
     selection_reasons: list[str] = []
     blocking_reasons: list[str] = []
 
+    resolution_results = item.get("constraint_resolution_results") or []
+
+    has_negative_resolution = any(
+        str(getattr(result.get("status") if isinstance(result, dict) else result, "value", result.get("status") if isinstance(result, dict) else result)).upper()
+        == "NO"
+        for result in resolution_results
+    )
+
     if must_failed > 0:
         blocking_reasons.append("failed required constraints")
+
     if explicit_negative_count > 0:
         blocking_reasons.append("explicit negative evidence for requested constraints")
+
+    if has_negative_resolution:
+        blocking_reasons.append("negative constraint resolution result")
+
+    if property_failed:
+        blocking_reasons.append("property type does not match requested type")
+
+    if occupancy_failed:
+        blocking_reasons.append("occupancy type does not match requested type")
 
     if blocking_reasons:
         eligibility_status = "ineligible"
         match_tier = "weak"
+
     else:
         eligibility_status = "eligible"
 
-        no_uncertainty = must_uncertain == 0 and unknown_uncertain_count == 0
-        no_failures = must_failed == 0 and explicit_negative_count == 0
+        no_uncertainty = (
+            must_uncertain == 0
+            and unknown_uncertain_count == 0
+            and not property_uncertain
+            and not occupancy_uncertain
+        )
+
+        no_failures = (
+            must_failed == 0
+            and explicit_negative_count == 0
+            and not has_negative_resolution
+            and not property_failed
+            and not occupancy_failed
+        )
+
         all_must_confirmed = must_total > 0 and must_matched == must_total
 
         has_confirmed_core_signal = (
@@ -118,10 +159,28 @@ def classify_ranked_item(item: dict[str, Any]) -> dict[str, Any]:
             else:
                 selection_reasons.append("core request is confirmed")
 
+        elif must_total > 0 and must_matched == 0:
+            match_tier = "weak"
+
+            if (
+                must_uncertain > 0
+                or unknown_uncertain_count > 0
+                or property_uncertain
+                or occupancy_uncertain
+            ):
+                selection_reasons.append("no required constraints are confirmed")
+            else:
+                selection_reasons.append("weak match for required constraints")
+
         elif no_failures:
             match_tier = "partial"
 
-            if must_uncertain > 0 or unknown_uncertain_count > 0:
+            if (
+                must_uncertain > 0
+                or unknown_uncertain_count > 0
+                or property_uncertain
+                or occupancy_uncertain
+            ):
                 selection_reasons.append("some requested constraints are not fully confirmed")
             else:
                 selection_reasons.append("matches the core request")
@@ -135,24 +194,41 @@ def classify_ranked_item(item: dict[str, Any]) -> dict[str, Any]:
     classified["match_tier"] = match_tier
     classified["selection_reasons"] = selection_reasons
     classified["blocking_reasons"] = blocking_reasons
+
     return classified
 
 
 def select_ranked_items(items: list[dict[str, Any]], top_n: int) -> list[dict[str, Any]]:
     classified = [classify_ranked_item(item) for item in items]
 
-    strong = [x for x in classified if x.get("eligibility_status") == "eligible" and x.get("match_tier") == "strong"]
-    partial = [x for x in classified if x.get("eligibility_status") == "eligible" and x.get("match_tier") == "partial"]
+    def is_eligible(x):
+        return x.get("eligibility_status") == "eligible"
 
-    strong.sort(key=lambda x: float(x.get("score", 0.0)), reverse=True)
-    partial.sort(key=lambda x: float(x.get("score", 0.0)), reverse=True)
+    strong = [x for x in classified if is_eligible(x) and x.get("match_tier") == "strong"]
+    partial = [x for x in classified if is_eligible(x) and x.get("match_tier") == "partial"]
 
-    selected: list[dict[str, Any]] = []
-    selected.extend(strong[: max(0, top_n)])
+    # 🔥 ВАЖНО: weak только безопасные
+    weak = [
+        x for x in classified
+        if is_eligible(x)
+        and x.get("match_tier") == "weak"
+        and not x.get("blocking_reasons")  # ← ключевой фикс
+    ]
 
-    remaining = max(0, top_n - len(selected))
-    if remaining > 0:
-        selected.extend(partial[:remaining])
+    def sort_by_score(items):
+        return sorted(items, key=lambda x: float(x.get("score", 0.0)), reverse=True)
+
+    strong = sort_by_score(strong)
+    partial = sort_by_score(partial)
+    weak = sort_by_score(weak)
+
+    selected = []
+
+    for bucket in (strong, partial, weak):
+        remaining = max(0, top_n - len(selected))
+        if remaining <= 0:
+            break
+        selected.extend(bucket[:remaining])
 
     return selected
 

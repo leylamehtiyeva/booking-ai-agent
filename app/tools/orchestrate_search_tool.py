@@ -10,7 +10,7 @@ from google.genai import Client
 from google.genai import types as genai_types
 from pydantic import ValidationError
 from app.agents.intent_router_agent import IntentRoute
-from app.config import MAX_ITEMS_DEFAULT, MAX_ITEMS_HARD_CAP
+from app.config.settings import MAX_ITEMS_HARD_CAP
 from app.logic.matcher_structured import match_listing_structured
 from app.logic.numeric_filters import evaluate_numeric_filters
 from app.retrieval import Source, get_candidates
@@ -23,7 +23,9 @@ from app.schemas.match import Ternary
 from app.logic.normalize_search_response import normalize_search_response
 from app.logic.request_resolution import resolve_required_search_context
 from app.logic.occupancy import evaluate_occupancy
-
+from app.config.llm import get_gemini_model_for_adk
+from app.config.llm import get_gemini_model
+from collections import Counter
 
 from app.logic.constraint_evidence_resolution import (
     resolve_listing_constraints_with_fallback,
@@ -144,7 +146,7 @@ def _gemini_client() -> Client:
 async def _repair_intent_with_llm(
     intent_raw: Dict[str, Any],
     errors: list[dict],
-    model: str = "gemini-2.0-flash",
+    model: str = get_gemini_model(),
 ) -> Dict[str, Any]:
     """Ask LLM to repair intent so it matches IntentRoute exactly.
 
@@ -204,7 +206,7 @@ async def _repair_intent_with_llm(
                 },
             },
             "property_types": [
-                "apartment|hotel|hostel|house|aparthotel|guesthouse"
+                "ryokan|hotel|apartment|resort|villa|bed_and_breakfast|holiday_home|guest_house|hostel|capsule_hotel|homestay|chalet|lodge|campsite|country_house|love_hotel|house|aparthotel|guesthouse"
             ],
             "occupancy_types": [
                 "entire_place|private_room|shared_room|hotel_room"
@@ -442,8 +444,8 @@ def _rank_structured(req: SearchRequest, listings: List[ListingRaw]) -> List[Dic
 async def orchestrate_search(
     user_text: str,
     intent: Dict[str, Any],
-    top_n: int = MAX_ITEMS_DEFAULT,
-    max_items: int = MAX_ITEMS_DEFAULT,
+    top_n: int = MAX_ITEMS_HARD_CAP,
+    max_items: int = MAX_ITEMS_HARD_CAP,
     source: Source = "fixtures",
     fallback_policy: FallbackPolicy | None = None,
 ) -> Dict[str, Any]:
@@ -517,11 +519,17 @@ async def orchestrate_search(
 
     listings = filtered_listings
 
-    # 4) No candidates after filters → ask to change dates / clarify
+    # 4) No candidates after initial filters
     if not listings:
         return {
             "need_clarification": True,
             "questions": ["Ничего не найдено по текущим условиям. Попробуй изменить требования."],
+            "debug_notes": [
+                "No listings remained after initial city/date/occupancy filtering.",
+                f"city={req.city}, check_in={req.check_in}, check_out={req.check_out}",
+            ],
+            "active_intent": req.model_dump(mode="json", exclude_none=True),
+            "dropped_requests": dropped_requests,
         }
 
     # 5) Structured ranking
@@ -551,6 +559,60 @@ async def orchestrate_search(
         and not _fails_numeric_filters(it.get("numeric_results"))
     ]
     ranked.sort(key=lambda x: x["score"], reverse=True)
+    
+    if not ranked:
+        debug_notes = ["No listings remained after structured filtering."]
+
+        # --- PRICE ---
+        price = req.filters.price if req.filters else None
+        if price and price.max_amount is not None:
+            debug_notes.append(
+                f"Active price filter: max {price.max_amount} {price.currency or 'USD'} {price.scope or ''}".strip()
+            )
+
+        # --- BEDROOMS ---
+        if req.filters and req.filters.bedrooms_min is not None:
+            debug_notes.append(f"Active bedrooms filter: min {req.filters.bedrooms_min}")
+
+        # --- AREA ---
+        if req.filters and req.filters.area_sqm_min is not None:
+            debug_notes.append(f"Active area filter: min {req.filters.area_sqm_min} sqm")
+
+
+        # --- PROPERTY TYPE ---
+        if req.property_types:
+            debug_notes.append(
+                "Active property types: " + ", ".join(pt.value for pt in req.property_types)
+            )
+
+        # --- CONSTRAINTS (source of truth) ---
+        must_constraints = [
+            c.normalized_text
+            for c in (req.constraints or [])
+            if getattr(c, "priority", None) == "must"
+        ]
+        if must_constraints:
+            debug_notes.append(
+                "Active must constraints: " + ", ".join(must_constraints)
+            )
+
+        nice_constraints = [
+            c.normalized_text
+            for c in (req.constraints or [])
+            if getattr(c, "priority", None) == "nice"
+        ]
+        if nice_constraints:
+            debug_notes.append(
+                "Optional constraints: " + ", ".join(nice_constraints)
+            )
+
+        return {
+            "need_clarification": True,
+            "questions": ["Ничего не найдено по текущим условиям. Попробуй изменить требования."],
+            "debug_notes": debug_notes,
+            "active_intent": req.model_dump(mode="json", exclude_none=True),
+            "dropped_requests": dropped_requests,
+        }
 
     selected = select_ranked_items(ranked, top_n=top_n)
 
@@ -618,7 +680,7 @@ def _score_listing(
             score += 10
             must_yes += 1
         elif fm.value == Ternary.UNCERTAIN:
-            score += 3
+            pass
         else:
             score -= 100
 
@@ -637,7 +699,7 @@ def _score_listing(
         if nr.value == Ternary.YES:
             score += 10
         elif nr.value == Ternary.UNCERTAIN:
-            score += 3
+            pass
         else:
             score -= 100
 
@@ -657,7 +719,7 @@ def _build_fallback_policy(
         run_for_unresolved=True,
         run_for_structured_uncertain=True,
         max_constraints_per_listing=3,
-        model="gemini-2.0-flash",
+        model=get_gemini_model_for_adk(),
     )
 
 async def _apply_constraint_fallback_layer(
@@ -701,17 +763,46 @@ def _apply_constraint_resolution_scoring(ranked_items: list[dict]) -> list[dict]
 
         for r in item.get("constraint_resolution_results", []) or []:
             label = r.get("normalized_text") or "constraint"
-            decision = r.get("decision")
+            decision = str(r.get("decision") or "").upper()
+            priority = str(r.get("priority") or "").lower()
 
-            if decision == "YES":
-                delta += 3.0
-                extra_why.append(f"CONSTRAINT_MATCH: {label} confirmed by listing text")
-            elif decision == "NO":
-                if r.get("explicit_negative"):
-                    delta -= 4.0
-                    extra_why.append(f"CONSTRAINT_MATCH: {label} explicitly not supported")
+            if priority == "must":
+                if decision == "YES":
+                    delta += 3.0
+                    extra_why.append(f"CONSTRAINT_MATCH: {label} confirmed by listing text")
+                elif decision == "NO":
+                    delta -= 100.0
+                    extra_why.append(f"CONSTRAINT_FAIL: must constraint '{label}' not satisfied")
+                else:
+                    extra_why.append(f"CONSTRAINT_UNCERTAIN: must constraint '{label}' not confirmed")
+
+            elif priority in {"nice", "nice_to_have"}:
+                if decision == "YES":
+                    delta += 3.0
+                    extra_why.append(f"CONSTRAINT_MATCH: nice-to-have '{label}' confirmed by listing text")
+                elif decision == "NO":
+                    extra_why.append(f"CONSTRAINT_NO_MATCH: nice-to-have '{label}' not satisfied")
+                else:
+                    extra_why.append(f"CONSTRAINT_UNCERTAIN: nice-to-have '{label}' not confirmed")
+
+            elif priority == "forbidden":
+                if decision == "YES":
+                    delta -= 100.0
+                    extra_why.append(f"CONSTRAINT_FAIL: forbidden constraint '{label}' detected")
+                elif decision == "NO":
+                    delta += 3.0
+                    extra_why.append(f"CONSTRAINT_MATCH: forbidden constraint '{label}' not detected")
+                else:
+                    extra_why.append(f"CONSTRAINT_UNCERTAIN: forbidden constraint '{label}' unclear")
+
             else:
-                extra_why.append(f"CONSTRAINT_MATCH: {label} not confirmed")
+                # Defensive fallback: do not reward unknown priority.
+                if decision == "YES":
+                    extra_why.append(f"CONSTRAINT_MATCH: {label} confirmed, but priority is unknown")
+                elif decision == "NO":
+                    extra_why.append(f"CONSTRAINT_NO_MATCH: {label} not satisfied, but priority is unknown")
+                else:
+                    extra_why.append(f"CONSTRAINT_UNCERTAIN: {label} not confirmed")
 
         if delta != 0:
             item["score"] = float(item.get("score", 0.0)) + delta

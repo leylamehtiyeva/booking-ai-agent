@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from typing import Optional
+from app.config.llm import get_gemini_model_for_adk
 
 from google.adk.agents import Agent
 from google.adk.models.google_llm import Gemini
@@ -67,12 +68,14 @@ GENERAL:
   - constraints
   - property_types
   - occupancy_types
+  - unknown_requests
 
 IMPORTANT CONTRACT:
 - Preserve user meaning in constraints.
+- unknown_requests is a legacy compatibility field only.
+- Do NOT use unknown_requests as the main fallback bucket for user meaning.
+- In normal cases, return unknown_requests=[].
 - If something is meaningful but not safely mappable, keep it as an unresolved constraint.
-- Do NOT invent new keys.
-- Do NOT drop meaningful user constraints unless they are clearly invalid noise.
 
 CITY:
 - Normalize city names to the English form used by providers when possible.
@@ -102,14 +105,34 @@ Price rules:
 - Use max_amount unless the user clearly asks for a minimum
 - Include currency when mentioned
 
-PROPERTY TYPE / OCCUPANCY:
 Use property_types only for:
-- apartment
+- ryokan
 - hotel
+- apartment
+- resort
+- villa
+- bed_and_breakfast
+- holiday_home
+- guest_house
 - hostel
+- capsule_hotel
+- homestay
+- chalet
+- lodge
+- campsite
+- country_house
+- love_hotel
 - house
 - aparthotel
 - guesthouse
+
+Synonyms:
+- рекан / риокан / ryokan / ryokans / 旅館 -> ryokan
+- гестхаус / guest house / guesthouse -> guest_house
+- b&b / bed and breakfast -> bed_and_breakfast
+- holiday home / vacation home -> holiday_home
+- capsule hotel / капсульный отель -> capsule_hotel
+- love hotel -> love_hotel
 
 Use occupancy_types only for:
 - entire_place
@@ -188,6 +211,7 @@ IMPORTANT:
 - Do NOT drop meaningful constraints.
 - Do NOT put numeric constraints into constraints if they fit filters.
 - Do NOT use constraints for property_types / occupancy_types if they already fit dedicated slots.
+- Do NOT use unknown_requests as the semantic catch-all.
 - A user may express positive, negative, and soft-preference constraints in one message.
 
 Examples:
@@ -201,15 +225,18 @@ Return a JSON where:
 - constraints contains:
   - must constraint for cooking mapped to ["kitchen"]
   - nice constraint for balcony mapped to ["balcony"]
+- unknown_requests=[]
 
 User: "хочу чтобы можно было жить с собакой и желательно в центре"
 Return constraints containing:
 - must policy constraint mapped to ["pet_friendly"]
 - nice unresolved location constraint for city center
+- unknown_requests=[]
 
 User: "без шумного района"
 Return constraints containing:
 - forbidden unresolved location/other constraint with textual evidence strategy
+- unknown_requests=[]
 """.strip()
 
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
@@ -217,7 +244,7 @@ Return constraints containing:
         raise ValueError("Missing GEMINI_API_KEY/GOOGLE_API_KEY")
 
     llm = Gemini(
-        model="models/gemini-2.0-flash",
+        model=get_gemini_model_for_adk(),
         api_key=api_key,
     )
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from app.config.llm import get_gemini_model
 
 class FallbackPolicy(BaseModel):
     enabled: bool = True
@@ -13,7 +14,7 @@ class FallbackPolicy(BaseModel):
 
     max_constraints_per_listing: int = 3
 
-    model: str = "gemini-2.0-flash"
+    model: str = get_gemini_model()
 
     def normalized_top_k(self) -> int:
         return max(0, self.top_k)

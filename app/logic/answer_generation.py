@@ -231,11 +231,20 @@ def build_user_answer(payload: dict[str, Any]) -> str:
     """
     if payload.get("need_clarification"):
         questions = payload.get("questions") or []
+        debug_notes = payload.get("debug_notes") or []
+
+        base_text = ""
         if not questions:
-            return "I need one more detail to continue."
-        if len(questions) == 1:
-            return questions[0]
-        return "I need a few more details:\n- " + "\n- ".join(questions)
+            base_text = "I need one more detail to continue."
+        elif len(questions) == 1:
+            base_text = questions[0]
+        else:
+            base_text = "I need a few more details:\n- " + "\n- ".join(questions)
+
+        if debug_notes:
+            return base_text + "\n\nDebug notes:\n- " + "\n- ".join(debug_notes)
+
+        return base_text
 
     top_results = payload.get("top_results") or []
     request_ctx = _get_request_context(payload)

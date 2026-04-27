@@ -49,12 +49,24 @@ def detect_property_type(listing: ListingRaw) -> tuple[PropertyType | None, list
     texts = _texts_for_listing(listing)
 
     rules = [
+        (PropertyType.CAPSULE_HOTEL, ["capsule hotel", "capsule"]),
+        (PropertyType.BED_AND_BREAKFAST, ["bed and breakfast", "b&b"]),
+        (PropertyType.HOLIDAY_HOME, ["holiday home", "vacation home"]),
+        (PropertyType.COUNTRY_HOUSE, ["country house"]),
+        (PropertyType.LOVE_HOTEL, ["love hotel"]),
+        (PropertyType.GUEST_HOUSE, ["guest house", "guesthouse"]),
         (PropertyType.APARTHOTEL, ["aparthotel"]),
+        (PropertyType.RYOKAN, ["ryokan", "ryokans", "旅館"]),
+        (PropertyType.HOMESTAY, ["homestay"]),
+        (PropertyType.CAMPSITE, ["campsite", "camping"]),
+        (PropertyType.CHALET, ["chalet"]),
+        (PropertyType.LODGE, ["lodge"]),
+        (PropertyType.RESORT, ["resort"]),
         (PropertyType.HOSTEL, ["hostel"]),
+        (PropertyType.VILLA, ["villa"]),
         (PropertyType.HOTEL, ["hotel"]),
         (PropertyType.APARTMENT, ["apartment", "apartments", "flat", "studio"]),
-        (PropertyType.HOUSE, ["house", "villa", "home"]),
-        (PropertyType.GUESTHOUSE, ["guesthouse", "guest house"]),
+        (PropertyType.HOUSE, ["house", "home"]),
     ]
 
     for path, text in texts:

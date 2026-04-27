@@ -50,8 +50,3 @@ class Field(str, Enum):
     CHILDREN_ALLOWED = "children_allowed"
     PARKING = "parking"
 
-    # # --- Property type ---
-    # PROPERTY_APARTMENT = "property_apartment"
-    # PROPERTY_HOTEL = "property_hotel"
-    # PROPERTY_HOSTEL = "property_hostel"
-    # PROPERTY_HOUSE = "property_house"

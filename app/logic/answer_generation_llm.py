@@ -178,11 +178,12 @@ STYLE:
 - no JSON
 """.strip()
 
+from app.config.llm import get_gemini_model
 
 async def generate_user_answer_with_llm(
     payload: dict[str, Any],
     *,
-    model: str = "gemini-2.0-flash",
+    model: str = get_gemini_model(),
     use_fallback_on_error: bool = True,
 ) -> str:
     """

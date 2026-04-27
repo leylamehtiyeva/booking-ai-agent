@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from app.config.llm import get_gemini_model_for_adk
 
 from google.adk.agents import Agent
 from google.adk.models.google_llm import Gemini
@@ -86,7 +87,7 @@ FILTERS:
 - Example: if user says "now at least 3 bedrooms", only set bedrooms_min = 3
 
 PROPERTY TYPES:
-- apartment / hotel / hostel / house / aparthotel / guesthouse
+- ryokan / hotel / apartment / resort / villa / bed_and_breakfast / holiday_home / guest_house / hostel / capsule_hotel / homestay / chalet / lodge / campsite / country_house / love_hotel / house / aparthotel / guesthouse
 
 PROPERTY TYPE REPLACEMENT:
 - If the user changes the accommodation type, remove the old type and add the new one
@@ -121,7 +122,7 @@ GUESTS AND ROOMS:
 - Only update the fields explicitly changed by the user
 
 OCCUPANCY TYPES:
-- entire_place / private_room / shared_room / hotel_room
+- entire_place / private_room / shared_room / hotel_room / ryokan
 
 EXAMPLES:
 
@@ -196,7 +197,7 @@ Return:
         raise ValueError("Missing GEMINI_API_KEY/GOOGLE_API_KEY")
 
     llm = Gemini(
-        model="models/gemini-2.0-flash",
+        model=get_gemini_model_for_adk(),
         api_key=api_key,
     )
 

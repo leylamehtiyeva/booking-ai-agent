@@ -9,9 +9,13 @@ from app.schemas.constraints import (
     EvidenceStrategy,
     UserConstraint,
 )
+from app.config.llm import get_gemini_model_for_adk
+
 from app.schemas.fields import Field
 from app.schemas.listing import ListingRaw, Room
 from app.schemas.match import FieldMatch, Ternary
+from app.config.llm import get_gemini_model_for_adk
+
 
 
 def test_unresolved_must_textual_constraint_is_fallback_eligible():
@@ -151,7 +155,7 @@ async def test_resolve_listing_constraints_with_fallback_returns_unified_results
         evidence_strategy=EvidenceStrategy.STRUCTURED,
     )
 
-    async def _fake_resolve(req, *, model="gemini-2.0-flash"):
+    async def _fake_resolve(req, *, model=get_gemini_model_for_adk()):
         if req.normalized_text == "satellite TV":
             return cer.ConstraintResolutionResult(
                 listing_id=req.listing_id,
@@ -321,7 +325,7 @@ async def test_fallback_policy_limits_constraints_per_listing(monkeypatch):
 
     calls: list[str] = []
 
-    async def _fake_resolve(req, *, model="gemini-2.0-flash"):
+    async def _fake_resolve(req, *, model=get_gemini_model_for_adk()):
         calls.append(req.normalized_text)
         return cer.ConstraintResolutionResult(
             listing_id=req.listing_id,

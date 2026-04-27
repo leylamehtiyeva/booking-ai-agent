@@ -121,5 +121,1160 @@
         "facilities": ["Private bathroom"]
       }
     ]
+  },
+    {
+      "id": "baku-apt-1",
+      "name": "Sunny Central Apartment",
+      "city": "Baku",
+      "url": "https://example.com/baku-apt-1",
+      "price": 85,
+      "currency": "USD",
+      "property_type": "apartment",
+      "available_dates": {
+        "check_in": "2026-04-01",
+        "check_out": "2026-04-30"
+      },
+      "description": "Cozy 45 sqm apartment right in the city center, a few steps from metro. Has a small kitchen corner and satellite TV. Quiet street but still central.",
+      "facilities": [
+        {"name": "Private bathroom"},
+        {"name": "Free WiFi"}
+      ],
+      "policies": [
+        {"title": "Pets", "content": "Pets are not allowed."}
+      ],
+      "rooms": [
+        {
+          "name": "Studio Apartment",
+          "roomType": "Studio",
+          "facilities": ["Private bathroom", "Kitchen"]
+        }
+      ]
+    },
+    {
+      "id": "baku-apt-2",
+      "name": "Spacious Family Flat",
+      "city": "Baku",
+      "url": "https://example.com/baku-apt-2",
+      "price": 220,
+      "currency": "USD",
+      "property_type": "apartment",
+      "available_dates": {
+        "check_in": "2026-04-05",
+        "check_out": "2026-04-25"
+      },
+      "description": "Large apartment around 120 square meters located near Nizami street. Described as 2-bedroom but actually has 3 sleeping areas. Fully equipped kitchen and balcony.",
+      "facilities": [
+        {"name": "Kitchen"},
+        {"name": "Balcony"}
+      ],
+      "policies": [
+        {"title": "Pets", "content": "Pets are allowed on request."},
+        {"title": "Smoking", "content": "Smoking is not allowed."}
+      ],
+      "rooms": [
+        {
+          "name": "Two-Bedroom Apartment",
+          "roomType": "One-Bedroom Apartment",
+          "facilities": ["Kitchen", "Private bathroom", "Balcony"]
+        }
+      ]
+    },
+    {
+      "id": "baku-hotel-1",
+      "name": "Budget Hotel Room",
+      "city": "Baku",
+      "url": "https://example.com/baku-hotel-1",
+      "price": 40,
+      "currency": "USD",
+      "property_type": "hotel",
+      "available_dates": {
+        "check_in": "2026-04-10",
+        "check_out": "2026-04-28"
+      },
+      "description": "Simple hotel room of about 30 sqm in a quiet area, not exactly central. Has private bathroom and TV.",
+      "facilities": [
+        {"name": "Private bathroom"}
+      ],
+      "policies": [
+        {"title": "Smoking", "content": "Smoking allowed in designated areas."}
+      ],
+      "rooms": [
+        {
+          "name": "Standard Room",
+          "roomType": "Hotel Room",
+          "facilities": ["Private bathroom"]
+        }
+      ]
+    },
+    {
+      "id": "baku-apt-3",
+      "name": "Modern Loft Apartment",
+      "city": "Baku",
+      "url": "https://example.com/baku-apt-3",
+      "price": 150,
+      "currency": "USD",
+      "property_type": "apartment",
+      "available_dates": {
+        "check_in": "2026-04-01",
+        "check_out": "2026-04-30"
+      },
+      "description": "Loft-style apartment about 70 sqm, located near metro and shopping area. Kitchen available but not explicitly listed. Might be suitable for couples.",
+      "facilities": [
+        {"name": "Free WiFi"}
+      ],
+      "policies": [],
+      "rooms": [
+        {
+          "name": "Loft",
+          "roomType": "Studio",
+          "facilities": ["Kitchen", "WiFi"]
+        }
+      ]
+    },
+    {
+      "id": "baku-apt-4",
+      "name": "Luxury Sea View Apartment",
+      "city": "Baku",
+      "url": "https://example.com/baku-apt-4",
+      "price": 520,
+      "currency": "USD",
+      "property_type": "apartment",
+      "available_dates": {
+        "check_in": "2026-04-03",
+        "check_out": "2026-04-27"
+      },
+      "description": "Huge 150 sqm apartment with sea view, located in central Baku. Includes 2-bedroom setup but also extra sofa beds. High-end amenities, satellite channels included.",
+      "facilities": [
+        {"name": "Kitchen"},
+        {"name": "Private bathroom"},
+        {"name": "Sea view"}
+      ],
+      "policies": [
+        {"title": "Pets", "content": "Pets are allowed free of charge."}
+      ],
+      "rooms": [
+        {
+          "name": "Luxury Apartment",
+          "roomType": "Three-Bedroom Apartment",
+          "facilities": ["Kitchen", "Private bathroom", "Satellite TV"]
+        }
+      ]
+    },
+    {
+      "id": "tbilisi-hotel-1",
+      "name": "Tbilisi Old Town Hotel",
+      "city": "Tbilisi",
+      "url": "https://example.com/tbilisi-hotel-1",
+      "price": 75,
+      "currency": "USD",
+      "property_type": "hotel",
+      "available_dates": {
+        "check_in": "2026-04-01",
+        "check_out": "2026-04-20"
+      },
+      "description": "Hotel located in the old town area, around 60 sqm rooms. Close to attractions, has private bathroom and breakfast option.",
+      "facilities": [
+        {"name": "Private bathroom"},
+        {"name": "Breakfast"}
+      ],
+      "policies": [
+        {"title": "Cancellation", "content": "Free cancellation within 24 hours."}
+      ],
+      "rooms": [
+        {
+          "name": "Double Room",
+          "roomType": "Double Room",
+          "facilities": ["Private bathroom"]
+        }
+      ]
+    },
+    {
+      "id": "tbilisi-apt-1",
+      "name": "Compact City Apartment",
+      "city": "Tbilisi",
+      "url": "https://example.com/tbilisi-apt-1",
+      "price": 55,
+      "currency": "USD",
+      "property_type": "apartment",
+      "available_dates": {
+        "check_in": "2026-04-02",
+        "check_out": "2026-04-22"
+      },
+      "description": "Small apartment around 40 sqm in city center, includes kitchenette and basic amenities. Not much space but very central.",
+      "facilities": [],
+      "policies": [
+        {"title": "Pets", "content": "Pets are not allowed."}
+      ],
+      "rooms": [
+        {
+          "name": "Small Apartment",
+          "roomType": "Studio Apartment",
+          "facilities": ["Kitchenette"]
+        }
+      ]
+    },
+    {
+      "id": "baku-hotel-2",
+      "name": "Business Hotel",
+      "city": "Baku",
+      "url": "https://example.com/baku-hotel-2",
+      "price": 110,
+      "currency": "USD",
+      "property_type": "hotel",
+      "available_dates": {
+        "check_in": "2026-04-05",
+        "check_out": "2026-04-30"
+      },
+      "description": "Business-style hotel with rooms around 80 sqm, near business district. Has conference facilities and WiFi.",
+      "facilities": [
+        {"name": "WiFi"},
+        {"name": "Conference room"}
+      ],
+      "policies": [
+        {"title": "Smoking", "content": "No smoking."}
+      ],
+      "rooms": [
+        {
+          "name": "Business Room",
+          "roomType": "Executive Room",
+          "facilities": ["WiFi"]
+        }
+      ]
+    },
+    {
+      "id": "baku-apt-5",
+      "name": "Quiet Suburb Apartment",
+      "city": "Baku",
+      "url": "https://example.com/baku-apt-5",
+      "price": 60,
+      "currency": "USD",
+      "property_type": "apartment",
+      "available_dates": {
+        "check_in": "2026-04-01",
+        "check_out": "2026-04-30"
+      },
+      "description": "Apartment in a quiet suburb, about 65 sqm. Not in city center. Includes kitchen and washing machine.",
+      "facilities": [
+        {"name": "Kitchen"},
+        {"name": "Washing machine"}
+      ],
+      "policies": [],
+      "rooms": [
+        {
+          "name": "Apartment",
+          "roomType": "One-Bedroom Apartment",
+          "facilities": ["Kitchen"]
+        }
+      ]
+    },
+    {
+      "id": "batumi-apt-1",
+      "name": "Batumi Beach Apartment",
+      "city": "Batumi",
+      "url": "https://example.com/batumi-apt-1",
+      "price": 95,
+      "currency": "USD",
+      "property_type": "apartment",
+      "available_dates": {
+        "check_in": "2026-04-10",
+        "check_out": "2026-04-30"
+      },
+      "description": "Beachside apartment about 75 sqm, with balcony and sea view. Kitchen available, good for vacation stays.",
+      "facilities": [
+        {"name": "Balcony"},
+        {"name": "Sea view"}
+      ],
+      "policies": [
+        {"title": "Pets", "content": "Pets are allowed."}
+      ],
+      "rooms": [
+        {
+          "name": "Sea View Apartment",
+          "roomType": "One-Bedroom Apartment",
+          "facilities": ["Balcony", "Kitchen"]
+        }
+      ]
+    },
+      {
+        "id": "baku-apt-6",
+        "name": "City Center Compact Loft",
+        "city": "Baku",
+        "url": "https://example.com/baku-apt-6",
+        "price": 70,
+        "currency": "USD",
+        "property_type": "apartment",
+        "available_dates": {
+          "check_in": "2026-04-01",
+          "check_out": "2026-04-30"
+        },
+        "description": "Small loft around 38 sqm right in the city center, walking distance to metro and cafes. Has a kitchenette and fast WiFi, also mentions satellite channels in description.",
+        "facilities": [
+          {"name": "Free WiFi"}
+        ],
+        "policies": [
+          {"title": "Smoking", "content": "Smoking is not allowed."}
+        ],
+        "rooms": [
+          {
+            "name": "Loft Studio",
+            "roomType": "Studio Apartment",
+            "facilities": ["Kitchenette", "WiFi"]
+          }
+        ]
+      },
+      {
+        "id": "baku-hotel-3",
+        "name": "Grand City Hotel",
+        "city": "Baku",
+        "url": "https://example.com/baku-hotel-3",
+        "price": 180,
+        "currency": "USD",
+        "property_type": "hotel",
+        "available_dates": {
+          "check_in": "2026-04-05",
+          "check_out": "2026-04-28"
+        },
+        "description": "Modern hotel with spacious rooms about 90 sqm located near business district, not exactly center. Includes breakfast and gym access.",
+        "facilities": [
+          {"name": "Gym"},
+          {"name": "Breakfast"}
+        ],
+        "policies": [
+          {"title": "Pets", "content": "Pets are not allowed."},
+          {"title": "Cancellation", "content": "Free cancellation up to 2 days before arrival."}
+        ],
+        "rooms": [
+          {
+            "name": "Deluxe Room",
+            "roomType": "Double Room",
+            "facilities": ["Private bathroom", "Gym access"]
+          }
+        ]
+      },
+      {
+        "id": "baku-apt-7",
+        "name": "Old Town Spacious Flat",
+        "city": "Baku",
+        "url": "https://example.com/baku-apt-7",
+        "price": 260,
+        "currency": "USD",
+        "property_type": "apartment",
+        "available_dates": {
+          "check_in": "2026-04-03",
+          "check_out": "2026-04-26"
+        },
+        "description": "Spacious 110 sqm apartment in the old town area, described as 3-bedroom but layout is a bit unclear. Kitchen fully equipped, balcony overlooking narrow streets.",
+        "facilities": [
+          {"name": "Kitchen"},
+          {"name": "Balcony"}
+        ],
+        "policies": [
+          {"title": "Pets", "content": "Pets are allowed."}
+        ],
+        "rooms": [
+          {
+            "name": "Apartment",
+            "roomType": "Two-Bedroom Apartment",
+            "facilities": ["Kitchen", "Balcony", "Private bathroom"]
+          }
+        ]
+      },
+      {
+        "id": "tbilisi-hotel-2",
+        "name": "Central Plaza Hotel",
+        "city": "Tbilisi",
+        "url": "https://example.com/tbilisi-hotel-2",
+        "price": 95,
+        "currency": "USD",
+        "property_type": "hotel",
+        "available_dates": {
+          "check_in": "2026-04-01",
+          "check_out": "2026-04-30"
+        },
+        "description": "Hotel located right in city center, rooms around 55 sqm. Includes private bathroom, TV and breakfast. Good for short stays.",
+        "facilities": [
+          {"name": "Private bathroom"},
+          {"name": "Breakfast"}
+        ],
+        "policies": [
+          {"title": "Smoking", "content": "Smoking is not allowed."}
+        ],
+        "rooms": [
+          {
+            "name": "Standard Room",
+            "roomType": "Single Room",
+            "facilities": ["Private bathroom", "TV"]
+          }
+        ]
+      },
+      {
+        "id": "baku-apt-8",
+        "name": "Modern Minimal Apartment",
+        "city": "Baku",
+        "url": "https://example.com/baku-apt-8",
+        "price": 130,
+        "currency": "USD",
+        "property_type": "apartment",
+        "available_dates": {
+          "check_in": "2026-04-02",
+          "check_out": "2026-04-29"
+        },
+        "description": "Minimalistic apartment about 65 square meters, located near metro but not central. Has kitchen and washing machine, suitable for long stays.",
+        "facilities": [
+          {"name": "Washing machine"}
+        ],
+        "policies": [],
+        "rooms": [
+          {
+            "name": "Apartment",
+            "roomType": "Studio Apartment",
+            "facilities": ["Kitchen", "Washing machine"]
+          }
+        ]
+      },
+      {
+        "id": "baku-hotel-4",
+        "name": "Airport Transit Hotel",
+        "city": "Baku",
+        "url": "https://example.com/baku-hotel-4",
+        "price": 60,
+        "currency": "USD",
+        "property_type": "hotel",
+        "available_dates": {
+          "check_in": "2026-04-10",
+          "check_out": "2026-04-30"
+        },
+        "description": "Hotel near airport, about 40 sqm rooms. Not in city center, basic amenities, suitable for transit stays.",
+        "facilities": [
+          {"name": "Private bathroom"}
+        ],
+        "policies": [
+          {"title": "Pets", "content": "Pets are not allowed."}
+        ],
+        "rooms": [
+          {
+            "name": "Transit Room",
+            "roomType": "Hotel Room",
+            "facilities": ["Private bathroom"]
+          }
+        ]
+      },
+      {
+        "id": "tbilisi-apt-2",
+        "name": "Rustic Style Apartment",
+        "city": "Tbilisi",
+        "url": "https://example.com/tbilisi-apt-2",
+        "price": 80,
+        "currency": "USD",
+        "property_type": "apartment",
+        "available_dates": {
+          "check_in": "2026-04-05",
+          "check_out": "2026-04-25"
+        },
+        "description": "Apartment about 75 sqm in a quiet area, 2-bedroom according to description, includes kitchen and wooden interior. Slightly outside city center.",
+        "facilities": [
+          {"name": "Kitchen"}
+        ],
+        "policies": [
+          {"title": "Smoking", "content": "Smoking allowed."}
+        ],
+        "rooms": [
+          {
+            "name": "Apartment",
+            "roomType": "One-Bedroom Apartment",
+            "facilities": ["Kitchen", "Private bathroom"]
+          }
+        ]
+      },
+      {
+        "id": "batumi-hotel-1",
+        "name": "Seaside Hotel Batumi",
+        "city": "Batumi",
+        "url": "https://example.com/batumi-hotel-1",
+        "price": 120,
+        "currency": "USD",
+        "property_type": "hotel",
+        "available_dates": {
+          "check_in": "2026-04-01",
+          "check_out": "2026-04-30"
+        },
+        "description": "Hotel by the sea with rooms around 85 sqm. Has balcony and sea view, breakfast included. Popular during summer.",
+        "facilities": [
+          {"name": "Sea view"},
+          {"name": "Breakfast"}
+        ],
+        "policies": [
+          {"title": "Pets", "content": "Pets are allowed with extra charge."}
+        ],
+        "rooms": [
+          {
+            "name": "Sea View Room",
+            "roomType": "Double Room",
+            "facilities": ["Balcony", "Sea view"]
+          }
+        ]
+      },
+      {
+        "id": "baku-apt-9",
+        "name": "Economy Apartment",
+        "city": "Baku",
+        "url": "https://example.com/baku-apt-9",
+        "price": 50,
+        "currency": "USD",
+        "property_type": "apartment",
+        "available_dates": {
+          "check_in": "2026-04-01",
+          "check_out": "2026-04-30"
+        },
+        "description": "Budget apartment around 42 sqm, located outside city center. Basic kitchen and bathroom, nothing fancy.",
+        "facilities": [
+          {"name": "Kitchen"}
+        ],
+        "policies": [],
+        "rooms": [
+          {
+            "name": "Apartment",
+            "roomType": "Studio",
+            "facilities": ["Kitchen"]
+          }
+        ]
+      },
+      {
+        "id": "baku-apt-10",
+        "name": "Designer Luxury Loft",
+        "city": "Baku",
+        "url": "https://example.com/baku-apt-10",
+        "price": 480,
+        "currency": "USD",
+        "property_type": "apartment",
+        "available_dates": {
+          "check_in": "2026-04-04",
+          "check_out": "2026-04-30"
+        },
+        "description": "Luxury loft about 140 sqm in central Baku, described as 2-bedroom but open-plan layout. Includes kitchen, designer furniture and city views.",
+        "facilities": [
+          {"name": "Kitchen"},
+          {"name": "City view"}
+        ],
+        "policies": [
+          {"title": "Pets", "content": "Pets are allowed."},
+          {"title": "Smoking", "content": "Smoking is not allowed."}
+        ],
+        "rooms": [
+          {
+            "name": "Luxury Loft",
+            "roomType": "Studio Apartment",
+            "facilities": ["Kitchen", "City view"]
+          }
+        ]
+      },
+        {
+          "id": "baku-apt-11",
+          "name": "Central Park Apartment",
+          "city": "Baku",
+          "url": "https://example.com/baku-apt-11",
+          "price": 140,
+          "currency": "USD",
+          "property_type": "apartment",
+          "available_dates": {
+            "check_in": "2026-04-01",
+            "check_out": "2026-04-30"
+          },
+          "description": "Comfortable 75 sqm apartment near Central Park, walking distance to metro and cafes. Listed as 2-bedroom but layout feels more like 1 bedroom + living room. Has kitchen and washing machine.",
+          "facilities": [
+            {"name": "Washing machine"},
+            {"name": "Free WiFi"}
+          ],
+          "policies": [
+            {"title": "Pets", "content": "Pets are not allowed."}
+          ],
+          "rooms": [
+            {
+              "name": "Apartment",
+              "roomType": "One-Bedroom Apartment",
+              "facilities": ["Kitchen", "Private bathroom"]
+            }
+          ]
+        },
+        {
+          "id": "baku-hotel-5",
+          "name": "City Lights Hotel",
+          "city": "Baku",
+          "url": "https://example.com/baku-hotel-5",
+          "price": 95,
+          "currency": "USD",
+          "property_type": "hotel",
+          "available_dates": {
+            "check_in": "2026-04-03",
+            "check_out": "2026-04-27"
+          },
+          "description": "Hotel in central Baku, rooms around 60 sqm. Offers breakfast and private bathroom, close to shopping areas.",
+          "facilities": [
+            {"name": "Breakfast"},
+            {"name": "Private bathroom"}
+          ],
+          "policies": [
+            {"title": "Smoking", "content": "Smoking is not allowed."}
+          ],
+          "rooms": [
+            {
+              "name": "Standard Room",
+              "roomType": "Double Room",
+              "facilities": ["Private bathroom"]
+            }
+          ]
+        },
+        {
+          "id": "baku-apt-12",
+          "name": "Sea Breeze Apartment",
+          "city": "Baku",
+          "url": "https://example.com/baku-apt-12",
+          "price": 300,
+          "currency": "USD",
+          "property_type": "apartment",
+          "available_dates": {
+            "check_in": "2026-04-02",
+            "check_out": "2026-04-28"
+          },
+          "description": "Large 130 sqm apartment with sea view, described as 2-bedroom but actually includes 3 sleeping areas. Located near boulevard, quite central.",
+          "facilities": [
+            {"name": "Sea view"},
+            {"name": "Kitchen"}
+          ],
+          "policies": [
+            {"title": "Pets", "content": "Pets are allowed."}
+          ],
+          "rooms": [
+            {
+              "name": "Sea View Apartment",
+              "roomType": "Two-Bedroom Apartment",
+              "facilities": ["Kitchen", "Balcony", "Sea view"]
+            }
+          ]
+        },
+        {
+          "id": "baku-hotel-6",
+          "name": "Quiet Stay Hotel",
+          "city": "Baku",
+          "url": "https://example.com/baku-hotel-6",
+          "price": 55,
+          "currency": "USD",
+          "property_type": "hotel",
+          "available_dates": {
+            "check_in": "2026-04-01",
+            "check_out": "2026-04-30"
+          },
+          "description": "Small hotel about 35 sqm rooms in a quiet residential area, not city center. Basic amenities, private bathroom.",
+          "facilities": [
+            {"name": "Private bathroom"}
+          ],
+          "policies": [],
+          "rooms": [
+            {
+              "name": "Single Room",
+              "roomType": "Single Room",
+              "facilities": ["Private bathroom"]
+            }
+          ]
+        },
+        {
+          "id": "tbilisi-apt-3",
+          "name": "Old Town Balcony Apartment",
+          "city": "Tbilisi",
+          "url": "https://example.com/tbilisi-apt-3",
+          "price": 110,
+          "currency": "USD",
+          "property_type": "apartment",
+          "available_dates": {
+            "check_in": "2026-04-01",
+            "check_out": "2026-04-25"
+          },
+          "description": "Charming 80 sqm apartment in old town, close to city center attractions. Has kitchen and balcony, described as 2-bedroom.",
+          "facilities": [
+            {"name": "Balcony"}
+          ],
+          "policies": [
+            {"title": "Smoking", "content": "Smoking allowed."}
+          ],
+          "rooms": [
+            {
+              "name": "Apartment",
+              "roomType": "One-Bedroom Apartment",
+              "facilities": ["Kitchen", "Balcony"]
+            }
+          ]
+        },
+        {
+          "id": "tbilisi-hotel-3",
+          "name": "River View Hotel",
+          "city": "Tbilisi",
+          "url": "https://example.com/tbilisi-hotel-3",
+          "price": 85,
+          "currency": "USD",
+          "property_type": "hotel",
+          "available_dates": {
+            "check_in": "2026-04-05",
+            "check_out": "2026-04-30"
+          },
+          "description": "Hotel near river, rooms around 65 sqm. Not exactly center but still close. Offers private bathroom and breakfast.",
+          "facilities": [
+            {"name": "Private bathroom"},
+            {"name": "Breakfast"}
+          ],
+          "policies": [
+            {"title": "Pets", "content": "Pets are not allowed."}
+          ],
+          "rooms": [
+            {
+              "name": "River Room",
+              "roomType": "Double Room",
+              "facilities": ["Private bathroom"]
+            }
+          ]
+        },
+        {
+          "id": "tbilisi-apt-4",
+          "name": "Minimal Studio Flat",
+          "city": "Tbilisi",
+          "url": "https://example.com/tbilisi-apt-4",
+          "price": 60,
+          "currency": "USD",
+          "property_type": "apartment",
+          "available_dates": {
+            "check_in": "2026-04-03",
+            "check_out": "2026-04-27"
+          },
+          "description": "Studio apartment around 42 sqm, located near metro but outside main center. Includes kitchenette and WiFi.",
+          "facilities": [
+            {"name": "WiFi"}
+          ],
+          "policies": [],
+          "rooms": [
+            {
+              "name": "Studio",
+              "roomType": "Studio",
+              "facilities": ["Kitchenette", "WiFi"]
+            }
+          ]
+        },
+        {
+          "id": "istanbul-hotel-1",
+          "name": "Istanbul Grand Hotel",
+          "city": "Istanbul",
+          "url": "https://example.com/istanbul-hotel-1",
+          "price": 150,
+          "currency": "USD",
+          "property_type": "hotel",
+          "available_dates": {
+            "check_in": "2026-04-01",
+            "check_out": "2026-04-30"
+          },
+          "description": "Large hotel in Istanbul city center, rooms around 85 sqm. Includes private bathroom, breakfast and city view.",
+          "facilities": [
+            {"name": "Breakfast"},
+            {"name": "City view"}
+          ],
+          "policies": [
+            {"title": "Smoking", "content": "Smoking is not allowed."}
+          ],
+          "rooms": [
+            {
+              "name": "Deluxe Room",
+              "roomType": "Double Room",
+              "facilities": ["Private bathroom", "City view"]
+            }
+          ]
+        },
+        {
+          "id": "batumi-apt-2",
+          "name": "Beachfront Studio",
+          "city": "Batumi",
+          "url": "https://example.com/batumi-apt-2",
+          "price": 90,
+          "currency": "USD",
+          "property_type": "apartment",
+          "available_dates": {
+            "check_in": "2026-04-02",
+            "check_out": "2026-04-30"
+          },
+          "description": "Studio apartment about 50 sqm right near the beach, includes balcony and sea view. Kitchen available.",
+          "facilities": [
+            {"name": "Sea view"},
+            {"name": "Balcony"}
+          ],
+          "policies": [
+            {"title": "Pets", "content": "Pets are allowed with extra charge."}
+          ],
+          "rooms": [
+            {
+              "name": "Studio",
+              "roomType": "Studio Apartment",
+              "facilities": ["Kitchen", "Balcony"]
+            }
+          ]
+        },
+        {
+          "id": "dubai-apt-1",
+          "name": "Dubai Marina Apartment",
+          "city": "Dubai",
+          "url": "https://example.com/dubai-apt-1",
+          "price": 400,
+          "currency": "USD",
+          "property_type": "apartment",
+          "available_dates": {
+            "check_in": "2026-04-01",
+            "check_out": "2026-04-30"
+          },
+          "description": "Luxury apartment around 120 sqm in Dubai Marina, described as 2-bedroom with modern kitchen and balcony. Very central location.",
+          "facilities": [
+            {"name": "Kitchen"},
+            {"name": "Balcony"}
+          ],
+          "policies": [
+            {"title": "Pets", "content": "Pets are not allowed."}
+          ],
+          "rooms": [
+            {
+              "name": "Luxury Apartment",
+              "roomType": "One-Bedroom Apartment",
+              "facilities": ["Kitchen", "Balcony", "Private bathroom"]
+            }
+          ]
+        },
+  {
+    "id": "tokyo-apt-1",
+    "name": "Shibuya Compact Studio",
+    "city": "Tokyo",
+    "url": "https://example.com/tokyo-apt-1",
+    "price": 12000,
+    "currency": "JPY",
+    "property_type": "apartment",
+    "available_dates": {
+      "check_in": "2026-04-01",
+      "check_out": "2026-04-30"
+    },
+    "description": "Compact 32 sqm studio in Shibuya, very central and close to metro lines. Has small kitchen and washing machine, also mentions smart TV in description.",
+    "facilities": [
+      {"name": "Washing machine"}
+    ],
+    "policies": [
+      {"title": "Smoking", "content": "Smoking is not allowed."}
+    ],
+    "rooms": [
+      {
+        "name": "Studio",
+        "roomType": "Studio Apartment",
+        "facilities": ["Kitchenette", "Washing machine"]
+      }
+    ]
+  },
+  {
+    "id": "bangkok-hotel-1",
+    "name": "สุขุมวิท City Hotel",
+    "city": "Bangkok",
+    "url": "https://example.com/bangkok-hotel-1",
+    "price": 2500,
+    "currency": "THB",
+    "property_type": "hotel",
+    "available_dates": {
+      "check_in": "2026-04-05",
+      "check_out": "2026-04-30"
+    },
+    "description": "Hotel in Sukhumvit area, rooms around 45 sqm, close to BTS station. Includes breakfast and private bathroom.",
+    "facilities": [
+      {"name": "Breakfast"},
+      {"name": "Private bathroom"}
+    ],
+    "policies": [
+      {"title": "Pets", "content": "Pets are not allowed."}
+    ],
+    "rooms": [
+      {
+        "name": "Superior Room",
+        "roomType": "Double Room",
+        "facilities": ["Private bathroom"]
+      }
+    ]
+  },
+  {
+    "id": "seoul-apt-1",
+    "name": "Gangnam Modern Apartment",
+    "city": "Seoul",
+    "url": "https://example.com/seoul-apt-1",
+    "price": 180000,
+    "currency": "KRW",
+    "property_type": "apartment",
+    "available_dates": {
+      "check_in": "2026-04-02",
+      "check_out": "2026-04-28"
+    },
+    "description": "Modern apartment about 70 sqm in Gangnam, near metro and shopping. Has kitchen and smart home features, described as 2-bedroom.",
+    "facilities": [
+      {"name": "Free WiFi"}
+    ],
+    "policies": [
+      {"title": "Smoking", "content": "Smoking is not allowed."}
+    ],
+    "rooms": [
+      {
+        "name": "Apartment",
+        "roomType": "One-Bedroom Apartment",
+        "facilities": ["Kitchen", "WiFi"]
+      }
+    ]
+  },
+  {
+    "id": "singapore-hotel-1",
+    "name": "Marina Business Hotel",
+    "city": "Singapore",
+    "url": "https://example.com/singapore-hotel-1",
+    "price": 220,
+    "currency": "SGD",
+    "property_type": "hotel",
+    "available_dates": {
+      "check_in": "2026-04-01",
+      "check_out": "2026-04-30"
+    },
+    "description": "Business hotel in central Singapore, rooms around 55 sqm. Includes gym and breakfast, very central location.",
+    "facilities": [
+      {"name": "Gym"},
+      {"name": "Breakfast"}
+    ],
+    "policies": [
+      {"title": "Pets", "content": "Pets are not allowed."}
+    ],
+    "rooms": [
+      {
+        "name": "Business Room",
+        "roomType": "Double Room",
+        "facilities": ["Private bathroom", "Gym"]
+      }
+    ]
+  },
+  {
+    "id": "kuala-lumpur-apt-1",
+    "name": "KL City View Apartment",
+    "city": "Kuala Lumpur",
+    "url": "https://example.com/kl-apt-1",
+    "price": 350,
+    "currency": "MYR",
+    "property_type": "apartment",
+    "available_dates": {
+      "check_in": "2026-04-03",
+      "check_out": "2026-04-30"
+    },
+    "description": "Apartment about 80 sqm with city view, located near KLCC. Has kitchen and balcony, described as 2-bedroom.",
+    "facilities": [
+      {"name": "Balcony"}
+    ],
+    "policies": [
+      {"title": "Smoking", "content": "Smoking allowed in some areas."}
+    ],
+    "rooms": [
+      {
+        "name": "Apartment",
+        "roomType": "One-Bedroom Apartment",
+        "facilities": ["Kitchen", "Balcony"]
+      }
+    ]
+  },
+  {
+    "id": "bali-hotel-1",
+    "name": "Ubud Garden Resort",
+    "city": "Bali",
+    "url": "https://example.com/bali-hotel-1",
+    "price": 1200000,
+    "currency": "IDR",
+    "property_type": "hotel",
+    "available_dates": {
+      "check_in": "2026-04-01",
+      "check_out": "2026-04-30"
+    },
+    "description": "Resort in Ubud with large rooms around 90 sqm, surrounded by nature. Includes breakfast and pool access.",
+    "facilities": [
+      {"name": "Pool"},
+      {"name": "Breakfast"}
+    ],
+    "policies": [
+      {"title": "Pets", "content": "Pets are not allowed."}
+    ],
+    "rooms": [
+      {
+        "name": "Garden Room",
+        "roomType": "Double Room",
+        "facilities": ["Private bathroom", "Pool access"]
+      }
+    ]
+  },
+  {
+    "id": "hongkong-apt-1",
+    "name": "Central HK Studio",
+    "city": "Hong Kong",
+    "url": "https://example.com/hk-apt-1",
+    "price": 900,
+    "currency": "HKD",
+    "property_type": "apartment",
+    "available_dates": {
+      "check_in": "2026-04-02",
+      "check_out": "2026-04-30"
+    },
+    "description": "Very small studio around 28 sqm in Central, extremely central location. Has kitchenette and fast WiFi.",
+    "facilities": [
+      {"name": "WiFi"}
+    ],
+    "policies": [],
+    "rooms": [
+      {
+        "name": "Studio",
+        "roomType": "Studio",
+        "facilities": ["Kitchenette", "WiFi"]
+      }
+    ]
+  },
+  {
+    "id": "phuket-apt-1",
+    "name": "Beach Condo Phuket",
+    "city": "Phuket",
+    "url": "https://example.com/phuket-apt-1",
+    "price": 3000,
+    "currency": "THB",
+    "property_type": "apartment",
+    "available_dates": {
+      "check_in": "2026-04-01",
+      "check_out": "2026-04-30"
+    },
+    "description": "Beach condo about 65 sqm, located near Patong beach. Includes kitchen and balcony with sea view.",
+    "facilities": [
+      {"name": "Sea view"},
+      {"name": "Balcony"}
+    ],
+    "policies": [
+      {"title": "Pets", "content": "Pets are allowed."}
+    ],
+    "rooms": [
+      {
+        "name": "Condo",
+        "roomType": "One-Bedroom Apartment",
+        "facilities": ["Kitchen", "Balcony"]
+      }
+    ]
+  },
+  {
+    "id": "jakarta-hotel-1",
+    "name": "Jakarta Business Inn",
+    "city": "Jakarta",
+    "url": "https://example.com/jakarta-hotel-1",
+    "price": 950000,
+    "currency": "IDR",
+    "property_type": "hotel",
+    "available_dates": {
+      "check_in": "2026-04-05",
+      "check_out": "2026-04-30"
+    },
+    "description": "Business hotel with rooms around 60 sqm, located in central Jakarta. Includes private bathroom and breakfast.",
+    "facilities": [
+      {"name": "Private bathroom"},
+      {"name": "Breakfast"}
+    ],
+    "policies": [
+      {"title": "Smoking", "content": "Smoking is allowed."}
+    ],
+    "rooms": [
+      {
+        "name": "Business Room",
+        "roomType": "Double Room",
+        "facilities": ["Private bathroom"]
+      }
+    ]
+  },
+  {
+    "id": "manila-apt-1",
+    "name": "Manila City Apartment",
+    "city": "Manila",
+    "url": "https://example.com/manila-apt-1",
+    "price": 3500,
+    "currency": "PHP",
+    "property_type": "apartment",
+    "available_dates": {
+      "check_in": "2026-04-01",
+      "check_out": "2026-04-30"
+    },
+    "description": "Apartment about 70 sqm in Manila city center, close to malls and metro. Has kitchen and air conditioning.",
+    "facilities": [
+      {"name": "Air conditioning"}
+    ],
+    "policies": [
+      {"title": "Pets", "content": "Pets are not allowed."}
+    ],
+    "rooms": [
+      {
+        "name": "Apartment",
+        "roomType": "Studio Apartment",
+        "facilities": ["Kitchen", "Air conditioning"]
+      }
+    ]
+  },
+    {
+    "id": "manila-apt-1",
+    "name": "Manila City Apartment",
+    "city": "Manila",
+    "url": "https://example.com/manila-apt-1",
+    "price": 3500,
+    "currency": "PHP",
+    "property_type": "apartment",
+    "available_dates": {
+      "check_in": "2026-04-01",
+      "check_out": "2026-04-30"
+    },
+    "description": "Apartment about 70 sqm in Manila city center, close to malls and metro. Has kitchen and air conditioning.",
+    "facilities": [
+      {"name": "Air conditioning"}
+    ],
+    "policies": [
+      {"title": "Pets", "content": "Pets are not allowed."}
+    ],
+    "rooms": [
+      {
+        "name": "Apartment",
+        "roomType": "Studio Apartment",
+        "facilities": ["Kitchen", "Air conditioning"]
+      }
+    ]
+  },
+  {
+    "id": "kyoto-ryokan-1",
+    "name": "Kyoto Traditional Ryokan",
+    "city": "Kyoto",
+    "url": "https://example.com/kyoto-ryokan-1",
+    "price": 180,
+    "currency": "USD",
+    "property_type": "ryokan",
+    "available_dates": {
+      "check_in": "2026-05-20",
+      "check_out": "2026-05-23"
+    },
+    "description": "Traditional Japanese ryokan in Kyoto city center with tatami rooms, futon beds, and an onsen bath. Close to temples and public transport.",
+    "facilities": [
+      {"name": "Free WiFi"},
+      {"name": "Air conditioning"},
+      {"name": "Public bath"},
+      {"name": "Onsen"}
+    ],
+    "policies": [
+      {"title": "Pets", "content": "Pets are not allowed."},
+      {"title": "Smoking", "content": "Non-smoking throughout."}
+    ],
+    "rooms": [
+      {
+        "name": "Japanese Room",
+        "roomType": "Japanese-Style Room",
+        "facilities": [
+          "Tatami",
+          "Futon beds",
+          "Air conditioning",
+          "Shared bathroom"
+        ]
+      }
+    ]
   }
 ]

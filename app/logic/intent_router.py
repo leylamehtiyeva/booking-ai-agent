@@ -49,7 +49,6 @@ def _strip_json_fence(text: str) -> str:
 
 
 
-
 async def _route_intent_via_adk(user_text: str) -> IntentRoute:
     _ensure_gemini_key()
 
@@ -123,6 +122,7 @@ async def _route_intent_via_adk(user_text: str) -> IntentRoute:
 
 
 async def route_intent_adk_async(user_text: str) -> IntentRoute:
+    print("ROUTE_INTENT_CALLED", user_text)
     return await _route_intent_via_adk(user_text)
 
 
