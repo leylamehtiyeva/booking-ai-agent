@@ -1,0 +1,843 @@
+{
+  "overall_metrics": {
+    "total_cases": 5,
+    "accuracy": 0.0,
+    "decision_correct_count": 0,
+    "explicit_negative_accuracy": 0.6,
+    "explicit_negative_correct_count": 3,
+    "critical_no_to_yes_count": 0,
+    "critical_yes_to_no_count": 0,
+    "over_conservative_yes_to_uncertain_count": 0,
+    "under_conservative_uncertain_to_yes_count": 3,
+    "confusion_matrix": {
+      "YES": {
+        "YES": 0,
+        "NO": 0,
+        "UNCERTAIN": 0
+      },
+      "NO": {
+        "YES": 0,
+        "NO": 0,
+        "UNCERTAIN": 2
+      },
+      "UNCERTAIN": {
+        "YES": 3,
+        "NO": 0,
+        "UNCERTAIN": 0
+      }
+    },
+    "label_metrics": {
+      "YES": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 3,
+        "fn": 0
+      },
+      "NO": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 0,
+        "fn": 2
+      },
+      "UNCERTAIN": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "tp": 0,
+        "fp": 2,
+        "fn": 3
+      }
+    }
+  },
+  "group_metrics": {
+    "explicit_negative": {
+      "total_cases": 2,
+      "accuracy": 0.0,
+      "decision_correct_count": 0,
+      "explicit_negative_accuracy": 0.0,
+      "explicit_negative_correct_count": 0,
+      "critical_no_to_yes_count": 0,
+      "critical_yes_to_no_count": 0,
+      "over_conservative_yes_to_uncertain_count": 0,
+      "under_conservative_uncertain_to_yes_count": 0,
+      "confusion_matrix": {
+        "YES": {
+          "YES": 0,
+          "NO": 0,
+          "UNCERTAIN": 0
+        },
+        "NO": {
+          "YES": 0,
+          "NO": 0,
+          "UNCERTAIN": 2
+        },
+        "UNCERTAIN": {
+          "YES": 0,
+          "NO": 0,
+          "UNCERTAIN": 0
+        }
+      },
+      "label_metrics": {
+        "YES": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "NO": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 2
+        },
+        "UNCERTAIN": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "tp": 0,
+          "fp": 2,
+          "fn": 0
+        }
+      }
+    },
+    "weak_evidence_uncertain": {
+      "total_cases": 2,
+      "accuracy": 0.0,
+      "decision_correct_count": 0,
+      "explicit_negative_accuracy": 1.0,
+      "explicit_negative_correct_count": 2,
+      "critical_no_to_yes_count": 0,
+      "critical_yes_to_no_count": 0,
+      "over_conservative_yes_to_uncertain_count": 0,
+      "under_conservative_uncertain_to_yes_count": 2,
+      "confusion_matrix": {
+        "YES": {
+          "YES": 0,
+          "NO": 0,
+          "UNCERTAIN": 0
+        },
+        "NO": {
+          "YES": 0,
+          "NO": 0,
+          "UNCERTAIN": 0
+        },
+        "UNCERTAIN": {
+          "YES": 2,
+          "NO": 0,
+          "UNCERTAIN": 0
+        }
+      },
+      "label_metrics": {
+        "YES": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "tp": 0,
+          "fp": 2,
+          "fn": 0
+        },
+        "NO": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "UNCERTAIN": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 2
+        }
+      }
+    },
+    "synonym_positive": {
+      "total_cases": 1,
+      "accuracy": 0.0,
+      "decision_correct_count": 0,
+      "explicit_negative_accuracy": 1.0,
+      "explicit_negative_correct_count": 1,
+      "critical_no_to_yes_count": 0,
+      "critical_yes_to_no_count": 0,
+      "over_conservative_yes_to_uncertain_count": 0,
+      "under_conservative_uncertain_to_yes_count": 1,
+      "confusion_matrix": {
+        "YES": {
+          "YES": 0,
+          "NO": 0,
+          "UNCERTAIN": 0
+        },
+        "NO": {
+          "YES": 0,
+          "NO": 0,
+          "UNCERTAIN": 0
+        },
+        "UNCERTAIN": {
+          "YES": 1,
+          "NO": 0,
+          "UNCERTAIN": 0
+        }
+      },
+      "label_metrics": {
+        "YES": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "tp": 0,
+          "fp": 1,
+          "fn": 0
+        },
+        "NO": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 0
+        },
+        "UNCERTAIN": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1
+        }
+      }
+    }
+  },
+  "errors": [
+    {
+      "case_id": "cr_012",
+      "case_type": "explicit_negative",
+      "difficulty": "easy",
+      "constraint": {
+        "raw_text": "free parking",
+        "normalized_text": "free_parking",
+        "priority": "must",
+        "category": "parking",
+        "mapping_status": "known",
+        "evidence_strategy": "textual",
+        "mapped_fields": [
+          "parking_available",
+          "parking_cost"
+        ],
+        "structured_value": "UNCERTAIN"
+      },
+      "listing_evidence": [
+        {
+          "source": "facilities",
+          "text": "Parking is available but costs $20 per day.",
+          "path": null
+        }
+      ],
+      "expected_decision": "NO",
+      "predicted_decision": "UNCERTAIN",
+      "decision_correct": false,
+      "expected_explicit_negative": true,
+      "predicted_explicit_negative": false,
+      "explicit_negative_correct": false,
+      "expected_explanation": "The evidence states that parking is available but not free, which contradicts the 'free parking' constraint.",
+      "prediction_reason": "The listing explicitly states that parking is available but has a cost of $20 per day, which contradicts the user's requirement for free parking.",
+      "prediction_evidence": [
+        {
+          "snippet": "Parking is available but costs $20 per day.",
+          "source": "facilities",
+          "path": ""
+        }
+      ],
+      "raw_prediction": {
+        "listing_id": "cr_012",
+        "listing_title": null,
+        "constraint_id": "cr_012",
+        "raw_text": "free parking",
+        "normalized_text": "free_parking",
+        "resolver_type": "textual",
+        "decision": "UNCERTAIN",
+        "resolution_status": "uncertain",
+        "confidence": 1.0,
+        "reason": "The listing explicitly states that parking is available but has a cost of $20 per day, which contradicts the user's requirement for free parking.",
+        "evidence": [
+          {
+            "snippet": "Parking is available but costs $20 per day.",
+            "source": "facilities",
+            "path": ""
+          }
+        ],
+        "source_stage": "fallback",
+        "structured_value_before": "UNCERTAIN",
+        "explicit_negative": false
+      }
+    },
+    {
+      "case_id": "cr_017",
+      "case_type": "explicit_negative",
+      "difficulty": "easy",
+      "constraint": {
+        "raw_text": "free wifi",
+        "normalized_text": "free_wifi",
+        "priority": "must",
+        "category": "free_wifi",
+        "mapping_status": "known",
+        "evidence_strategy": "textual",
+        "mapped_fields": [
+          "wifi_available",
+          "wifi_price"
+        ],
+        "structured_value": "UNCERTAIN"
+      },
+      "listing_evidence": [
+        {
+          "source": "facilities",
+          "text": "WiFi is available in the rooms but incurs a charge.",
+          "path": null
+        }
+      ],
+      "expected_decision": "NO",
+      "predicted_decision": "UNCERTAIN",
+      "decision_correct": false,
+      "expected_explicit_negative": true,
+      "predicted_explicit_negative": false,
+      "explicit_negative_correct": false,
+      "expected_explanation": "The evidence states that WiFi is available but not free, which is a direct contradiction to the 'free wifi' constraint.",
+      "prediction_reason": "The listing explicitly states that WiFi is available but incurs a charge, meaning it is not free.",
+      "prediction_evidence": [
+        {
+          "snippet": "WiFi is available in the rooms but incurs a charge.",
+          "source": "facilities",
+          "path": ""
+        }
+      ],
+      "raw_prediction": {
+        "listing_id": "cr_017",
+        "listing_title": null,
+        "constraint_id": "cr_017",
+        "raw_text": "free wifi",
+        "normalized_text": "free_wifi",
+        "resolver_type": "textual",
+        "decision": "UNCERTAIN",
+        "resolution_status": "uncertain",
+        "confidence": 1.0,
+        "reason": "The listing explicitly states that WiFi is available but incurs a charge, meaning it is not free.",
+        "evidence": [
+          {
+            "snippet": "WiFi is available in the rooms but incurs a charge.",
+            "source": "facilities",
+            "path": ""
+          }
+        ],
+        "source_stage": "fallback",
+        "structured_value_before": "UNCERTAIN",
+        "explicit_negative": false
+      }
+    },
+    {
+      "case_id": "cr_032",
+      "case_type": "weak_evidence_uncertain",
+      "difficulty": "medium",
+      "constraint": {
+        "raw_text": "wifi included",
+        "normalized_text": "wifi_included",
+        "priority": "must",
+        "category": "wifi",
+        "mapping_status": "known",
+        "evidence_strategy": "textual",
+        "mapped_fields": [
+          "wifi_included"
+        ],
+        "structured_value": "UNCERTAIN"
+      },
+      "listing_evidence": [
+        {
+          "source": "room_facilities",
+          "text": "Wi-Fi available in all rooms",
+          "path": null
+        }
+      ],
+      "expected_decision": "UNCERTAIN",
+      "predicted_decision": "YES",
+      "decision_correct": false,
+      "expected_explicit_negative": false,
+      "predicted_explicit_negative": false,
+      "explicit_negative_correct": true,
+      "expected_explanation": "The evidence states Wi-Fi is available, but not if it is included in the price or an additional charge.",
+      "prediction_reason": "The Wi-Fi is available in all rooms.",
+      "prediction_evidence": [
+        {
+          "snippet": "Wi-Fi available in all rooms",
+          "source": "room_facilities",
+          "path": ""
+        }
+      ],
+      "raw_prediction": {
+        "listing_id": "cr_032",
+        "listing_title": null,
+        "constraint_id": "cr_032",
+        "raw_text": "wifi included",
+        "normalized_text": "wifi_included",
+        "resolver_type": "textual",
+        "decision": "YES",
+        "resolution_status": "matched",
+        "confidence": 1.0,
+        "reason": "The Wi-Fi is available in all rooms.",
+        "evidence": [
+          {
+            "snippet": "Wi-Fi available in all rooms",
+            "source": "room_facilities",
+            "path": ""
+          }
+        ],
+        "source_stage": "fallback",
+        "structured_value_before": "UNCERTAIN",
+        "explicit_negative": false
+      }
+    },
+    {
+      "case_id": "cr_037",
+      "case_type": "weak_evidence_uncertain",
+      "difficulty": "medium",
+      "constraint": {
+        "raw_text": "wifi included",
+        "normalized_text": "wifi_included",
+        "priority": "must",
+        "category": "wifi",
+        "mapping_status": "known",
+        "evidence_strategy": "textual",
+        "mapped_fields": [
+          "wifi_included"
+        ],
+        "structured_value": "UNCERTAIN"
+      },
+      "listing_evidence": [
+        {
+          "source": "room_facilities",
+          "text": "Wi-Fi available in all rooms",
+          "path": null
+        }
+      ],
+      "expected_decision": "UNCERTAIN",
+      "predicted_decision": "YES",
+      "decision_correct": false,
+      "expected_explicit_negative": false,
+      "predicted_explicit_negative": false,
+      "explicit_negative_correct": true,
+      "expected_explanation": "The evidence states Wi-Fi is available, but not if it is included in the price or an additional charge.",
+      "prediction_reason": "The Wi-Fi is available in all rooms.",
+      "prediction_evidence": [
+        {
+          "snippet": "Wi-Fi available in all rooms",
+          "source": "room_facilities",
+          "path": ""
+        }
+      ],
+      "raw_prediction": {
+        "listing_id": "cr_037",
+        "listing_title": null,
+        "constraint_id": "cr_037",
+        "raw_text": "wifi included",
+        "normalized_text": "wifi_included",
+        "resolver_type": "textual",
+        "decision": "YES",
+        "resolution_status": "matched",
+        "confidence": 1.0,
+        "reason": "The Wi-Fi is available in all rooms.",
+        "evidence": [
+          {
+            "snippet": "Wi-Fi available in all rooms",
+            "source": "room_facilities",
+            "path": ""
+          }
+        ],
+        "source_stage": "fallback",
+        "structured_value_before": "UNCERTAIN",
+        "explicit_negative": false
+      }
+    },
+    {
+      "case_id": "cr_045",
+      "case_type": "synonym_positive",
+      "difficulty": "medium",
+      "constraint": {
+        "raw_text": "breakfast included",
+        "normalized_text": "breakfast_included",
+        "priority": "must",
+        "category": "breakfast",
+        "mapping_status": "known",
+        "evidence_strategy": "textual",
+        "mapped_fields": [
+          "breakfast_included"
+        ],
+        "structured_value": "YES"
+      },
+      "listing_evidence": [
+        {
+          "source": "description",
+          "text": "Start your day with our delicious morning meal, served daily.",
+          "path": null
+        }
+      ],
+      "expected_decision": "UNCERTAIN",
+      "predicted_decision": "YES",
+      "decision_correct": false,
+      "expected_explicit_negative": false,
+      "predicted_explicit_negative": false,
+      "explicit_negative_correct": true,
+      "expected_explanation": "The 'morning meal served daily' is a clear synonym for breakfast included.",
+      "prediction_reason": "The description states that a delicious morning meal is served daily, implying breakfast is included.",
+      "prediction_evidence": [
+        {
+          "snippet": "Start your day with our delicious morning meal, served daily.",
+          "source": "description",
+          "path": ""
+        }
+      ],
+      "raw_prediction": {
+        "listing_id": "cr_045",
+        "listing_title": null,
+        "constraint_id": "cr_045",
+        "raw_text": "breakfast included",
+        "normalized_text": "breakfast_included",
+        "resolver_type": "textual",
+        "decision": "YES",
+        "resolution_status": "matched",
+        "confidence": 0.9,
+        "reason": "The description states that a delicious morning meal is served daily, implying breakfast is included.",
+        "evidence": [
+          {
+            "snippet": "Start your day with our delicious morning meal, served daily.",
+            "source": "description",
+            "path": ""
+          }
+        ],
+        "source_stage": "fallback",
+        "structured_value_before": "YES",
+        "explicit_negative": false
+      }
+    }
+  ],
+  "runtime_errors": [],
+  "runtime_error_count": 0,
+  "completed_cases": 5,
+  "valid_evaluated_cases": 5,
+  "total_cases": 5,
+  "cases": [
+    {
+      "case_id": "cr_012",
+      "case_type": "explicit_negative",
+      "difficulty": "easy",
+      "constraint": {
+        "raw_text": "free parking",
+        "normalized_text": "free_parking",
+        "priority": "must",
+        "category": "parking",
+        "mapping_status": "known",
+        "evidence_strategy": "textual",
+        "mapped_fields": [
+          "parking_available",
+          "parking_cost"
+        ],
+        "structured_value": "UNCERTAIN"
+      },
+      "listing_evidence": [
+        {
+          "source": "facilities",
+          "text": "Parking is available but costs $20 per day.",
+          "path": null
+        }
+      ],
+      "expected_decision": "NO",
+      "predicted_decision": "UNCERTAIN",
+      "decision_correct": false,
+      "expected_explicit_negative": true,
+      "predicted_explicit_negative": false,
+      "explicit_negative_correct": false,
+      "expected_explanation": "The evidence states that parking is available but not free, which contradicts the 'free parking' constraint.",
+      "prediction_reason": "The listing explicitly states that parking is available but has a cost of $20 per day, which contradicts the user's requirement for free parking.",
+      "prediction_evidence": [
+        {
+          "snippet": "Parking is available but costs $20 per day.",
+          "source": "facilities",
+          "path": ""
+        }
+      ],
+      "raw_prediction": {
+        "listing_id": "cr_012",
+        "listing_title": null,
+        "constraint_id": "cr_012",
+        "raw_text": "free parking",
+        "normalized_text": "free_parking",
+        "resolver_type": "textual",
+        "decision": "UNCERTAIN",
+        "resolution_status": "uncertain",
+        "confidence": 1.0,
+        "reason": "The listing explicitly states that parking is available but has a cost of $20 per day, which contradicts the user's requirement for free parking.",
+        "evidence": [
+          {
+            "snippet": "Parking is available but costs $20 per day.",
+            "source": "facilities",
+            "path": ""
+          }
+        ],
+        "source_stage": "fallback",
+        "structured_value_before": "UNCERTAIN",
+        "explicit_negative": false
+      }
+    },
+    {
+      "case_id": "cr_017",
+      "case_type": "explicit_negative",
+      "difficulty": "easy",
+      "constraint": {
+        "raw_text": "free wifi",
+        "normalized_text": "free_wifi",
+        "priority": "must",
+        "category": "free_wifi",
+        "mapping_status": "known",
+        "evidence_strategy": "textual",
+        "mapped_fields": [
+          "wifi_available",
+          "wifi_price"
+        ],
+        "structured_value": "UNCERTAIN"
+      },
+      "listing_evidence": [
+        {
+          "source": "facilities",
+          "text": "WiFi is available in the rooms but incurs a charge.",
+          "path": null
+        }
+      ],
+      "expected_decision": "NO",
+      "predicted_decision": "UNCERTAIN",
+      "decision_correct": false,
+      "expected_explicit_negative": true,
+      "predicted_explicit_negative": false,
+      "explicit_negative_correct": false,
+      "expected_explanation": "The evidence states that WiFi is available but not free, which is a direct contradiction to the 'free wifi' constraint.",
+      "prediction_reason": "The listing explicitly states that WiFi is available but incurs a charge, meaning it is not free.",
+      "prediction_evidence": [
+        {
+          "snippet": "WiFi is available in the rooms but incurs a charge.",
+          "source": "facilities",
+          "path": ""
+        }
+      ],
+      "raw_prediction": {
+        "listing_id": "cr_017",
+        "listing_title": null,
+        "constraint_id": "cr_017",
+        "raw_text": "free wifi",
+        "normalized_text": "free_wifi",
+        "resolver_type": "textual",
+        "decision": "UNCERTAIN",
+        "resolution_status": "uncertain",
+        "confidence": 1.0,
+        "reason": "The listing explicitly states that WiFi is available but incurs a charge, meaning it is not free.",
+        "evidence": [
+          {
+            "snippet": "WiFi is available in the rooms but incurs a charge.",
+            "source": "facilities",
+            "path": ""
+          }
+        ],
+        "source_stage": "fallback",
+        "structured_value_before": "UNCERTAIN",
+        "explicit_negative": false
+      }
+    },
+    {
+      "case_id": "cr_032",
+      "case_type": "weak_evidence_uncertain",
+      "difficulty": "medium",
+      "constraint": {
+        "raw_text": "wifi included",
+        "normalized_text": "wifi_included",
+        "priority": "must",
+        "category": "wifi",
+        "mapping_status": "known",
+        "evidence_strategy": "textual",
+        "mapped_fields": [
+          "wifi_included"
+        ],
+        "structured_value": "UNCERTAIN"
+      },
+      "listing_evidence": [
+        {
+          "source": "room_facilities",
+          "text": "Wi-Fi available in all rooms",
+          "path": null
+        }
+      ],
+      "expected_decision": "UNCERTAIN",
+      "predicted_decision": "YES",
+      "decision_correct": false,
+      "expected_explicit_negative": false,
+      "predicted_explicit_negative": false,
+      "explicit_negative_correct": true,
+      "expected_explanation": "The evidence states Wi-Fi is available, but not if it is included in the price or an additional charge.",
+      "prediction_reason": "The Wi-Fi is available in all rooms.",
+      "prediction_evidence": [
+        {
+          "snippet": "Wi-Fi available in all rooms",
+          "source": "room_facilities",
+          "path": ""
+        }
+      ],
+      "raw_prediction": {
+        "listing_id": "cr_032",
+        "listing_title": null,
+        "constraint_id": "cr_032",
+        "raw_text": "wifi included",
+        "normalized_text": "wifi_included",
+        "resolver_type": "textual",
+        "decision": "YES",
+        "resolution_status": "matched",
+        "confidence": 1.0,
+        "reason": "The Wi-Fi is available in all rooms.",
+        "evidence": [
+          {
+            "snippet": "Wi-Fi available in all rooms",
+            "source": "room_facilities",
+            "path": ""
+          }
+        ],
+        "source_stage": "fallback",
+        "structured_value_before": "UNCERTAIN",
+        "explicit_negative": false
+      }
+    },
+    {
+      "case_id": "cr_037",
+      "case_type": "weak_evidence_uncertain",
+      "difficulty": "medium",
+      "constraint": {
+        "raw_text": "wifi included",
+        "normalized_text": "wifi_included",
+        "priority": "must",
+        "category": "wifi",
+        "mapping_status": "known",
+        "evidence_strategy": "textual",
+        "mapped_fields": [
+          "wifi_included"
+        ],
+        "structured_value": "UNCERTAIN"
+      },
+      "listing_evidence": [
+        {
+          "source": "room_facilities",
+          "text": "Wi-Fi available in all rooms",
+          "path": null
+        }
+      ],
+      "expected_decision": "UNCERTAIN",
+      "predicted_decision": "YES",
+      "decision_correct": false,
+      "expected_explicit_negative": false,
+      "predicted_explicit_negative": false,
+      "explicit_negative_correct": true,
+      "expected_explanation": "The evidence states Wi-Fi is available, but not if it is included in the price or an additional charge.",
+      "prediction_reason": "The Wi-Fi is available in all rooms.",
+      "prediction_evidence": [
+        {
+          "snippet": "Wi-Fi available in all rooms",
+          "source": "room_facilities",
+          "path": ""
+        }
+      ],
+      "raw_prediction": {
+        "listing_id": "cr_037",
+        "listing_title": null,
+        "constraint_id": "cr_037",
+        "raw_text": "wifi included",
+        "normalized_text": "wifi_included",
+        "resolver_type": "textual",
+        "decision": "YES",
+        "resolution_status": "matched",
+        "confidence": 1.0,
+        "reason": "The Wi-Fi is available in all rooms.",
+        "evidence": [
+          {
+            "snippet": "Wi-Fi available in all rooms",
+            "source": "room_facilities",
+            "path": ""
+          }
+        ],
+        "source_stage": "fallback",
+        "structured_value_before": "UNCERTAIN",
+        "explicit_negative": false
+      }
+    },
+    {
+      "case_id": "cr_045",
+      "case_type": "synonym_positive",
+      "difficulty": "medium",
+      "constraint": {
+        "raw_text": "breakfast included",
+        "normalized_text": "breakfast_included",
+        "priority": "must",
+        "category": "breakfast",
+        "mapping_status": "known",
+        "evidence_strategy": "textual",
+        "mapped_fields": [
+          "breakfast_included"
+        ],
+        "structured_value": "YES"
+      },
+      "listing_evidence": [
+        {
+          "source": "description",
+          "text": "Start your day with our delicious morning meal, served daily.",
+          "path": null
+        }
+      ],
+      "expected_decision": "UNCERTAIN",
+      "predicted_decision": "YES",
+      "decision_correct": false,
+      "expected_explicit_negative": false,
+      "predicted_explicit_negative": false,
+      "explicit_negative_correct": true,
+      "expected_explanation": "The 'morning meal served daily' is a clear synonym for breakfast included.",
+      "prediction_reason": "The description states that a delicious morning meal is served daily, implying breakfast is included.",
+      "prediction_evidence": [
+        {
+          "snippet": "Start your day with our delicious morning meal, served daily.",
+          "source": "description",
+          "path": ""
+        }
+      ],
+      "raw_prediction": {
+        "listing_id": "cr_045",
+        "listing_title": null,
+        "constraint_id": "cr_045",
+        "raw_text": "breakfast included",
+        "normalized_text": "breakfast_included",
+        "resolver_type": "textual",
+        "decision": "YES",
+        "resolution_status": "matched",
+        "confidence": 0.9,
+        "reason": "The description states that a delicious morning meal is served daily, implying breakfast is included.",
+        "evidence": [
+          {
+            "snippet": "Start your day with our delicious morning meal, served daily.",
+            "source": "description",
+            "path": ""
+          }
+        ],
+        "source_stage": "fallback",
+        "structured_value_before": "YES",
+        "explicit_negative": false
+      }
+    }
+  ]
+}

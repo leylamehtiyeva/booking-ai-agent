@@ -111,7 +111,7 @@ Decision priority:
 Return ONLY JSON.
 """.strip()
 
-    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
         raise ValueError("Missing GEMINI_API_KEY/GOOGLE_API_KEY")
 
