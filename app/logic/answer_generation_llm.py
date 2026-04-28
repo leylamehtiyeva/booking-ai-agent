@@ -52,9 +52,9 @@ def _gemini_client():
     except ImportError as e:
         raise ImportError("google-genai is not installed") from e
 
-    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    api_key =os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        raise ValueError("Missing GEMINI_API_KEY/GOOGLE_API_KEY")
+        raise ValueError("Missing GOOGLE_API_KEY")
     return Client(api_key=api_key)
 
 

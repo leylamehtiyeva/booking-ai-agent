@@ -77,9 +77,9 @@ def _gemini_client():
     except ImportError as e:
         raise ImportError("google-genai is not installed") from e
 
-    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        raise ValueError("Missing GEMINI_API_KEY/GOOGLE_API_KEY")
+        raise ValueError("Missing GOOGLE_API_KEY")
     return Client(api_key=api_key)
 
 
@@ -238,7 +238,7 @@ def _prepare_listing_evidence(
 
 def _build_system_prompt() -> str:
     return """
-You resolve whether a listing satisfies a user constraint using listing evidence.
+You resolve whether a booking listing satisfies one user constraint using only the provided listing evidence.
 
 Return only valid JSON:
 {
@@ -254,14 +254,38 @@ Return only valid JSON:
   ]
 }
 
-Rules:
-- YES only if evidence clearly supports the constraint.
-- NO only if evidence clearly states the constraint is unavailable, disallowed, absent, or incompatible.
-- If not explicitly supported, prefer UNCERTAIN.
-- Be conservative.
+Core decision rules:
+- Return YES only when the evidence clearly confirms the constraint.
+- Return NO when the evidence clearly contradicts the constraint.
+- Return UNCERTAIN when the evidence is missing, vague, weak, conditional, or insufficient.
+
+Important distinction:
+- Missing evidence -> UNCERTAIN.
+- Weak or partial evidence -> UNCERTAIN.
+- Conditional evidence -> UNCERTAIN unless the condition clearly makes the constraint unavailable for the user.
+- Explicit contradiction -> NO.
+
+What counts as contradiction:
+- The user asks for something to be free/included, but evidence says it is paid, costs extra, has a fee, or is not included.
+- The user asks for something to be allowed, but evidence says it is not allowed, prohibited, restricted, or forbidden.
+- The user asks for something to be available, but evidence says it is unavailable, absent, closed, not provided, or not available to guests.
+- The user asks for something private, but evidence says it is shared.
+- The user asks for something on-site/in the property, but evidence says it is only nearby, off-site, or public.
+- The user forbids something, but evidence says that thing is allowed or present.
+- A policy contradicts a facility/description claim; in conflicts, policies usually override marketing descriptions.
+
+Do not return UNCERTAIN when the evidence explicitly contradicts the constraint.
+
+Conservatism rule:
+- Be conservative to avoid false YES.
+- Do not use conservatism to avoid NO when contradiction is explicit.
+
+Evidence rules:
+- Use only provided evidence.
 - Do not invent evidence.
-- Prefer direct evidence from facilities, room facilities, policies, or highlights.
-- Description is weaker than structured facility/policy text.
+- Cite the exact snippet that supports the decision.
+- Prefer direct evidence from policies, facilities, room_facilities, or highlights.
+- Description/title can support a decision, but are weaker than policy/facility evidence.
 """.strip()
 
 
@@ -340,6 +364,8 @@ async def resolve_constraint_via_textual_evidence(
 
     system = _build_system_prompt()
     user_prompt = json.dumps(payload, ensure_ascii=False)
+    print("SYSTEM PROMPT USED:")
+    print(system)
 
     def _call_sync() -> ConstraintResolutionResult:
         client = _gemini_client()

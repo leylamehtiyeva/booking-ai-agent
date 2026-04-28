@@ -1,15 +1,52 @@
 from __future__ import annotations
 
 import os
+from typing import List
 
 
-DEFAULT_GEMINI_MODEL = "gemini-2.0-flash"
+# Основная модель (fallback если .env не задан)
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 
 
 def get_gemini_model() -> str:
-    return os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL).strip().strip('"')
+    """
+    Returns the primary Gemini model.
+
+    Priority:
+    1. GEMINI_MODEL from .env
+    2. DEFAULT_GEMINI_MODEL
+    """
+    model = os.getenv("GEMINI_MODEL")
+
+    if model:
+        return model.strip().strip('"')
+
+    return DEFAULT_GEMINI_MODEL
 
 
-def get_gemini_model_for_adk() -> str:
-    model = get_gemini_model()
-    return model if model.startswith("models/") else f"models/{model}"
+def get_gemini_fallback_models() -> List[str]:
+    """
+    Optional fallback models list (for production resilience).
+
+    You can define in .env:
+    GEMINI_FALLBACK_MODELS=gemini-2.5-flash-lite,gemini-1.5-flash
+    """
+    raw = os.getenv("GEMINI_FALLBACK_MODELS")
+
+    if not raw:
+        return []
+
+    return [
+        m.strip()
+        for m in raw.split(",")
+        if m.strip()
+    ]
+
+
+def debug_print_llm_config() -> None:
+    """
+    Debug helper to verify which models are used.
+    """
+    print("=== LLM CONFIG ===")
+    print("Primary model:", get_gemini_model())
+    print("Fallback models:", get_gemini_fallback_models())

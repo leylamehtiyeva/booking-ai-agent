@@ -5,9 +5,9 @@ from google import genai
 
 
 def main():
-    api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        raise ValueError("Set GOOGLE_API_KEY or GEMINI_API_KEY in env")
+        raise ValueError("Set GOOGLE_API_KEY ")
 
     client = genai.Client(api_key=api_key)
 
