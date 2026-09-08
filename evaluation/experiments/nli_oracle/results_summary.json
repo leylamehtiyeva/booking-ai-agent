@@ -3279,5 +3279,1550 @@
     "missed_support_by_source_type": {
       "policies": 4
     }
+  },
+  "end_to_end_v1": {
+    "_metadata": {
+      "derived_from": "evaluation/outputs/nli_end_to_end_verification_report.json",
+      "raw_section_omitted": "subclaims_with_candidates",
+      "n_omitted": 32,
+      "purpose": "Tracked summary of frozen experiment results (raw per-example predictions remain in gitignored evaluation/outputs/)."
+    },
+    "run_metadata": {
+      "model": "GuardrailsAI/finetuned_nli_provenance",
+      "max_length": 256,
+      "threshold_applied": false,
+      "pipeline": "atomic subclaim -> semantic retrieval (unchanged embedding model) -> top-k candidates -> NLI binary verifier (fresh inference, no oracle reuse)",
+      "checkpoint_source": "evaluation/experiments/evidence_retrieval/golden/retrieval_checkpoint_v2.jsonl (original 32-subclaim schema, NOT the Q1/Q2/Q3 or FC1-atomic NLI-only redesign)",
+      "n_subclaims_total": 32,
+      "n_subclaims_supported": 14,
+      "n_subclaims_not_supported": 18,
+      "denominator_note": "32 total atomic subclaims (4 constraints x up to 3 subclaims x 4 properties, minus structural gaps) is the correct denominator for this experiment - see the standalone explanation delivered before this run. Earlier oracle reports used smaller denominators (45, 89, or 22+7=29 examples/groups) because they excluded zero-evidence subclaims by design (recall/verification-only framing) or replaced/dropped subclaims during the NLI-input-v2 redesign (quiet -> Q1/Q2/Q3, good_breakfast and RW2b dropped entirely, some FC2/FC3/RW1 zero-evidence slots dropped). This end-to-end experiment must use the full, unmodified 32-subclaim checkpoint because false positives on zero-evidence subclaims are exactly what is being measured.",
+      "n_fresh_nli_calls": 160
+    },
+    "per_k": {
+      "1": {
+        "metrics": {
+          "n": 32,
+          "tp": 11,
+          "fp": 1,
+          "fn": 3,
+          "tn": 17,
+          "precision_verified_support": 0.9167,
+          "recall_support_coverage": 0.7857,
+          "f1": 0.8462,
+          "false_support_rate": 0.0556,
+          "false_negative_rate": 0.2143,
+          "accuracy": 0.875
+        },
+        "n_false_positives": 1,
+        "n_false_negatives": 3
+      },
+      "3": {
+        "metrics": {
+          "n": 32,
+          "tp": 12,
+          "fp": 3,
+          "fn": 2,
+          "tn": 15,
+          "precision_verified_support": 0.8,
+          "recall_support_coverage": 0.8571,
+          "f1": 0.8276,
+          "false_support_rate": 0.1667,
+          "false_negative_rate": 0.1429,
+          "accuracy": 0.8438
+        },
+        "n_false_positives": 3,
+        "n_false_negatives": 2
+      },
+      "5": {
+        "metrics": {
+          "n": 32,
+          "tp": 12,
+          "fp": 5,
+          "fn": 2,
+          "tn": 13,
+          "precision_verified_support": 0.7059,
+          "recall_support_coverage": 0.8571,
+          "f1": 0.7742,
+          "false_support_rate": 0.2778,
+          "false_negative_rate": 0.1429,
+          "accuracy": 0.7812
+        },
+        "n_false_positives": 7,
+        "n_false_negatives": 2
+      }
+    },
+    "false_positives_by_k": {
+      "1": [
+        {
+          "property_slug": "nizami_studio",
+          "constraint_text": "quiet",
+          "subclaim": "main",
+          "hypothesis": "Guests can expect a quiet stay at this property, without significant noise disturbance.",
+          "retrieval_rank": 1,
+          "evidence_text": "Non-smoking throughout",
+          "embedding_similarity_score": 0.631112,
+          "nli_entailment_probability": 0.471981,
+          "source_type": "facilities",
+          "chunk_id": "16406264::38"
+        }
+      ],
+      "3": [
+        {
+          "property_slug": "nizami_studio",
+          "constraint_text": "quiet",
+          "subclaim": "main",
+          "hypothesis": "Guests can expect a quiet stay at this property, without significant noise disturbance.",
+          "retrieval_rank": 1,
+          "evidence_text": "Non-smoking throughout",
+          "embedding_similarity_score": 0.631112,
+          "nli_entailment_probability": 0.471981,
+          "source_type": "facilities",
+          "chunk_id": "16406264::38"
+        },
+        {
+          "property_slug": "fermaart_hotel",
+          "constraint_text": "good breakfast",
+          "subclaim": "main",
+          "hypothesis": "The breakfast served at this property is good in quality.",
+          "retrieval_rank": 3,
+          "evidence_text": "Continental breakfast included",
+          "embedding_similarity_score": 0.676896,
+          "nli_entailment_probability": 0.429304,
+          "source_type": "room_facilities",
+          "chunk_id": "16084035::180"
+        },
+        {
+          "property_slug": "modern_apt_nizami",
+          "constraint_text": "family-friendly",
+          "subclaim": "FC2",
+          "hypothesis": "The property has physical rooms/layout suited to families.",
+          "retrieval_rank": 3,
+          "evidence_text": "Children and beds",
+          "embedding_similarity_score": 0.647562,
+          "nli_entailment_probability": 0.616736,
+          "source_type": "policies",
+          "chunk_id": "16578874::168"
+        }
+      ],
+      "5": [
+        {
+          "property_slug": "apt_city_center",
+          "constraint_text": "quiet",
+          "subclaim": "main",
+          "hypothesis": "Guests can expect a quiet stay at this property, without significant noise disturbance.",
+          "retrieval_rank": 4,
+          "evidence_text": "Non-smoking throughout",
+          "embedding_similarity_score": 0.631112,
+          "nli_entailment_probability": 0.471981,
+          "source_type": "facilities",
+          "chunk_id": "12895996::58"
+        },
+        {
+          "property_slug": "nizami_studio",
+          "constraint_text": "quiet",
+          "subclaim": "main",
+          "hypothesis": "Guests can expect a quiet stay at this property, without significant noise disturbance.",
+          "retrieval_rank": 1,
+          "evidence_text": "Non-smoking throughout",
+          "embedding_similarity_score": 0.631112,
+          "nli_entailment_probability": 0.471981,
+          "source_type": "facilities",
+          "chunk_id": "16406264::38"
+        },
+        {
+          "property_slug": "fermaart_hotel",
+          "constraint_text": "good breakfast",
+          "subclaim": "main",
+          "hypothesis": "The breakfast served at this property is good in quality.",
+          "retrieval_rank": 3,
+          "evidence_text": "Continental breakfast included",
+          "embedding_similarity_score": 0.676896,
+          "nli_entailment_probability": 0.429304,
+          "source_type": "room_facilities",
+          "chunk_id": "16084035::180"
+        },
+        {
+          "property_slug": "fermaart_hotel",
+          "constraint_text": "good breakfast",
+          "subclaim": "main",
+          "hypothesis": "The breakfast served at this property is good in quality.",
+          "retrieval_rank": 4,
+          "evidence_text": "Continental breakfast included",
+          "embedding_similarity_score": 0.676896,
+          "nli_entailment_probability": 0.429304,
+          "source_type": "room_facilities",
+          "chunk_id": "16084035::261"
+        },
+        {
+          "property_slug": "fermaart_hotel",
+          "constraint_text": "good breakfast",
+          "subclaim": "main",
+          "hypothesis": "The breakfast served at this property is good in quality.",
+          "retrieval_rank": 5,
+          "evidence_text": "Continental breakfast included",
+          "embedding_similarity_score": 0.676896,
+          "nli_entailment_probability": 0.429304,
+          "source_type": "room_facilities",
+          "chunk_id": "16084035::331"
+        },
+        {
+          "property_slug": "apt_city_center",
+          "constraint_text": "family-friendly",
+          "subclaim": "FC2",
+          "hypothesis": "The property has physical rooms/layout suited to families.",
+          "retrieval_rank": 4,
+          "evidence_text": "Children and beds",
+          "embedding_similarity_score": 0.647562,
+          "nli_entailment_probability": 0.616736,
+          "source_type": "policies",
+          "chunk_id": "12895996::110"
+        },
+        {
+          "property_slug": "modern_apt_nizami",
+          "constraint_text": "family-friendly",
+          "subclaim": "FC2",
+          "hypothesis": "The property has physical rooms/layout suited to families.",
+          "retrieval_rank": 3,
+          "evidence_text": "Children and beds",
+          "embedding_similarity_score": 0.647562,
+          "nli_entailment_probability": 0.616736,
+          "source_type": "policies",
+          "chunk_id": "16578874::168"
+        }
+      ]
+    },
+    "false_negatives_by_k": {
+      "1": [
+        {
+          "property_slug": "fermaart_hotel",
+          "constraint_text": "quiet",
+          "subclaim": "main",
+          "hypothesis": "Guests can expect a quiet stay at this property, without significant noise disturbance.",
+          "gold_support_chunk_ids": [
+            "16084035::108",
+            "16084035::113",
+            "16084035::133",
+            "16084035::213",
+            "16084035::283"
+          ],
+          "failure_mode": "retrieval_rank_failure",
+          "explanation": "Gold SUPPORT chunk(s) ['16084035::108', '16084035::113', '16084035::133', '16084035::213'] appear in the full top-5 retrieval, but ranked below top-1 - a retrieval-ranking failure specific to this K, not a verification failure.",
+          "top_k_retrieved": [
+            {
+              "rank": 1,
+              "chunk_id": "16084035::352",
+              "text": "Quiet street view",
+              "similarity_score": 0.797735,
+              "source_type": "highlights",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.172246,
+              "is_gold_support": false
+            }
+          ],
+          "full_top5_retrieved": [
+            {
+              "rank": 1,
+              "chunk_id": "16084035::352",
+              "text": "Quiet street view",
+              "similarity_score": 0.797735,
+              "is_gold_support": false
+            },
+            {
+              "rank": 2,
+              "chunk_id": "16084035::113",
+              "text": "Soundproof rooms",
+              "similarity_score": 0.684737,
+              "is_gold_support": true
+            },
+            {
+              "rank": 3,
+              "chunk_id": "16084035::108",
+              "text": "Soundproofing",
+              "similarity_score": 0.668831,
+              "is_gold_support": true
+            },
+            {
+              "rank": 4,
+              "chunk_id": "16084035::133",
+              "text": "Soundproofing",
+              "similarity_score": 0.668831,
+              "is_gold_support": true
+            },
+            {
+              "rank": 5,
+              "chunk_id": "16084035::213",
+              "text": "Soundproofing",
+              "similarity_score": 0.668831,
+              "is_gold_support": true
+            }
+          ]
+        },
+        {
+          "property_slug": "nizami_studio",
+          "constraint_text": "family-friendly",
+          "subclaim": "FC1",
+          "hypothesis": "The property's policies formally accommodate children.",
+          "gold_support_chunk_ids": [
+            "16406264::97"
+          ],
+          "failure_mode": "verification_failure",
+          "explanation": "Gold SUPPORT chunk(s) ['16406264::97'] WERE retrieved within top-1, but NLI did not call entailment on any of them (raw_label was neutral or contradiction) - a verification failure, not a retrieval failure.",
+          "top_k_retrieved": [
+            {
+              "rank": 1,
+              "chunk_id": "16406264::97",
+              "text": "Child policies Children of any age are welcome. Children 18 years and above will be charged as adults at this property. To see correct prices and occupancy information, please add the number of children in your group and their ages to your search. Cot and extra bed policies 0 - 3 years Cot upon request The number of cots allowed is dependent on the option you choose. Please check your selected option for more information. There are no extra beds available at this property. All cots are subject to availability.",
+              "similarity_score": 0.704004,
+              "source_type": "policies",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.258241,
+              "is_gold_support": true
+            }
+          ],
+          "full_top5_retrieved": [
+            {
+              "rank": 1,
+              "chunk_id": "16406264::97",
+              "text": "Child policies Children of any age are welcome. Children 18 years and above will be charged as adults at this property. To see correct prices and occupancy information, please add the number of children in your group and their ages to your search. Cot and extra bed policies 0 - 3 years Cot upon request The number of cots allowed is dependent on the option you choose. Please check your selected option for more information. There are no extra beds available at this property. All cots are subject to availability.",
+              "similarity_score": 0.704004,
+              "is_gold_support": true
+            },
+            {
+              "rank": 2,
+              "chunk_id": "16406264::99",
+              "text": "There is no age requirement for check-in",
+              "similarity_score": 0.678747,
+              "is_gold_support": false
+            },
+            {
+              "rank": 3,
+              "chunk_id": "16406264::98",
+              "text": "No age restriction",
+              "similarity_score": 0.669523,
+              "is_gold_support": false
+            },
+            {
+              "rank": 4,
+              "chunk_id": "16406264::96",
+              "text": "Children and beds",
+              "similarity_score": 0.66675,
+              "is_gold_support": false
+            },
+            {
+              "rank": 5,
+              "chunk_id": "16406264::10",
+              "text": "This property will not accommodate hen, stag or similar parties.",
+              "similarity_score": 0.63909,
+              "is_gold_support": false
+            }
+          ]
+        },
+        {
+          "property_slug": "modern_apt_nizami",
+          "constraint_text": "family-friendly",
+          "subclaim": "FC1",
+          "hypothesis": "The property's policies formally accommodate children.",
+          "gold_support_chunk_ids": [
+            "16578874::169"
+          ],
+          "failure_mode": "verification_failure",
+          "explanation": "Gold SUPPORT chunk(s) ['16578874::169'] WERE retrieved within top-1, but NLI did not call entailment on any of them (raw_label was neutral or contradiction) - a verification failure, not a retrieval failure.",
+          "top_k_retrieved": [
+            {
+              "rank": 1,
+              "chunk_id": "16578874::169",
+              "text": "Child policies Children of any age are welcome. Children 18 years and above will be charged as adults at this property. To see correct prices and occupancy information, please add the number of children in your group and their ages to your search. Cot and extra bed policies 0 - 3 years Cot upon request The number of cots allowed is dependent on the option you choose. Please check your selected option for more information. There are no extra beds available at this property. All cots are subject to availability.",
+              "similarity_score": 0.704004,
+              "source_type": "policies",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.258241,
+              "is_gold_support": true
+            }
+          ],
+          "full_top5_retrieved": [
+            {
+              "rank": 1,
+              "chunk_id": "16578874::169",
+              "text": "Child policies Children of any age are welcome. Children 18 years and above will be charged as adults at this property. To see correct prices and occupancy information, please add the number of children in your group and their ages to your search. Cot and extra bed policies 0 - 3 years Cot upon request The number of cots allowed is dependent on the option you choose. Please check your selected option for more information. There are no extra beds available at this property. All cots are subject to availability.",
+              "similarity_score": 0.704004,
+              "is_gold_support": true
+            },
+            {
+              "rank": 2,
+              "chunk_id": "16578874::171",
+              "text": "There is no age requirement for check-in",
+              "similarity_score": 0.678747,
+              "is_gold_support": false
+            },
+            {
+              "rank": 3,
+              "chunk_id": "16578874::170",
+              "text": "No age restriction",
+              "similarity_score": 0.669523,
+              "is_gold_support": false
+            },
+            {
+              "rank": 4,
+              "chunk_id": "16578874::168",
+              "text": "Children and beds",
+              "similarity_score": 0.66675,
+              "is_gold_support": false
+            },
+            {
+              "rank": 5,
+              "chunk_id": "16578874::59",
+              "text": "Pets are allowed on request. Charges may be applicable.",
+              "similarity_score": 0.654627,
+              "is_gold_support": false
+            }
+          ]
+        }
+      ],
+      "3": [
+        {
+          "property_slug": "nizami_studio",
+          "constraint_text": "family-friendly",
+          "subclaim": "FC1",
+          "hypothesis": "The property's policies formally accommodate children.",
+          "gold_support_chunk_ids": [
+            "16406264::97"
+          ],
+          "failure_mode": "verification_failure",
+          "explanation": "Gold SUPPORT chunk(s) ['16406264::97'] WERE retrieved within top-3, but NLI did not call entailment on any of them (raw_label was neutral or contradiction) - a verification failure, not a retrieval failure.",
+          "top_k_retrieved": [
+            {
+              "rank": 1,
+              "chunk_id": "16406264::97",
+              "text": "Child policies Children of any age are welcome. Children 18 years and above will be charged as adults at this property. To see correct prices and occupancy information, please add the number of children in your group and their ages to your search. Cot and extra bed policies 0 - 3 years Cot upon request The number of cots allowed is dependent on the option you choose. Please check your selected option for more information. There are no extra beds available at this property. All cots are subject to availability.",
+              "similarity_score": 0.704004,
+              "source_type": "policies",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.258241,
+              "is_gold_support": true
+            },
+            {
+              "rank": 2,
+              "chunk_id": "16406264::99",
+              "text": "There is no age requirement for check-in",
+              "similarity_score": 0.678747,
+              "source_type": "policies",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.11028,
+              "is_gold_support": false
+            },
+            {
+              "rank": 3,
+              "chunk_id": "16406264::98",
+              "text": "No age restriction",
+              "similarity_score": 0.669523,
+              "source_type": "policies",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.053934,
+              "is_gold_support": false
+            }
+          ],
+          "full_top5_retrieved": [
+            {
+              "rank": 1,
+              "chunk_id": "16406264::97",
+              "text": "Child policies Children of any age are welcome. Children 18 years and above will be charged as adults at this property. To see correct prices and occupancy information, please add the number of children in your group and their ages to your search. Cot and extra bed policies 0 - 3 years Cot upon request The number of cots allowed is dependent on the option you choose. Please check your selected option for more information. There are no extra beds available at this property. All cots are subject to availability.",
+              "similarity_score": 0.704004,
+              "is_gold_support": true
+            },
+            {
+              "rank": 2,
+              "chunk_id": "16406264::99",
+              "text": "There is no age requirement for check-in",
+              "similarity_score": 0.678747,
+              "is_gold_support": false
+            },
+            {
+              "rank": 3,
+              "chunk_id": "16406264::98",
+              "text": "No age restriction",
+              "similarity_score": 0.669523,
+              "is_gold_support": false
+            },
+            {
+              "rank": 4,
+              "chunk_id": "16406264::96",
+              "text": "Children and beds",
+              "similarity_score": 0.66675,
+              "is_gold_support": false
+            },
+            {
+              "rank": 5,
+              "chunk_id": "16406264::10",
+              "text": "This property will not accommodate hen, stag or similar parties.",
+              "similarity_score": 0.63909,
+              "is_gold_support": false
+            }
+          ]
+        },
+        {
+          "property_slug": "modern_apt_nizami",
+          "constraint_text": "family-friendly",
+          "subclaim": "FC1",
+          "hypothesis": "The property's policies formally accommodate children.",
+          "gold_support_chunk_ids": [
+            "16578874::169"
+          ],
+          "failure_mode": "verification_failure",
+          "explanation": "Gold SUPPORT chunk(s) ['16578874::169'] WERE retrieved within top-3, but NLI did not call entailment on any of them (raw_label was neutral or contradiction) - a verification failure, not a retrieval failure.",
+          "top_k_retrieved": [
+            {
+              "rank": 1,
+              "chunk_id": "16578874::169",
+              "text": "Child policies Children of any age are welcome. Children 18 years and above will be charged as adults at this property. To see correct prices and occupancy information, please add the number of children in your group and their ages to your search. Cot and extra bed policies 0 - 3 years Cot upon request The number of cots allowed is dependent on the option you choose. Please check your selected option for more information. There are no extra beds available at this property. All cots are subject to availability.",
+              "similarity_score": 0.704004,
+              "source_type": "policies",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.258241,
+              "is_gold_support": true
+            },
+            {
+              "rank": 2,
+              "chunk_id": "16578874::171",
+              "text": "There is no age requirement for check-in",
+              "similarity_score": 0.678747,
+              "source_type": "policies",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.11028,
+              "is_gold_support": false
+            },
+            {
+              "rank": 3,
+              "chunk_id": "16578874::170",
+              "text": "No age restriction",
+              "similarity_score": 0.669523,
+              "source_type": "policies",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.053934,
+              "is_gold_support": false
+            }
+          ],
+          "full_top5_retrieved": [
+            {
+              "rank": 1,
+              "chunk_id": "16578874::169",
+              "text": "Child policies Children of any age are welcome. Children 18 years and above will be charged as adults at this property. To see correct prices and occupancy information, please add the number of children in your group and their ages to your search. Cot and extra bed policies 0 - 3 years Cot upon request The number of cots allowed is dependent on the option you choose. Please check your selected option for more information. There are no extra beds available at this property. All cots are subject to availability.",
+              "similarity_score": 0.704004,
+              "is_gold_support": true
+            },
+            {
+              "rank": 2,
+              "chunk_id": "16578874::171",
+              "text": "There is no age requirement for check-in",
+              "similarity_score": 0.678747,
+              "is_gold_support": false
+            },
+            {
+              "rank": 3,
+              "chunk_id": "16578874::170",
+              "text": "No age restriction",
+              "similarity_score": 0.669523,
+              "is_gold_support": false
+            },
+            {
+              "rank": 4,
+              "chunk_id": "16578874::168",
+              "text": "Children and beds",
+              "similarity_score": 0.66675,
+              "is_gold_support": false
+            },
+            {
+              "rank": 5,
+              "chunk_id": "16578874::59",
+              "text": "Pets are allowed on request. Charges may be applicable.",
+              "similarity_score": 0.654627,
+              "is_gold_support": false
+            }
+          ]
+        }
+      ],
+      "5": [
+        {
+          "property_slug": "nizami_studio",
+          "constraint_text": "family-friendly",
+          "subclaim": "FC1",
+          "hypothesis": "The property's policies formally accommodate children.",
+          "gold_support_chunk_ids": [
+            "16406264::97"
+          ],
+          "failure_mode": "verification_failure",
+          "explanation": "Gold SUPPORT chunk(s) ['16406264::97'] WERE retrieved within top-5, but NLI did not call entailment on any of them (raw_label was neutral or contradiction) - a verification failure, not a retrieval failure.",
+          "top_k_retrieved": [
+            {
+              "rank": 1,
+              "chunk_id": "16406264::97",
+              "text": "Child policies Children of any age are welcome. Children 18 years and above will be charged as adults at this property. To see correct prices and occupancy information, please add the number of children in your group and their ages to your search. Cot and extra bed policies 0 - 3 years Cot upon request The number of cots allowed is dependent on the option you choose. Please check your selected option for more information. There are no extra beds available at this property. All cots are subject to availability.",
+              "similarity_score": 0.704004,
+              "source_type": "policies",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.258241,
+              "is_gold_support": true
+            },
+            {
+              "rank": 2,
+              "chunk_id": "16406264::99",
+              "text": "There is no age requirement for check-in",
+              "similarity_score": 0.678747,
+              "source_type": "policies",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.11028,
+              "is_gold_support": false
+            },
+            {
+              "rank": 3,
+              "chunk_id": "16406264::98",
+              "text": "No age restriction",
+              "similarity_score": 0.669523,
+              "source_type": "policies",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.053934,
+              "is_gold_support": false
+            },
+            {
+              "rank": 4,
+              "chunk_id": "16406264::96",
+              "text": "Children and beds",
+              "similarity_score": 0.66675,
+              "source_type": "policies",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.048852,
+              "is_gold_support": false
+            },
+            {
+              "rank": 5,
+              "chunk_id": "16406264::10",
+              "text": "This property will not accommodate hen, stag or similar parties.",
+              "similarity_score": 0.63909,
+              "source_type": "other",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.013061,
+              "is_gold_support": false
+            }
+          ],
+          "full_top5_retrieved": [
+            {
+              "rank": 1,
+              "chunk_id": "16406264::97",
+              "text": "Child policies Children of any age are welcome. Children 18 years and above will be charged as adults at this property. To see correct prices and occupancy information, please add the number of children in your group and their ages to your search. Cot and extra bed policies 0 - 3 years Cot upon request The number of cots allowed is dependent on the option you choose. Please check your selected option for more information. There are no extra beds available at this property. All cots are subject to availability.",
+              "similarity_score": 0.704004,
+              "is_gold_support": true
+            },
+            {
+              "rank": 2,
+              "chunk_id": "16406264::99",
+              "text": "There is no age requirement for check-in",
+              "similarity_score": 0.678747,
+              "is_gold_support": false
+            },
+            {
+              "rank": 3,
+              "chunk_id": "16406264::98",
+              "text": "No age restriction",
+              "similarity_score": 0.669523,
+              "is_gold_support": false
+            },
+            {
+              "rank": 4,
+              "chunk_id": "16406264::96",
+              "text": "Children and beds",
+              "similarity_score": 0.66675,
+              "is_gold_support": false
+            },
+            {
+              "rank": 5,
+              "chunk_id": "16406264::10",
+              "text": "This property will not accommodate hen, stag or similar parties.",
+              "similarity_score": 0.63909,
+              "is_gold_support": false
+            }
+          ]
+        },
+        {
+          "property_slug": "modern_apt_nizami",
+          "constraint_text": "family-friendly",
+          "subclaim": "FC1",
+          "hypothesis": "The property's policies formally accommodate children.",
+          "gold_support_chunk_ids": [
+            "16578874::169"
+          ],
+          "failure_mode": "verification_failure",
+          "explanation": "Gold SUPPORT chunk(s) ['16578874::169'] WERE retrieved within top-5, but NLI did not call entailment on any of them (raw_label was neutral or contradiction) - a verification failure, not a retrieval failure.",
+          "top_k_retrieved": [
+            {
+              "rank": 1,
+              "chunk_id": "16578874::169",
+              "text": "Child policies Children of any age are welcome. Children 18 years and above will be charged as adults at this property. To see correct prices and occupancy information, please add the number of children in your group and their ages to your search. Cot and extra bed policies 0 - 3 years Cot upon request The number of cots allowed is dependent on the option you choose. Please check your selected option for more information. There are no extra beds available at this property. All cots are subject to availability.",
+              "similarity_score": 0.704004,
+              "source_type": "policies",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.258241,
+              "is_gold_support": true
+            },
+            {
+              "rank": 2,
+              "chunk_id": "16578874::171",
+              "text": "There is no age requirement for check-in",
+              "similarity_score": 0.678747,
+              "source_type": "policies",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.11028,
+              "is_gold_support": false
+            },
+            {
+              "rank": 3,
+              "chunk_id": "16578874::170",
+              "text": "No age restriction",
+              "similarity_score": 0.669523,
+              "source_type": "policies",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.053934,
+              "is_gold_support": false
+            },
+            {
+              "rank": 4,
+              "chunk_id": "16578874::168",
+              "text": "Children and beds",
+              "similarity_score": 0.66675,
+              "source_type": "policies",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.048852,
+              "is_gold_support": false
+            },
+            {
+              "rank": 5,
+              "chunk_id": "16578874::59",
+              "text": "Pets are allowed on request. Charges may be applicable.",
+              "similarity_score": 0.654627,
+              "source_type": "facilities",
+              "raw_label": "contradiction",
+              "entailment_prob": 0.068267,
+              "is_gold_support": false
+            }
+          ],
+          "full_top5_retrieved": [
+            {
+              "rank": 1,
+              "chunk_id": "16578874::169",
+              "text": "Child policies Children of any age are welcome. Children 18 years and above will be charged as adults at this property. To see correct prices and occupancy information, please add the number of children in your group and their ages to your search. Cot and extra bed policies 0 - 3 years Cot upon request The number of cots allowed is dependent on the option you choose. Please check your selected option for more information. There are no extra beds available at this property. All cots are subject to availability.",
+              "similarity_score": 0.704004,
+              "is_gold_support": true
+            },
+            {
+              "rank": 2,
+              "chunk_id": "16578874::171",
+              "text": "There is no age requirement for check-in",
+              "similarity_score": 0.678747,
+              "is_gold_support": false
+            },
+            {
+              "rank": 3,
+              "chunk_id": "16578874::170",
+              "text": "No age restriction",
+              "similarity_score": 0.669523,
+              "is_gold_support": false
+            },
+            {
+              "rank": 4,
+              "chunk_id": "16578874::168",
+              "text": "Children and beds",
+              "similarity_score": 0.66675,
+              "is_gold_support": false
+            },
+            {
+              "rank": 5,
+              "chunk_id": "16578874::59",
+              "text": "Pets are allowed on request. Charges may be applicable.",
+              "similarity_score": 0.654627,
+              "is_gold_support": false
+            }
+          ]
+        }
+      ]
+    },
+    "subclaim_outcomes_by_k": {
+      "1": [
+        {
+          "pair_id": "apt_city_center__quiet",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "nizami_studio__quiet",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "FP"
+        },
+        {
+          "pair_id": "fermaart_hotel__quiet",
+          "subclaim": "main",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "FN"
+        },
+        {
+          "pair_id": "modern_apt_nizami__quiet",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "apt_city_center__good_breakfast",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "nizami_studio__good_breakfast",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "fermaart_hotel__good_breakfast",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "modern_apt_nizami__good_breakfast",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "apt_city_center__family_friendly",
+          "subclaim": "FC1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "apt_city_center__family_friendly",
+          "subclaim": "FC2",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "apt_city_center__family_friendly",
+          "subclaim": "FC3",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "nizami_studio__family_friendly",
+          "subclaim": "FC1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "FN"
+        },
+        {
+          "pair_id": "nizami_studio__family_friendly",
+          "subclaim": "FC2",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "nizami_studio__family_friendly",
+          "subclaim": "FC3",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "fermaart_hotel__family_friendly",
+          "subclaim": "FC1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "fermaart_hotel__family_friendly",
+          "subclaim": "FC2",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "fermaart_hotel__family_friendly",
+          "subclaim": "FC3",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "modern_apt_nizami__family_friendly",
+          "subclaim": "FC1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "FN"
+        },
+        {
+          "pair_id": "modern_apt_nizami__family_friendly",
+          "subclaim": "FC2",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "modern_apt_nizami__family_friendly",
+          "subclaim": "FC3",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "apt_city_center__good_for_remote_work",
+          "subclaim": "RW1",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "apt_city_center__good_for_remote_work",
+          "subclaim": "RW2a",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "apt_city_center__good_for_remote_work",
+          "subclaim": "RW2b",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "nizami_studio__good_for_remote_work",
+          "subclaim": "RW1",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "nizami_studio__good_for_remote_work",
+          "subclaim": "RW2a",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "nizami_studio__good_for_remote_work",
+          "subclaim": "RW2b",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "fermaart_hotel__good_for_remote_work",
+          "subclaim": "RW1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "fermaart_hotel__good_for_remote_work",
+          "subclaim": "RW2a",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "fermaart_hotel__good_for_remote_work",
+          "subclaim": "RW2b",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "modern_apt_nizami__good_for_remote_work",
+          "subclaim": "RW1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "modern_apt_nizami__good_for_remote_work",
+          "subclaim": "RW2a",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "modern_apt_nizami__good_for_remote_work",
+          "subclaim": "RW2b",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        }
+      ],
+      "3": [
+        {
+          "pair_id": "apt_city_center__quiet",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "nizami_studio__quiet",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "FP"
+        },
+        {
+          "pair_id": "fermaart_hotel__quiet",
+          "subclaim": "main",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "modern_apt_nizami__quiet",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "apt_city_center__good_breakfast",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "nizami_studio__good_breakfast",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "fermaart_hotel__good_breakfast",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "FP"
+        },
+        {
+          "pair_id": "modern_apt_nizami__good_breakfast",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "apt_city_center__family_friendly",
+          "subclaim": "FC1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "apt_city_center__family_friendly",
+          "subclaim": "FC2",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "apt_city_center__family_friendly",
+          "subclaim": "FC3",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "nizami_studio__family_friendly",
+          "subclaim": "FC1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "FN"
+        },
+        {
+          "pair_id": "nizami_studio__family_friendly",
+          "subclaim": "FC2",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "nizami_studio__family_friendly",
+          "subclaim": "FC3",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "fermaart_hotel__family_friendly",
+          "subclaim": "FC1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "fermaart_hotel__family_friendly",
+          "subclaim": "FC2",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "fermaart_hotel__family_friendly",
+          "subclaim": "FC3",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "modern_apt_nizami__family_friendly",
+          "subclaim": "FC1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "FN"
+        },
+        {
+          "pair_id": "modern_apt_nizami__family_friendly",
+          "subclaim": "FC2",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "FP"
+        },
+        {
+          "pair_id": "modern_apt_nizami__family_friendly",
+          "subclaim": "FC3",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "apt_city_center__good_for_remote_work",
+          "subclaim": "RW1",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "apt_city_center__good_for_remote_work",
+          "subclaim": "RW2a",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "apt_city_center__good_for_remote_work",
+          "subclaim": "RW2b",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "nizami_studio__good_for_remote_work",
+          "subclaim": "RW1",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "nizami_studio__good_for_remote_work",
+          "subclaim": "RW2a",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "nizami_studio__good_for_remote_work",
+          "subclaim": "RW2b",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "fermaart_hotel__good_for_remote_work",
+          "subclaim": "RW1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "fermaart_hotel__good_for_remote_work",
+          "subclaim": "RW2a",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "fermaart_hotel__good_for_remote_work",
+          "subclaim": "RW2b",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "modern_apt_nizami__good_for_remote_work",
+          "subclaim": "RW1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "modern_apt_nizami__good_for_remote_work",
+          "subclaim": "RW2a",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "modern_apt_nizami__good_for_remote_work",
+          "subclaim": "RW2b",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        }
+      ],
+      "5": [
+        {
+          "pair_id": "apt_city_center__quiet",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "FP"
+        },
+        {
+          "pair_id": "nizami_studio__quiet",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "FP"
+        },
+        {
+          "pair_id": "fermaart_hotel__quiet",
+          "subclaim": "main",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "modern_apt_nizami__quiet",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "apt_city_center__good_breakfast",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "nizami_studio__good_breakfast",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "fermaart_hotel__good_breakfast",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "FP"
+        },
+        {
+          "pair_id": "modern_apt_nizami__good_breakfast",
+          "subclaim": "main",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "apt_city_center__family_friendly",
+          "subclaim": "FC1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "apt_city_center__family_friendly",
+          "subclaim": "FC2",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "FP"
+        },
+        {
+          "pair_id": "apt_city_center__family_friendly",
+          "subclaim": "FC3",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "nizami_studio__family_friendly",
+          "subclaim": "FC1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "FN"
+        },
+        {
+          "pair_id": "nizami_studio__family_friendly",
+          "subclaim": "FC2",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "nizami_studio__family_friendly",
+          "subclaim": "FC3",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "fermaart_hotel__family_friendly",
+          "subclaim": "FC1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "fermaart_hotel__family_friendly",
+          "subclaim": "FC2",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "fermaart_hotel__family_friendly",
+          "subclaim": "FC3",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "modern_apt_nizami__family_friendly",
+          "subclaim": "FC1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "FN"
+        },
+        {
+          "pair_id": "modern_apt_nizami__family_friendly",
+          "subclaim": "FC2",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "FP"
+        },
+        {
+          "pair_id": "modern_apt_nizami__family_friendly",
+          "subclaim": "FC3",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "apt_city_center__good_for_remote_work",
+          "subclaim": "RW1",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "apt_city_center__good_for_remote_work",
+          "subclaim": "RW2a",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "apt_city_center__good_for_remote_work",
+          "subclaim": "RW2b",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "nizami_studio__good_for_remote_work",
+          "subclaim": "RW1",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "nizami_studio__good_for_remote_work",
+          "subclaim": "RW2a",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "nizami_studio__good_for_remote_work",
+          "subclaim": "RW2b",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "fermaart_hotel__good_for_remote_work",
+          "subclaim": "RW1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "fermaart_hotel__good_for_remote_work",
+          "subclaim": "RW2a",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "fermaart_hotel__good_for_remote_work",
+          "subclaim": "RW2b",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        },
+        {
+          "pair_id": "modern_apt_nizami__good_for_remote_work",
+          "subclaim": "RW1",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "modern_apt_nizami__good_for_remote_work",
+          "subclaim": "RW2a",
+          "gold_status": "SUPPORTED",
+          "predicted_status": "VERIFIED_SUPPORT",
+          "outcome": "TP"
+        },
+        {
+          "pair_id": "modern_apt_nizami__good_for_remote_work",
+          "subclaim": "RW2b",
+          "gold_status": "NOT_SUPPORTED",
+          "predicted_status": "NOT_VERIFIED",
+          "outcome": "TN"
+        }
+      ]
+    },
+    "no_evidence_case_analysis": {
+      "good_breakfast": {
+        "n_subclaims": 4,
+        "false_positive_at_top1": 0,
+        "false_positive_at_top5": 1,
+        "subclaims": [
+          {
+            "pair_id": "apt_city_center__good_breakfast",
+            "top1_text": "Microwave",
+            "top1_score": 0.616951,
+            "top1_raw_label": "contradiction",
+            "top1_entailment_prob": 0.017977
+          },
+          {
+            "pair_id": "nizami_studio__good_breakfast",
+            "top1_text": "Kitchenette",
+            "top1_score": 0.609907,
+            "top1_raw_label": "contradiction",
+            "top1_entailment_prob": 0.05808
+          },
+          {
+            "pair_id": "fermaart_hotel__good_breakfast",
+            "top1_text": "Breakfast info",
+            "top1_score": 0.736395,
+            "top1_raw_label": "contradiction",
+            "top1_entailment_prob": 0.174372
+          },
+          {
+            "pair_id": "modern_apt_nizami__good_breakfast",
+            "top1_text": "Great for your stay",
+            "top1_score": 0.660316,
+            "top1_raw_label": "contradiction",
+            "top1_entailment_prob": 0.147416
+          }
+        ]
+      },
+      "remote_work_reliability_RW2b": {
+        "n_subclaims": 4,
+        "false_positive_at_top1": 0,
+        "false_positive_at_top5": 0,
+        "subclaims": [
+          {
+            "pair_id": "apt_city_center__good_for_remote_work",
+            "top1_text": "Internet services",
+            "top1_score": 0.682456,
+            "top1_raw_label": "contradiction",
+            "top1_entailment_prob": 0.070629
+          },
+          {
+            "pair_id": "nizami_studio__good_for_remote_work",
+            "top1_text": "Internet services",
+            "top1_score": 0.682456,
+            "top1_raw_label": "contradiction",
+            "top1_entailment_prob": 0.070629
+          },
+          {
+            "pair_id": "fermaart_hotel__good_for_remote_work",
+            "top1_text": "Internet services",
+            "top1_score": 0.682456,
+            "top1_raw_label": "contradiction",
+            "top1_entailment_prob": 0.070629
+          },
+          {
+            "pair_id": "modern_apt_nizami__good_for_remote_work",
+            "top1_text": "Internet services",
+            "top1_score": 0.682456,
+            "top1_raw_label": "contradiction",
+            "top1_entailment_prob": 0.070629
+          }
+        ]
+      },
+      "quiet_no_evidence_properties": {
+        "n_subclaims": 3,
+        "false_positive_at_top1": 1,
+        "false_positive_at_top5": 2,
+        "subclaims": [
+          {
+            "pair_id": "apt_city_center__quiet",
+            "top1_text": "Quiet hours",
+            "top1_score": 0.748853,
+            "top1_raw_label": "contradiction",
+            "top1_entailment_prob": 0.410965
+          },
+          {
+            "pair_id": "nizami_studio__quiet",
+            "top1_text": "Non-smoking throughout",
+            "top1_score": 0.631112,
+            "top1_raw_label": "entailment",
+            "top1_entailment_prob": 0.471981
+          },
+          {
+            "pair_id": "modern_apt_nizami__quiet",
+            "top1_text": "Quiet street view",
+            "top1_score": 0.797735,
+            "top1_raw_label": "contradiction",
+            "top1_entailment_prob": 0.172246
+          }
+        ]
+      }
+    }
   }
 }
