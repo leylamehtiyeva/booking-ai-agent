@@ -16,6 +16,7 @@ from app.schemas.soft_evidence import (
     ClaimRelation,
     ClaimResolutionMethod,
     EvidenceResolutionStatus,
+    RetrievalStatus,
     SoftPreferenceEvidence,
 )
 
@@ -29,6 +30,7 @@ def summarize_soft_preference_evidence(
     evidence_resolution_status_counts = {
         status.value: 0 for status in EvidenceResolutionStatus
     }
+    retrieval_status_counts = {status.value: 0 for status in RetrievalStatus}
 
     # Counted per EvidenceItem, not per claim: a single claim can hold a
     # mix of deterministic and Gemini-sourced items, so "number of claims
@@ -52,6 +54,7 @@ def summarize_soft_preference_evidence(
 
         for claim in evidence.claims:
             claim_relation_counts[claim.relation.value] += 1
+            retrieval_status_counts[claim.retrieval_status.value] += 1
 
             for item in claim.evidence_items:
                 evidence_resolution_status_counts[item.resolution_status.value] += 1
@@ -85,6 +88,7 @@ def summarize_soft_preference_evidence(
         "total_hotels": total_hotels,
         "claim_relation_counts": claim_relation_counts,
         "evidence_resolution_status_counts": evidence_resolution_status_counts,
+        "retrieval_status_counts": retrieval_status_counts,
         "deterministic_evidence_item_count": deterministic_evidence_item_count,
         "gemini_evidence_item_count": gemini_evidence_item_count,
         "hotels_requiring_gemini": hotels_requiring_gemini,

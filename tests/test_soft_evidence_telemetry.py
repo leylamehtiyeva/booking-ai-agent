@@ -7,6 +7,7 @@ from app.schemas.soft_evidence import (
     EvidenceItem,
     EvidenceRelation,
     EvidenceResolutionStatus,
+    RetrievalStatus,
     SemanticVerifierUsage,
     SoftPreferenceEvidence,
 )
@@ -150,3 +151,25 @@ def test_verifier_usage_is_summed_across_hotels():
     assert summary["total_hotels"] == 2
     assert summary["hotels_requiring_gemini"] == 2
     assert summary["hotels_requiring_gemini_pct"] == 100.0
+
+
+def test_retrieval_status_distribution_is_counted():
+    success_claim = AtomicClaimResult.from_evidence_items(
+        claim_id="Q1", hypothesis="h", evidence_items=[],
+        retrieval_status=RetrievalStatus.SUCCESS,
+    )
+    partial_claim = AtomicClaimResult.from_evidence_items(
+        claim_id="Q2", hypothesis="h", evidence_items=[],
+        retrieval_status=RetrievalStatus.PARTIAL, retrieval_errors=["batch 2 failed"],
+    )
+    failed_claim = AtomicClaimResult.from_evidence_items(
+        claim_id="Q3", hypothesis="h", evidence_items=[],
+        retrieval_status=RetrievalStatus.FAILED, retrieval_errors=["query failed"],
+    )
+    evidence = SoftPreferenceEvidence(claims=[success_claim, partial_claim, failed_claim], semantic_verifier=None)
+
+    summary = summarize_soft_preference_evidence([evidence])
+
+    assert summary["retrieval_status_counts"]["success"] == 1
+    assert summary["retrieval_status_counts"]["partial"] == 1
+    assert summary["retrieval_status_counts"]["failed"] == 1
