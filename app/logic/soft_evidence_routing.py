@@ -43,10 +43,18 @@ _FACILITY_NAME_PATTERN = re.compile(
 # incomplete - Phase B's atomic decomposition step will extend this as
 # new claim IDs are defined per constraint category. Do not add guessed
 # entries here.
+#
+# FC2 intentionally excluded (Phase B correction): it belongs to an
+# earlier, superseded family-friendly decomposition
+# (retrieval_checkpoint_v2.jsonl / build_input_v2.py, oracle-NLI-only
+# validated) that never went through the frozen A1/A2/B/C verifier
+# comparison and is not one of the 12 claim IDs Phase B's atomic
+# decomposition (app.logic.soft_preference_decomposition) produces -
+# this alias entry was unreachable dead code. Not reinstated here; a
+# possible later, explicit extension alongside FC3.
 DETERMINISTIC_CLAIM_ALIASES: dict[str, set[str]] = {
     "RW1": {"desk"},
     "RW2A": {"free wifi"},
-    "FC2": {"family rooms"},
     "Q1": {"soundproofing", "soundproof rooms"},
 }
 
