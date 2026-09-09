@@ -10,6 +10,7 @@ from app.schemas.soft_evidence import (
     EvidenceItem,
     EvidenceRelation,
     EvidenceResolutionStatus,
+    RetrievalStatus,
     SoftPreferenceEvidence,
     aggregate_claim_relation,
 )
@@ -175,3 +176,68 @@ def test_soft_preference_evidence_defaults_to_null_verifier_usage():
 def test_soft_preference_evidence_forbids_unknown_fields():
     with pytest.raises(ValidationError):
         SoftPreferenceEvidence(claims=[], unexpected="nope")
+
+
+# ---------------- RetrievalStatus (Phase B) ----------------
+
+
+def test_atomic_claim_result_defaults_to_retrieval_success():
+    claim = AtomicClaimResult.from_evidence_items(claim_id="Q1", hypothesis="h", evidence_items=[])
+    assert claim.retrieval_status == RetrievalStatus.SUCCESS
+    assert claim.retrieval_errors == []
+    assert claim.retrieved_candidate_count == 0
+
+
+def test_retrieval_success_forbids_errors():
+    with pytest.raises(ValidationError):
+        AtomicClaimResult(
+            claim_id="Q1", hypothesis="h", relation=ClaimRelation.NOT_ENOUGH_EVIDENCE,
+            evidence_items=[], retrieval_status=RetrievalStatus.SUCCESS,
+            retrieval_errors=["should not be here"],
+        )
+
+
+def test_retrieval_partial_requires_errors():
+    with pytest.raises(ValidationError):
+        AtomicClaimResult(
+            claim_id="Q1", hypothesis="h", relation=ClaimRelation.NOT_ENOUGH_EVIDENCE,
+            evidence_items=[], retrieval_status=RetrievalStatus.PARTIAL, retrieval_errors=[],
+        )
+
+
+def test_retrieval_failed_requires_errors():
+    with pytest.raises(ValidationError):
+        AtomicClaimResult(
+            claim_id="Q1", hypothesis="h", relation=ClaimRelation.NOT_ENOUGH_EVIDENCE,
+            evidence_items=[], retrieval_status=RetrievalStatus.FAILED, retrieval_errors=[],
+        )
+
+
+def test_retrieval_partial_with_errors_and_real_evidence_items_is_valid():
+    """
+    A technical retrieval failure and "genuinely no evidence" both
+    still aggregate to NOT_ENOUGH_EVIDENCE when there's nothing
+    resolved, but retrieval_status stays distinct/visible.
+    """
+    claim = AtomicClaimResult.from_evidence_items(
+        claim_id="CL1", hypothesis="h", evidence_items=[],
+        retrieval_status=RetrievalStatus.FAILED,
+        retrieval_errors=["query embedding failed: TimeoutError: ..."],
+        retrieved_candidate_count=0,
+    )
+    assert claim.relation == ClaimRelation.NOT_ENOUGH_EVIDENCE
+    assert claim.retrieval_status == RetrievalStatus.FAILED
+    assert claim.retrieval_errors == ["query embedding failed: TimeoutError: ..."]
+
+
+def test_retrieval_partial_can_still_carry_real_resolved_evidence():
+    item = _resolved(EvidenceRelation.SUPPORT)
+    claim = AtomicClaimResult.from_evidence_items(
+        claim_id="CL1", hypothesis="h", evidence_items=[item],
+        retrieval_status=RetrievalStatus.PARTIAL,
+        retrieval_errors=["pool batch 2/3 failed: TimeoutError: ..."],
+        retrieved_candidate_count=3,
+    )
+    assert claim.relation == ClaimRelation.SUPPORT
+    assert claim.retrieval_status == RetrievalStatus.PARTIAL
+    assert claim.retrieved_candidate_count == 3

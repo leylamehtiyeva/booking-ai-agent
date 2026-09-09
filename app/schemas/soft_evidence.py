@@ -32,6 +32,31 @@ class ClaimResolutionMethod(str, Enum):
     GEMINI = "gemini"
 
 
+class RetrievalStatus(str, Enum):
+    """
+    Whether the embedding retrieval step behind one claim's evidence
+    technically succeeded - distinct from whether any useful evidence
+    was found. A technical retrieval failure must never be
+    indistinguishable from "retrieval worked, there is genuinely no
+    evidence": aggregate_claim_relation can still resolve to
+    NOT_ENOUGH_EVIDENCE either way, but retrieval_status makes the
+    difference visible so a future ranking layer does not read a
+    failure as confident absence of evidence.
+
+    SUCCESS: the shared query embedding succeeded and every evidence-pool
+        embedding batch for the hotel succeeded.
+    PARTIAL: the query embedding succeeded; some (not all) of the
+        hotel's evidence-pool batches succeeded - candidates may exist
+        from the successful batches, but coverage is incomplete.
+    FAILED: the query embedding failed, or none of the hotel's
+        evidence-pool batches succeeded.
+    """
+
+    SUCCESS = "success"
+    PARTIAL = "partial"
+    FAILED = "failed"
+
+
 class EvidenceResolutionStatus(str, Enum):
     """
     Whether this evidence item's relation was actually determined.
@@ -89,6 +114,18 @@ class AtomicClaimResult(BaseModel):
     relation: ClaimRelation
     evidence_items: list[EvidenceItem] = Field(default_factory=list)
 
+    retrieval_status: RetrievalStatus = RetrievalStatus.SUCCESS
+    retrieval_errors: list[str] = Field(default_factory=list)
+    retrieved_candidate_count: int = 0
+
+    @model_validator(mode="after")
+    def _retrieval_status_matches_errors(self) -> "AtomicClaimResult":
+        if self.retrieval_status == RetrievalStatus.SUCCESS and self.retrieval_errors:
+            raise ValueError("retrieval_errors must be empty when retrieval_status is SUCCESS")
+        if self.retrieval_status != RetrievalStatus.SUCCESS and not self.retrieval_errors:
+            raise ValueError("retrieval_errors must be non-empty when retrieval_status is PARTIAL or FAILED")
+        return self
+
     @classmethod
     def from_evidence_items(
         cls,
@@ -96,16 +133,25 @@ class AtomicClaimResult(BaseModel):
         claim_id: str,
         hypothesis: str,
         evidence_items: list[EvidenceItem],
+        retrieval_status: RetrievalStatus = RetrievalStatus.SUCCESS,
+        retrieval_errors: list[str] | None = None,
+        retrieved_candidate_count: int = 0,
     ) -> "AtomicClaimResult":
         """
         The only place a claim's top-level relation should be assigned
         from evidence - see aggregate_claim_relation for the rule.
+        retrieval_status/_errors/_candidate_count default to a clean
+        SUCCESS with no errors, so existing Phase A call sites that
+        don't pass them keep working unchanged.
         """
         return cls(
             claim_id=claim_id,
             hypothesis=hypothesis,
             relation=aggregate_claim_relation(evidence_items),
             evidence_items=evidence_items,
+            retrieval_status=retrieval_status,
+            retrieval_errors=retrieval_errors or [],
+            retrieved_candidate_count=retrieved_candidate_count,
         )
 
 
