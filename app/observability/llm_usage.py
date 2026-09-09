@@ -17,7 +17,23 @@ def record_llm_call_from_response(
     response: Any,
     success: bool = True,
     error: str | None = None,
+    latency_ms: float | None = None,
+    parse_failure: bool = False,
 ) -> None:
+    """
+    Records an LLM call for which a response object was actually
+    received - usage_metadata (and therefore token counts/cost) is read
+    from it. This covers both a fully successful call and a call whose
+    response parsed but whose content failed structured-output/enum
+    validation (success=False, parse_failure=True): the API call itself
+    still happened and still consumed tokens, so cost should still be
+    attributed.
+
+    For a call that produced no response object at all (an API/network/
+    timeout exception before any response came back), use
+    record_llm_call_failed instead - there is nothing here to read
+    usage_metadata from.
+    """
     if trace is None:
         return
 
@@ -41,6 +57,44 @@ def record_llm_call_from_response(
             ),
             success=success,
             error=error,
+            latency_ms=latency_ms,
+            parse_failure=parse_failure,
+        )
+    )
+
+
+def record_llm_call_failed(
+    *,
+    trace: RequestTrace | None,
+    step: str,
+    model: str,
+    error: str,
+    latency_ms: float | None = None,
+    parse_failure: bool = False,
+) -> None:
+    """
+    Records an LLM call that produced no usable response object at all
+    (e.g. an API/network/timeout exception raised before any response
+    came back). record_llm_call_from_response can't be reused for this
+    case - there is no response to read usage_metadata from - so token
+    counts and cost are left None (unknown, not zero) rather than forcing
+    a response-shaped call for a call that never got a response.
+    """
+    if trace is None:
+        return
+
+    trace.add_llm_call(
+        LLMCallTrace(
+            step=step,
+            model=model,
+            prompt_tokens=None,
+            completion_tokens=None,
+            total_tokens=None,
+            estimated_cost_usd=None,
+            success=False,
+            error=error,
+            latency_ms=latency_ms,
+            parse_failure=parse_failure,
         )
     )
 

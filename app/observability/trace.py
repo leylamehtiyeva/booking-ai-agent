@@ -24,6 +24,8 @@ class LLMCallTrace:
     estimated_cost_usd: float | None = None
     success: bool = True
     error: str | None = None
+    latency_ms: float | None = None
+    parse_failure: bool = False
 
 
 @dataclass
