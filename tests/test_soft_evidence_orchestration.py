@@ -277,6 +277,88 @@ async def test_verifier_usage_accumulated_per_hotel(monkeypatch):
     assert usage[0]["estimated_cost_usd"] == pytest.approx(0.001)
 
 
+async def test_verifier_usage_cost_unknown_when_no_call_ever_had_a_response(monkeypatch):
+    """
+    If every Gemini call for a hotel fails before any response object
+    exists (API/network failure - LLMCallTrace.estimated_cost_usd is
+    None, not 0), the accumulated cost_known flag must stay False so
+    the final SemanticVerifierUsage.estimated_cost_usd is None
+    (unknown), never a fabricated 0.0.
+    """
+    async def _fake_verify_no_response(evidence_text, hypothesis, *, policy, trace):
+        if trace is not None:
+            from app.observability.trace import LLMCallTrace
+            trace.add_llm_call(LLMCallTrace(
+                step="semantic_evidence_verifier", model="gemini-2.5-flash",
+                prompt_tokens=None, completion_tokens=None, total_tokens=None,
+                estimated_cost_usd=None, success=False, error="TimeoutError: no response",
+                latency_ms=30.0, parse_failure=False,
+            ))
+        return SemanticVerificationResult(relation=None, reason=None, status=EvidenceResolutionStatus.VERIFICATION_FAILED, error="TimeoutError: no response")
+
+    monkeypatch.setattr(orch, "verify_evidence_relation", _fake_verify_no_response)
+
+    trace = RequestTrace()
+    free_text_candidates = {0: {"Q1": [_candidate("a", 0.9), _candidate("b", 0.8)]}}
+    policy = SemanticVerifierPolicy(max_calls_per_hotel=6, max_calls_per_request=60)
+    _, usage = await orch.schedule_gemini_verification(
+        free_text_candidates=free_text_candidates,
+        canonical_claim_order=("Q1",),
+        retrieval_top_k=2,
+        verifier_policy=policy,
+        trace=trace,
+    )
+    assert usage[0]["calls"] == 2
+    assert usage[0]["cost_known"] is False
+    assert usage[0]["estimated_cost_usd"] == 0.0  # raw accumulator, not yet gated
+
+
+async def test_build_shadow_evidence_reports_none_cost_when_all_calls_failed_without_response(monkeypatch):
+    """
+    End-to-end: the resulting SoftPreferenceEvidence.semantic_verifier
+    (populated, since calls were attempted) must have
+    estimated_cost_usd=None, not 0.0, when no call ever produced a
+    known cost.
+    """
+    from app.schemas.listing import ListingRaw
+    from app.schemas.soft_evidence_pipeline_policy import SoftEvidencePipelinePolicy
+
+    monkeypatch.setattr(orch, "embed_query_texts", lambda queries, *, model, trace: ({"Q1": [1.0]}, _ok()))
+    monkeypatch.setattr(orch, "embed_evidence_pool", lambda pool, *, model, trace: ([[1.0]] * len(pool), [_ok()] if pool else []))
+    monkeypatch.setattr(
+        orch, "retrieve_top_k",
+        lambda query_vector, pool, vectors, k: [
+            _candidate("A very quiet street with little traffic noise.", 0.9)
+        ],
+    )
+
+    async def _fake_verify_no_response(evidence_text, hypothesis, *, policy, trace):
+        if trace is not None:
+            from app.observability.trace import LLMCallTrace
+            trace.add_llm_call(LLMCallTrace(
+                step="semantic_evidence_verifier", model="gemini-2.5-flash",
+                prompt_tokens=None, completion_tokens=None, total_tokens=None,
+                estimated_cost_usd=None, success=False, error="TimeoutError: no response",
+                latency_ms=30.0, parse_failure=False,
+            ))
+        return SemanticVerificationResult(relation=None, reason=None, status=EvidenceResolutionStatus.VERIFICATION_FAILED, error="TimeoutError: no response")
+
+    monkeypatch.setattr(orch, "verify_evidence_relation", _fake_verify_no_response)
+
+    results = await orch.build_shadow_soft_preference_evidence(
+        listings=[ListingRaw(id="h1", description="A very quiet street with little traffic noise.")],
+        claim_assignments=[_assignment("Q1")],
+        pipeline_policy=SoftEvidencePipelinePolicy(),
+        verifier_policy=SemanticVerifierPolicy(),
+        trace=RequestTrace(),
+    )
+
+    evidence = results[0]
+    assert evidence.semantic_verifier is not None
+    assert evidence.semantic_verifier.calls == 1
+    assert evidence.semantic_verifier.estimated_cost_usd is None
+
+
 # ---------------- build_shadow_soft_preference_evidence: end-to-end ----------------
 
 

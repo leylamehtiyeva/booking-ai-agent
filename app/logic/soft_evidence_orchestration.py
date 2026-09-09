@@ -159,7 +159,8 @@ async def schedule_gemini_verification(
     verifier_usage_accum: dict[int, dict] = {
         hotel_idx: {
             "calls": 0, "latency_ms": 0.0, "input_tokens": 0, "output_tokens": 0,
-            "total_tokens": 0, "estimated_cost_usd": 0.0, "parse_failures": 0, "errors": [],
+            "total_tokens": 0, "estimated_cost_usd": 0.0, "cost_known": False,
+            "parse_failures": 0, "errors": [],
         }
         for hotel_idx in hotel_indices
     }
@@ -212,7 +213,17 @@ async def schedule_gemini_verification(
                         accum["input_tokens"] += last_call.prompt_tokens or 0
                         accum["output_tokens"] += last_call.completion_tokens or 0
                         accum["total_tokens"] += last_call.total_tokens or 0
-                        accum["estimated_cost_usd"] += last_call.estimated_cost_usd or 0.0
+                        # A call with no response at all (API/network
+                        # failure before any response came back) has
+                        # estimated_cost_usd=None - genuinely unknown,
+                        # not zero. Only sum in and mark cost_known when
+                        # a real cost value was actually observed, so a
+                        # hotel where every call failed without a
+                        # response reports estimated_cost_usd=None
+                        # below, not a fabricated 0.0.
+                        if last_call.estimated_cost_usd is not None:
+                            accum["estimated_cost_usd"] += last_call.estimated_cost_usd
+                            accum["cost_known"] = True
                         if last_call.parse_failure:
                             accum["parse_failures"] += 1
                         if last_call.error:
@@ -312,7 +323,7 @@ async def build_shadow_soft_preference_evidence(
                 input_tokens=accum["input_tokens"],
                 output_tokens=accum["output_tokens"],
                 total_tokens=accum["total_tokens"],
-                estimated_cost_usd=round(accum["estimated_cost_usd"], 6) if accum["calls"] else None,
+                estimated_cost_usd=round(accum["estimated_cost_usd"], 6) if accum.get("cost_known") else None,
                 parse_failures=accum["parse_failures"],
                 errors=accum["errors"],
             )
