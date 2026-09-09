@@ -71,6 +71,7 @@ def resolve_deterministic_claim(
     source_type: str,
     source_path: str | None,
     text: str,
+    retrieval_score: float | None = None,
 ) -> EvidenceItem | None:
     """
     Returns:
@@ -100,5 +101,5 @@ def resolve_deterministic_claim(
         resolution_status=EvidenceResolutionStatus.RESOLVED,
         source_type=source_type,
         source_path=source_path,
-        retrieval_score=None,
+        retrieval_score=retrieval_score,
     )
