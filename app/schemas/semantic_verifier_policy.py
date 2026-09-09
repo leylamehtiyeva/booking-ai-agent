@@ -14,10 +14,21 @@ class SemanticVerifierPolicy(BaseModel):
     reaches the removal step.
 
     max_calls_per_hotel / max_calls_per_request are constructor-args
-    only in Phase A - not read from any environment variable. They are
+    only - not read from any environment variable. They are
     conservative, unvalidated starting points meant to be revised once
     real shadow-mode call volume is observed, not derived from any
     production load data (none exists yet for this pipeline).
+
+    max_calls_per_hotel is the BASE per-hotel budget; the Phase B
+    orchestrator (soft_evidence_orchestration.py) computes an
+    *effective* per-hotel budget from it - min(12, max(base, number of
+    active claims needing Gemini for that hotel)) - so a hotel with
+    more than 6 genuinely active claims is not silently starved.
+    max_calls_per_request defaults to 60 (5 shadow hotels x 12 possible
+    claims each, the true worst case for that effective-budget formula)
+    specifically so it functions as a safety ceiling that does not
+    itself become an earlier, cross-hotel-starvation-causing cutoff
+    under the standard 5-hotel shadow scope.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -27,7 +38,7 @@ class SemanticVerifierPolicy(BaseModel):
     temperature: float = 0.0
 
     max_calls_per_hotel: int = 6
-    max_calls_per_request: int = 20
+    max_calls_per_request: int = 60
 
     def normalized_max_calls_per_hotel(self) -> int:
         return max(0, self.max_calls_per_hotel)
