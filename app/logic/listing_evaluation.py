@@ -14,6 +14,10 @@ from app.logic.matcher_structured import (
 from app.logic.numeric_filters import (
     evaluate_numeric_filters,
 )
+from app.logic.soft_evidence_collection import collect_soft_evidence_pool
+from app.logic.soft_evidence_orchestration import build_shadow_soft_preference_evidence
+from app.logic.soft_evidence_telemetry import summarize_soft_preference_evidence
+from app.logic.soft_preference_decomposition import decompose_constraints
 from app.observability.trace import RequestTrace
 from app.schemas.fallback_policy import (
     FallbackPolicy,
@@ -22,6 +26,9 @@ from app.schemas.fields import Field
 from app.schemas.listing import ListingRaw
 from app.schemas.match import Ternary
 from app.schemas.query import SearchRequest
+from app.schemas.semantic_verifier_policy import SemanticVerifierPolicy
+from app.schemas.soft_evidence import SoftPreferenceEvidence
+from app.schemas.soft_evidence_pipeline_policy import SoftEvidencePipelinePolicy
 
 
 @dataclass
@@ -478,6 +485,122 @@ async def _apply_constraint_fallback_layer(
         item["constraint_resolution_results"] = []
 
 
+def _build_soft_evidence_pipeline_policy() -> SoftEvidencePipelinePolicy:
+    """
+    Default when the caller passes none: the shadow layer is OFF.
+    Existing/unaware callers of evaluate_listings (including every
+    pre-Phase-B test) must keep getting zero embedding/Gemini calls
+    unless they explicitly opt in by passing an enabled policy -
+    SoftEvidencePipelinePolicy()'s own bare-constructor default is
+    enabled=True (documenting the field's natural meaning), but
+    evaluate_listings never constructs a bare one implicitly.
+    """
+    return SoftEvidencePipelinePolicy(enabled=False)
+
+
+def _build_shadow_debug_entry(
+    item: dict[str, Any],
+    evidence: SoftPreferenceEvidence,
+) -> dict[str, Any]:
+    """
+    Bounded (only ever built for the shadow-scope hotels), internal-only
+    per-hotel debug view: old fallback output alongside the new
+    pipeline's full result, for shadow-mode inspection. Never sent to
+    NormalizedSearchResponse - see set_soft_evidence_shadow_data callers.
+    """
+    listing = item.get("listing")
+    pool_size = len(collect_soft_evidence_pool(listing)) if listing is not None else 0
+
+    return {
+        "listing_id": getattr(listing, "id", None),
+        "listing_title": getattr(listing, "name", None) or item.get("listing_name"),
+        "evidence_pool_size": pool_size,
+        "old_constraint_resolution_results": item.get("constraint_resolution_results") or [],
+        "soft_preference_evidence": evidence.model_dump(mode="json"),
+    }
+
+
+async def _apply_soft_evidence_shadow_layer(
+    req: SearchRequest,
+    ranked: list[dict],
+    *,
+    pipeline_policy: SoftEvidencePipelinePolicy,
+    verifier_policy: SemanticVerifierPolicy,
+    trace: RequestTrace | None = None,
+) -> None:
+    """
+    SHADOW MODE ONLY. Attaches item["soft_preference_evidence"] for
+    later inspection/telemetry - nothing in existing scoring, filtering,
+    or selection reads this key (confirmed by
+    tests/test_soft_evidence_shadow_integration.py, which asserts the
+    old path's score/eligibility/constraint_resolution_results/final
+    NormalizedSearchResponse are unchanged with this layer enabled vs
+    disabled).
+
+    Null semantics: item["soft_preference_evidence"] is None whenever
+    the pipeline did not apply/run for that hotel (disabled, no
+    constraint mapped to any validated family, or the hotel fell
+    outside shadow_hotel_top_k scope) - not when it ran but found
+    nothing (that case is a populated SoftPreferenceEvidence whose
+    claims resolve to NOT_ENOUGH_EVIDENCE, semantic_verifier remaining
+    None separately only when zero Gemini calls were actually made).
+    """
+    for item in ranked:
+        item["soft_preference_evidence"] = None
+
+    if not pipeline_policy.enabled:
+        if trace is not None:
+            trace.set_soft_evidence_shadow_data(claim_assignments=[])
+        return
+
+    assignments = decompose_constraints(req.constraints or [])
+    if not assignments:
+        if trace is not None:
+            trace.set_soft_evidence_shadow_data(claim_assignments=[])
+        return
+
+    top_k = pipeline_policy.normalized_shadow_hotel_top_k()
+    shadow_scope = [item for item in ranked[:top_k] if item.get("listing") is not None]
+
+    serialized_assignments = [a.model_dump(mode="json") for a in assignments]
+
+    if not shadow_scope:
+        if trace is not None:
+            trace.set_soft_evidence_shadow_data(claim_assignments=serialized_assignments)
+        return
+
+    listings = [item["listing"] for item in shadow_scope]
+
+    evidences = await build_shadow_soft_preference_evidence(
+        listings=listings,
+        claim_assignments=assignments,
+        pipeline_policy=pipeline_policy,
+        verifier_policy=verifier_policy,
+        trace=trace,
+    )
+
+    for item, evidence in zip(shadow_scope, evidences):
+        item["soft_preference_evidence"] = evidence
+
+    if trace is not None:
+        shadow_detail = [
+            _build_shadow_debug_entry(item, evidence)
+            for item, evidence in zip(shadow_scope, evidences)
+        ]
+        # summarize_soft_preference_evidence (Phase A) already tallies
+        # everything it knew about at the time, including MIXED (Phase
+        # A's own ClaimRelation already had it) - it's extended in a
+        # later commit to also tally the Phase B retrieval_status
+        # distribution; called here, not duplicated, so that extension
+        # requires no change at this call site.
+        summary = summarize_soft_preference_evidence(evidences)
+        trace.set_soft_evidence_shadow_data(
+            summary=summary,
+            shadow_detail=shadow_detail,
+            claim_assignments=serialized_assignments,
+        )
+
+
 def _apply_constraint_resolution_scoring(ranked_items: list[dict]) -> list[dict]:
     for item in ranked_items:
         delta = 0.0
@@ -594,6 +717,8 @@ async def evaluate_listings(
     listings: list[ListingRaw],
     *,
     fallback_policy: FallbackPolicy | None = None,
+    soft_evidence_pipeline_policy: SoftEvidencePipelinePolicy | None = None,
+    semantic_verifier_policy: SemanticVerifierPolicy | None = None,
     trace: RequestTrace | None = None,
 ) -> ListingEvaluationResult:
     """
@@ -606,9 +731,17 @@ async def evaluate_listings(
     - textual fallback
     - constraint coverage normalization
     - final deterministic filtering
+    - (shadow mode only) the new soft-evidence pipeline
 
     Retrieval, final result selection and response normalization
     are outside this stage.
+
+    soft_evidence_pipeline_policy defaults to disabled when not passed
+    (see _build_soft_evidence_pipeline_policy) - the new pipeline never
+    runs, and item["soft_preference_evidence"] is always None, unless a
+    caller explicitly opts in. It is SHADOW MODE ONLY regardless: even
+    enabled, it only attaches item["soft_preference_evidence"] and
+    trace telemetry - it never affects score, filtering, or selection.
     """
     if trace is None:
         trace = RequestTrace()
@@ -666,6 +799,24 @@ async def evaluate_listings(
         return ListingEvaluationResult(
             ranked_items=[],
             debug_notes=_build_empty_result_debug_notes(req),
+        )
+
+    # SHADOW MODE ONLY: runs after every existing scoring/filtering
+    # decision is already final. Only ever writes
+    # item["soft_preference_evidence"] - nothing above this line reads
+    # it, and nothing below reads it either.
+    if soft_evidence_pipeline_policy is None:
+        soft_evidence_pipeline_policy = _build_soft_evidence_pipeline_policy()
+    if semantic_verifier_policy is None:
+        semantic_verifier_policy = SemanticVerifierPolicy()
+
+    with trace.step("soft_evidence_shadow_layer", ranked_count=len(ranked)):
+        await _apply_soft_evidence_shadow_layer(
+            req,
+            ranked,
+            pipeline_policy=soft_evidence_pipeline_policy,
+            verifier_policy=semantic_verifier_policy,
+            trace=trace,
         )
 
     return ListingEvaluationResult(

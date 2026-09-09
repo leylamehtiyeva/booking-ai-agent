@@ -24,6 +24,13 @@ class SoftEvidencePipelinePolicy(BaseModel):
     embedding_model is fixed to gemini-embedding-001 (the model
     validated by the experiments) - not configurable to a different
     model in this migration.
+
+    enabled defaults to True on a bare SoftEvidencePipelinePolicy() -
+    but app.logic.listing_evaluation.evaluate_listings never
+    constructs a bare one implicitly; its own internal default
+    (_build_soft_evidence_pipeline_policy) is enabled=False, so every
+    existing/unaware caller keeps getting zero embedding/Gemini calls
+    unless it explicitly opts in.
     """
 
     model_config = ConfigDict(extra="forbid")
